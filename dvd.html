@@ -44,9 +44,7 @@
         const imageInstances = [];
 
         // Function to add a new image instance
-        function addImageInstance() {
-            const x = Math.floor(Math.random() * (canvas.width - IMAGE_SIZE));
-            const y = Math.floor(Math.random() * (canvas.height - IMAGE_SIZE));
+        function addImageInstance(x, y) {
             const dx = SPEED;
             const dy = SPEED;
             imageInstances.push({ x, y, width: IMAGE_SIZE, height: IMAGE_SIZE, dx, dy });
@@ -64,7 +62,7 @@
         logo.src = 'https://raw.githubusercontent.com/Ev-Bro/dvd/main/dvd.png';
 
         // Add an initial image instance
-        addImageInstance();
+        addImageInstance(Math.floor(Math.random() * (canvas.width - IMAGE_SIZE)), Math.floor(Math.random() * (canvas.height - IMAGE_SIZE)));
 
         // Main game loop
         function gameLoop() {
@@ -96,10 +94,17 @@
         // Event listener for keydown event
         window.addEventListener('keydown', function (event) {
             if (event.key === 'ArrowRight') {
-                addImageInstance();
+                addImageInstance(Math.floor(Math.random() * (canvas.width - IMAGE_SIZE)), Math.floor(Math.random() * (canvas.height - IMAGE_SIZE)));
             } else if (event.key === 'ArrowLeft') {
                 removeImageInstance();
             }
+        });
+
+        // Event listener for touch event
+        window.addEventListener('touchstart', function (event) {
+            const touchX = event.touches[0].clientX;
+            const touchY = event.touches[0].clientY;
+            addImageInstance(touchX - IMAGE_SIZE / 2, touchY - IMAGE_SIZE / 2);
         });
 
         // Start the game loop
