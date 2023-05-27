@@ -65,9 +65,7 @@
             context.clearRect(0, 0, canvas.width, canvas.height);
 
             // Draw image instances
-            for (let i = 0; i < imageInstances.length; i++) {
-                const instance = imageInstances[i];
-
+            for (const instance of imageInstances) {
                 // Move the image instance and check for collision with walls
                 instance.x += instance.dx;
                 instance.y += instance.dy;
