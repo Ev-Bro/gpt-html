@@ -35,7 +35,7 @@
         window.addEventListener('resize', handleResize);
 
         // Set image dimensions
-        const IMAGE_SIZE = 250;
+        const IMAGE_SIZE = 150;
 
         // Initial speed of bouncing
         const SPEED = 2;
@@ -47,25 +47,18 @@
         function addImageInstance(x, y) {
             const dx = SPEED;
             const dy = SPEED;
-            const image = new Image();
-            image.src = 'dvd2.png';
-            imageInstances.push({ x, y, width: IMAGE_SIZE, height: IMAGE_SIZE, dx, dy, image });
+            imageInstances.push({ x, y, width: IMAGE_SIZE, height: IMAGE_SIZE, dx, dy });
         }
 
-        // Function to remove the last image instance
-        function removeImageInstance() {
-            if (imageInstances.length > 0) {
-                imageInstances.pop();
-            }
+        // Function to remove the image instance at the given index
+        function removeImageInstance(index) {
+            imageInstances.splice(index, 1);
         }
 
-        // Add an initial image instance
-        addImageInstance(Math.floor(Math.random() * (canvas.width - IMAGE_SIZE)), Math.floor(Math.random() * (canvas.height - IMAGE_SIZE)));
-
-        // Color cycle variables
-        let hue = 0;
-        const saturation = 100;
-        const lightness = 50;
+        // Load the image
+        const logo = new Image();
+        logo.crossOrigin = "Anonymous"; // Enable CORS
+        logo.src = 'https://raw.githubusercontent.com/Ev-Bro/dvd/main/dvd.png'; // Replace with your Imgur image URL
 
         // Main game loop
         function gameLoop() {
@@ -86,39 +79,41 @@
                     instance.dy = -instance.dy;
                 }
 
-                // Update the color overlay
-                context.globalCompositeOperation = 'source-over';
-                context.fillStyle = `hsla(${hue}, ${saturation}%, ${lightness}%, 0.5)`;
-                context.fillRect(instance.x, instance.y, instance.width, instance.height);
-
-                // Draw the image on top
-                context.globalCompositeOperation = 'source-atop';
-                context.drawImage(instance.image, instance.x, instance.y, instance.width, instance.height);
-
-                hue += 1;
-                if (hue >= 360) {
-                    hue -= 360;
-                }
+                // Draw the logo
+                context.drawImage(logo, instance.x, instance.y, instance.width, instance.height);
             }
 
             // Request next frame
             requestAnimationFrame(gameLoop);
         }
 
-        // Event listener for keydown event
-        window.addEventListener('keydown', function (event) {
-            if (event.key === 'ArrowRight') {
-                addImageInstance(Math.floor(Math.random() * (canvas.width - IMAGE_SIZE)), Math.floor(Math.random() * (canvas.height - IMAGE_SIZE)));
-            } else if (event.key === 'ArrowLeft') {
-                removeImageInstance();
-            }
-        });
-
         // Event listener for touch event
-        window.addEventListener('touchstart', function (event) {
+        canvas.addEventListener('touchstart', function (event) {
             const touchX = event.touches[0].clientX;
             const touchY = event.touches[0].clientY;
-            addImageInstance(touchX - IMAGE_SIZE / 2, touchY - IMAGE_SIZE / 2);
+
+            let shouldRemove = false;
+
+            // Check if the touch is on an existing image instance
+            for (let i = 0; i < imageInstances.length; i++) {
+                const instance = imageInstances[i];
+
+                if (
+                    touchX >= instance.x &&
+                    touchX <= instance.x + instance.width &&
+                    touchY >= instance.y &&
+                    touchY <= instance.y + instance.height
+                ) {
+                    shouldRemove = true;
+                    removeImageInstance(i);
+                    break;
+                }
+            }
+
+            // If not on an existing image instance, add a new one
+            if (!shouldRemove) {
+                addImageInstance(touchX - IMAGE_SIZE / 2, touchY - IMAGE_SIZE / 2);
+            }
         });
 
         // Start the game loop
