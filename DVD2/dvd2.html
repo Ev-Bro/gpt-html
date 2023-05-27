@@ -99,7 +99,13 @@
         }
 
         canvas.addEventListener('touchstart', handleEvent);
-        canvas.addEventListener('mousedown', handleEvent);
+
+        canvas.addEventListener('mousedown', function (event) {
+            setTimeout(function () {
+                handleEvent(event);
+            }, 200); // delay of 200ms
+        });
+
 
         gameLoop();
     </script>
