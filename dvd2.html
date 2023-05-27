@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DVD Bounce</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+
+        canvas {
+            background-color: #000;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        // Create the canvas element
+        const canvas = document.getElementById('gameCanvas');
+        const context = canvas.getContext('2d');
+
+        // Function to handle window resize event
+        function handleResize() {
+            // Set canvas size to match the window size
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        // Set initial canvas size
+        handleResize();
+
+        // Event listener for window resize event
+        window.addEventListener('resize', handleResize);
+
+        // Set image dimensions
+        const IMAGE_SIZE = 150;
+
+        // Initial speed of bouncing
+        const SPEED = 2;
+
+        // Array to hold the image instances
+        const imageInstances = [];
+
+        // Function to add a new image instance
+        function addImageInstance(x, y) {
+            const dx = SPEED;
+            const dy = SPEED;
+            imageInstances.push({ x, y, width: IMAGE_SIZE, height: IMAGE_SIZE, dx, dy });
+        }
+
+        // Function to remove the image instance at the given index
+        function removeImageInstance(index) {
+            imageInstances.splice(index, 1);
+        }
+
+        // Load the image
+        const logo = new Image();
+        logo.src = 'https://raw.githubusercontent.com/Ev-Bro/dvd/main/dvd.png';
+
+        // Main game loop
+        function gameLoop() {
+            // Clear canvas
+            context.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw image instances
+            for (let i = 0; i < imageInstances.length; i++) {
+                const instance = imageInstances[i];
+
+                // Move the image instance and check for collision with walls
+                instance.x += instance.dx;
+                instance.y += instance.dy;
+
+                if (instance.x < 0 || instance.x + instance.width > canvas.width) {
+                    instance.dx = -instance.dx;
+                }
+
+                if (instance.y < 0 || instance.y + instance.height > canvas.height) {
+                    instance.dy = -instance.dy;
+                }
+
+                // Draw the logo
+                context.drawImage(logo, instance.x, instance.y, instance.width, instance.height);
+            }
+
+            // Request next frame
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Event listener for touch event
+        canvas.addEventListener('touchstart', function (event) {
+            const touchX = event.touches[0].clientX;
+            const touchY = event.touches[0].clientY;
+
+            let shouldRemove = false;
+
+            // Check if the touch is on an existing image instance
+            for (let i = 0; i < imageInstances.length; i++) {
+                const instance = imageInstances[i];
+
+                if (
+                    touchX >= instance.x &&
+                    touchX <= instance.x + instance.width &&
+                    touchY >= instance.y &&
+                    touchY <= instance.y + instance.height
+                ) {
+                    shouldRemove = true;
+                    removeImageInstance(i);
+                    break;
+                }
+            }
+
+            // If not on an existing image instance, add a new one
+            if (!shouldRemove) {
+                addImageInstance(touchX - IMAGE_SIZE / 2, touchY - IMAGE_SIZE / 2);
+            }
+        });
+
+        // Start the game loop
+        gameLoop();
+    </script>
+</body>
+</html>
