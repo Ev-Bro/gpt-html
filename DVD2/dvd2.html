@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>DVD Bounce</title>
     <style>
@@ -13,6 +14,7 @@
         }
     </style>
 </head>
+
 <body>
     <canvas id="gameCanvas"></canvas>
 
@@ -33,8 +35,9 @@
         const imageInstances = [];
 
         function addImageInstance(x, y) {
-            const dx = SPEED;
-            const dy = SPEED;
+            const dx = (Math.random() > 0.5 ? 1 : -1) * SPEED;
+            const dy = (Math.random() > 0.5 ? 1 : -1) * SPEED;
+
             imageInstances.push({ x, y, width: IMAGE_SIZE, height: IMAGE_SIZE, dx, dy });
         }
 
@@ -101,4 +104,5 @@
         gameLoop();
     </script>
 </body>
+
 </html>
