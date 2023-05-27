@@ -1,3 +1,3 @@
-[dvd menu](https://ev-bro.github.io/gpt-html/dvd.html)
+[dvd menu](https://ev-bro.github.io/gpt-html/DVD2/dvd.html)
 
-[dvd menu v2](https://ev-bro.github.io/gpt-html/dvd2.html)
+[dvd menu v2](https://ev-bro.github.io/gpt-html/DVD2/dvd2.html)
