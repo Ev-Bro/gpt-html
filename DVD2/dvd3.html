@@ -72,10 +72,12 @@
 
         function removeImageInstance(index) {
             imageInstances.splice(index, 1);
-            if(imageInstances.length === 0) gameEnded = true;
+            if (imageInstances.length === 0) gameEnded = true;
         }
 
         const startTime = Date.now();
+
+
 
         function gameLoop() {
             context.clearRect(0, 0, canvas.width, canvas.height);
@@ -95,18 +97,21 @@
                 context.drawImage(instance.img, instance.x, instance.y, instance.width, instance.height);
             }
 
+            let fontSize = Math.max(16, canvas.width / 30); // Calculate the font size based on the viewport width
+            context.font = fontSize + 'px Arial';
             context.fillStyle = 'white';
-            context.font = '24px Arial';
-            context.fillText(`${imageInstances.length}`, canvas.width - 60, 30); // Remaining:
+            context.fillText(`${imageInstances.length}`, canvas.width - fontSize * 2, fontSize); // Remaining:
 
             let elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
             if (gameEnded) {
                 context.fillStyle = 'yellow';
             }
-            context.fillText(`${elapsedTime}s`, canvas.width - 75, 60); // Time: 
+            context.fillText(`${elapsedTime}s`, canvas.width - fontSize * 2.5, fontSize * 2); // Time: 
 
             if (!gameEnded) requestAnimationFrame(gameLoop);
         }
+
+
 
         function handleEvent(event) {
             if (event.type.startsWith('mouse') && isTouchDevice) {
