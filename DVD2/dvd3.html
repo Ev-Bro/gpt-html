@@ -51,6 +51,7 @@
         });
 
         let currentImageIndex = 0;
+        const startingImagesCount = 20;
 
         function createImageInstances(numInstances) {
             for (let i = 0; i < numInstances; i++) {
@@ -65,14 +66,13 @@
             }
         }
 
-        createImageInstances(50);
+        createImageInstances(startingImagesCount);
 
-        let removedCount = 0;
-        let showRemovedCount = true;
+        let gameEnded = false;
 
         function removeImageInstance(index) {
             imageInstances.splice(index, 1);
-            removedCount++;
+            if(imageInstances.length === 0) gameEnded = true;
         }
 
         const startTime = Date.now();
@@ -95,16 +95,17 @@
                 context.drawImage(instance.img, instance.x, instance.y, instance.width, instance.height);
             }
 
-            if (showRemovedCount) {
-                context.fillStyle = 'white';
-                context.font = '24px Arial';
-                context.fillText(`${removedCount}`, canvas.width - 60, 30); // Removed:
-            }
+            context.fillStyle = 'white';
+            context.font = '24px Arial';
+            context.fillText(`${imageInstances.length}`, canvas.width - 60, 30); // Remaining:
 
-            const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
+            let elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
+            if (gameEnded) {
+                context.fillStyle = 'yellow';
+            }
             context.fillText(`${elapsedTime}s`, canvas.width - 75, 60); // Time: 
 
-            requestAnimationFrame(gameLoop);
+            if (!gameEnded) requestAnimationFrame(gameLoop);
         }
 
         function handleEvent(event) {
