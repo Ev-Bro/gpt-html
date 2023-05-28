@@ -19,73 +19,71 @@
 <body>
     <canvas id="gameCanvas"></canvas>
     <script>
-        // Get the Canvas element and its context for drawing
         const canvas = document.getElementById('gameCanvas');
         const context = canvas.getContext('2d');
 
-        // Boolean flag to check if device is a touch device
         const isTouchDevice = 'ontouchstart' in window;
 
-        // Function to handle window resize event
         function handleResize() {
-            // Set the canvas size to match the window size
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
         }
 
-        // Set initial canvas size and add an event listener for window resize event
         handleResize();
         window.addEventListener('resize', handleResize);
 
-        // Constant for the size of images and the initial speed of bouncing
         const IMAGE_SIZE = 150;
         const SPEED = 2;
 
-        // Array to hold the image instances
         const imageInstances = [];
 
-        // Array of image sources
         const imageSources = [
-            'https://raw.githubusercontent.com/Ev-Bro/dvd/main/dvd1.png',
-            'https://raw.githubusercontent.com/Ev-Bro/dvd/main/dvd2.png',
-            'https://raw.githubusercontent.com/Ev-Bro/dvd/main/dvd3.png',
-            // Add more image sources here if you have more images
+            'dvd1.png',
+            'dvd2.png',
+            'dvd3.png',
+            'dvd4.png',
         ];
 
-        // Load all images
         const images = imageSources.map(src => {
             const img = new Image();
             img.src = src;
             return img;
         });
 
-        // Function to add a new image instance with randomized direction
-        function addImageInstance(x, y) {
-            const dx = (Math.random() > 0.5 ? 1 : -1) * SPEED;
-            const dy = (Math.random() > 0.5 ? 1 : -1) * SPEED;
-            const img = images[Math.floor(Math.random() * images.length)];  // Choose a random image
-            imageInstances.push({ x, y, width: IMAGE_SIZE, height: IMAGE_SIZE, dx, dy, img });
+        let currentImageIndex = 0;
+
+        function createImageInstances(numInstances) {
+            for (let i = 0; i < numInstances; i++) {
+                const x = Math.random() * (canvas.width - IMAGE_SIZE);
+                const y = Math.random() * (canvas.height - IMAGE_SIZE);
+                const dx = (Math.random() > 0.5 ? 1 : -1) * SPEED;
+                const dy = (Math.random() > 0.5 ? 1 : -1) * SPEED;
+                const img = images[currentImageIndex];
+                imageInstances.push({ x, y, width: IMAGE_SIZE, height: IMAGE_SIZE, dx, dy, img });
+
+                currentImageIndex = (currentImageIndex + 1) % images.length;
+            }
         }
 
-        // Add an initial image instance at the center of the screen
-        addImageInstance(window.innerWidth / 2 - IMAGE_SIZE / 2, window.innerHeight / 2 - IMAGE_SIZE / 2);
+        createImageInstances(50);
 
-        // Function to remove an image instance at the given index
+        let removedCount = 0;
+        let showRemovedCount = true;
+
         function removeImageInstance(index) {
             imageInstances.splice(index, 1);
+            removedCount++;
         }
 
-        // Main game loop
+        const startTime = Date.now();
+
         function gameLoop() {
-            // Clear the canvas
             context.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw each image instance and handle their movements
             for (const instance of imageInstances) {
                 instance.x += instance.dx;
                 instance.y += instance.dy;
 
-                // Check for collision with canvas boundaries and bounce if collided
                 if (instance.x < 0 || instance.x + instance.width > canvas.width) {
                     instance.dx = -instance.dx;
                 }
@@ -94,28 +92,31 @@
                     instance.dy = -instance.dy;
                 }
 
-                // Draw the image at the instance's position
                 context.drawImage(instance.img, instance.x, instance.y, instance.width, instance.height);
             }
 
-            // Call the game loop again for the next frame
+            if (showRemovedCount) {
+                context.fillStyle = 'white';
+                context.font = '24px Arial';
+                context.fillText(`${removedCount}`, canvas.width - 60, 30); // Removed:
+            }
+
+            const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
+            context.fillText(`${elapsedTime}s`, canvas.width - 75, 60); // Time: 
+
             requestAnimationFrame(gameLoop);
         }
 
-        // Function to handle 'touchstart' and 'mousedown' events
         function handleEvent(event) {
-            // If the event is a mouse event and the device is a touch device, do nothing
             if (event.type.startsWith('mouse') && isTouchDevice) {
                 return;
             }
 
-            // Get the position of the touch/click
             const touchX = event.clientX || event.touches[0].clientX;
             const touchY = event.clientY || event.touches[0].clientY;
 
             let shouldRemove = false;
 
-            // Check if the touch/click is on an existing image instance
             for (let i = 0; i < imageInstances.length; i++) {
                 const instance = imageInstances[i];
 
@@ -125,29 +126,24 @@
                     touchY >= instance.y &&
                     touchY <= instance.y + instance.height
                 ) {
-                    // If yes, remove that instance and stop checking
                     shouldRemove = true;
                     removeImageInstance(i);
                     break;
                 }
             }
 
-            // If the touch/click was not on an existing image instance, add a new one
             if (!shouldRemove) {
                 addImageInstance(touchX - IMAGE_SIZE / 2, touchY - IMAGE_SIZE / 2);
             }
         }
 
-        // Add event listeners for 'touchstart' and 'mousedown' events
         canvas.addEventListener('touchstart', handleEvent);
         canvas.addEventListener('mousedown', function (event) {
-            // Delay the 'mousedown' event to avoid it being triggered immediately after a 'touchstart' event
             setTimeout(function () {
                 handleEvent(event);
             }, 20);
         });
 
-        // Start the game loop
         gameLoop();
     </script>
 </body>
