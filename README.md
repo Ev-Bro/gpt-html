@@ -1,6 +1,7 @@
 # Links:  
 [Version 1](https://ev-bro.github.io/gpt-html/DVD2/dvd.html)  
 [Version 2](https://ev-bro.github.io/gpt-html/DVD2/dvd2.html)  
+[Version 3](https://ev-bro.github.io/gpt-html/DVD2/dvd3.html)  
 
 # To do:
 **Add support for multiple logos**  
