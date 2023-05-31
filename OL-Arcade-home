@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Arcade Homepage</title>
+    <style>
+        /* CSS styles for the star field */
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: url('space-background.jpg') no-repeat center center fixed;
+            background-size: cover;
+        }
+
+        #starfield {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            z-index: -1;
+        }
+
+        /* CSS styles for stars */
+        .star {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background-color: white;
+            border-radius: 50%;
+            animation: starAnimation linear infinite;
+        }
+
+        /* Keyframe animation for stars */
+        @keyframes starAnimation {
+            0% {
+                opacity: 0;
+                transform: scale(0);
+            }
+
+            20% {
+                opacity: 1;
+            }
+
+            80% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0;
+                transform: scale(1);
+            }
+        }
+
+        /* CSS styles for game selector */
+
+        .game-selector {
+            background-color: transparent;
+            font-family: Arial, sans-serif;
+        }
+
+        .game-selector h1 {
+            color: #c9c9c9;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .game-selector ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+        }
+
+        .game-selector li {
+            display: inline-block;
+            margin: 10px;
+        }
+
+        .game-selector a {
+            display: block;
+            padding: 20px;
+            background-color: #2196F3;
+            color: #9dff00;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+            border: 1px solid #2196F3;
+        }
+
+        .game-selector a:hover {
+            background-color: #1976D2;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="starfield"></div>
+
+    <div class="game-selector">
+        <h1>Welcome to Office Links Arcade! version 1.0</h1>
+
+        <ul>
+            <li><a href="https://blitzace71.github.io/officelinks/games/falldown/index.html">Falldown</a></li>
+            <li><a href="https://blitzace71.github.io/officelinks/games/snake/index.html">Snake</a></li>
+            <li><a href="https://ev-bro.github.io/gpt-html/DVD2/OL-tap-tap.html">OL Face Tap Madness</a></li>
+        </ul>
+    </div>
+
+    <script>
+        // JavaScript code for generating star field
+        function generateStars() {
+            const starfield = document.getElementById('starfield');
+
+            for (let i = 0; i < 200; i++) { // Multiply the number of stars by 10
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.animationDelay = `${Math.random() * 5}s`;
+                star.style.animationDuration = `${Math.random() * 2 + 1}s`;
+                starfield.appendChild(star);
+            }
+        }
+
+        // Call the generateStars function to create the star field
+        generateStars();
+    </script>
+</body>
+
+</html>
