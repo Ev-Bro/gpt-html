@@ -3,6 +3,8 @@
 [Version 2](https://ev-bro.github.io/gpt-html/DVD2/dvd2.html)  
 [Version 3](https://ev-bro.github.io/gpt-html/DVD2/dvd3.html)  
 
+[OL Face Tap Madness](https://ev-bro.github.io/gpt-html/DVD2/OL-tap-tap.html)
+
 # To do:
 **Add support for multiple logos**  
 -newly added logos should cycle to the next logo  
