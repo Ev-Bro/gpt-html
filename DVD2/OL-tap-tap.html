@@ -1,1 +1,251 @@
+<!DOCTYPE html>
+<html>
 
+<head>
+    <title>DVD Menu</title>
+    <meta name="theme-color" content="#000000">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+
+        canvas {
+            background-color: #000;
+            position: absolute;
+            z-index: 1; // Lower z-index than the restart button
+        }
+
+        #restartButton {
+            z-index: 2; // Higher z-index than the canvas
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="gameCanvas"></canvas>
+
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const context = canvas.getContext('2d');
+
+        const isTouchDevice = 'ontouchstart' in window;
+        const IMAGE_SIZE = isTouchDevice ? 225 : 150;  // Images 1.5x larger on mobile
+
+        function handleResize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        handleResize();
+        window.addEventListener('resize', handleResize);
+
+        const SPEED = 2;
+
+        let imageInstances = [];
+
+        const imageSources = [
+
+            'https://raw.githubusercontent.com/Ev-Bro/gpt-html/main/DVD2/faces/face1.png',
+            'https://raw.githubusercontent.com/Ev-Bro/gpt-html/main/DVD2/faces/face2.png',
+            'https://raw.githubusercontent.com/Ev-Bro/gpt-html/main/DVD2/faces/face3.png',
+            'https://raw.githubusercontent.com/Ev-Bro/gpt-html/main/DVD2/faces/face4.png',
+            'https://raw.githubusercontent.com/Ev-Bro/gpt-html/main/DVD2/faces/face5.png',
+            'https://raw.githubusercontent.com/Ev-Bro/gpt-html/main/DVD2/faces/face6.png',
+            'https://raw.githubusercontent.com/Ev-Bro/gpt-html/main/DVD2/faces/face7.png',
+            'https://raw.githubusercontent.com/Ev-Bro/gpt-html/main/DVD2/faces/face8.png',
+            'https://raw.githubusercontent.com/Ev-Bro/gpt-html/main/DVD2/faces/face9.png',
+            'https://raw.githubusercontent.com/Ev-Bro/gpt-html/main/DVD2/faces/face10.png',
+            'https://raw.githubusercontent.com/Ev-Bro/gpt-html/main/DVD2/faces/face11.png',
+            'https://raw.githubusercontent.com/Ev-Bro/gpt-html/main/DVD2/faces/face12.png',
+            'https://raw.githubusercontent.com/Ev-Bro/gpt-html/main/DVD2/faces/face13.png',
+            'https://raw.githubusercontent.com/Ev-Bro/gpt-html/main/DVD2/faces/face14.png',
+            'https://raw.githubusercontent.com/Ev-Bro/gpt-html/main/DVD2/faces/face15.png',
+            'https://raw.githubusercontent.com/Ev-Bro/gpt-html/main/DVD2/faces/face16.png',
+            'https://raw.githubusercontent.com/Ev-Bro/gpt-html/main/DVD2/faces/face17.png',
+
+        ];
+
+        const images = [];
+        let currentImageIndex = 0;
+        let roundNumber = 1;
+
+        imageSources.forEach((src) => {
+            const img = new Image();
+            img.src = src;
+            img.onload = function () {
+                images.push(this);
+                if (images.length === imageSources.length) {
+                    shuffle(images);
+                    resetGame();
+                    startTimer();
+                    gameLoop();
+                }
+            };
+        });
+
+        function shuffle(array) {
+            let currentIndex = array.length, temporaryValue, randomIndex;
+            while (0 !== currentIndex) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex -= 1;
+                temporaryValue = array[currentIndex];
+                array[currentIndex] = array[randomIndex];
+                array[randomIndex] = temporaryValue;
+            }
+            return array;
+        }
+
+        function createImageInstances(numInstances) {
+            for (let i = 0; i < numInstances; i++) {
+                const x = Math.random() * (canvas.width - IMAGE_SIZE);
+                const y = Math.random() * (canvas.height - IMAGE_SIZE);
+                const dx = (Math.random() > 0.5 ? 1 : -1) * SPEED;
+                const dy = (Math.random() > 0.5 ? 1 : -1) * SPEED;
+                const img = images[currentImageIndex];
+                imageInstances.push({ x, y, width: IMAGE_SIZE, height: IMAGE_SIZE, dx, dy, img });
+
+                currentImageIndex++;
+                if (currentImageIndex >= images.length) {
+                    shuffle(images);
+                    currentImageIndex = 0;
+                }
+            }
+        }
+
+        function resetGame() {
+            imageInstances = [];
+            createImageInstances(5 + roundNumber * 3);
+            gameEnded = false;
+            startTimer();
+        }
+
+        let gameEnded = false;
+
+        function removeImageInstance(index) {
+            imageInstances.splice(index, 1);
+            if (imageInstances.length === 0) {
+                roundNumber += 1;
+                resetGame();
+            }
+        }
+
+        const TIME_LIMIT = 10;
+        let timerValue = TIME_LIMIT;
+        let timerId = null;
+
+        function startTimer() {
+            timerValue = TIME_LIMIT;
+            if (timerId !== null) {
+                clearInterval(timerId);
+            }
+            timerId = setInterval(() => {
+                timerValue -= 1;
+                if (timerValue <= 0) {
+                    clearInterval(timerId);
+                    gameEnded = true;
+                }
+            }, 1000);
+        }
+
+        function gameLoop() {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+
+            for (const instance of imageInstances) {
+                instance.x += instance.dx;
+                instance.y += instance.dy;
+
+                if (instance.x < 0 || instance.x + instance.width > canvas.width) {
+                    instance.dx = -instance.dx;
+                }
+
+                if (instance.y < 0 || instance.y + instance.height > canvas.height) {
+                    instance.dy = -instance.dy;
+                }
+
+                context.drawImage(instance.img, instance.x, instance.y, instance.width, instance.height);
+            }
+
+            let fontSize = Math.max(16, canvas.width / 30);
+            context.font = fontSize + 'px Arial';
+            context.fillStyle = 'white';
+            context.fillText(`Round: ${roundNumber}`, fontSize, fontSize);
+            context.fillText(`Remaining: ${imageInstances.length}`, fontSize, fontSize * 2);
+            context.fillText(`Time: ${timerValue}s`, fontSize, fontSize * 3);
+
+
+            if (gameEnded) {
+                context.fillText(`Game Over`, canvas.width / 2, canvas.height / 2);
+
+                // Check if the restart button already exists before creating it
+
+                if (!document.getElementById("restartButton")) {
+                    const button = document.createElement("button");
+                    button.innerHTML = "Restart Game";
+                    button.id = "restartButton";
+                    button.style.position = "absolute";
+                    button.style.zIndex = 2;  // Higher z-index than the canvas
+                    button.style.left = `${canvas.width / 2}px`;
+                    button.style.top = `${canvas.height / 2 + 50}px`;
+                    button.onclick = function () {
+                        gameEnded = false;
+                        roundNumber = 1;
+                        resetGame();
+                        this.remove();
+                        gameLoop();
+                    };
+
+
+
+                    document.body.appendChild(button);
+                }
+            } else {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+
+
+        function handleEvent(event) {
+            if (event.type.startsWith('mouse') && isTouchDevice) {
+                return;
+            }
+
+            const touchX = event.clientX || event.touches[0].clientX;
+            const touchY = event.clientY || event.touches[0].clientY;
+
+            let shouldRemove = false;
+
+            for (let i = 0; i < imageInstances.length; i++) {
+                const instance = imageInstances[i];
+
+                if (
+                    touchX >= instance.x &&
+                    touchX <= instance.x + instance.width &&
+                    touchY >= instance.y &&
+                    touchY <= instance.y + instance.height
+                ) {
+                    shouldRemove = true;
+                    removeImageInstance(i);
+                    break;
+                }
+            }
+        }
+
+        canvas.addEventListener('touchstart', handleEvent);
+        canvas.addEventListener('mousedown', function (event) {
+            setTimeout(function () {
+                handleEvent(event);
+            }, 20);
+        });
+    </script>
+
+
+
+
+
+
+</body>
+
+</html>
