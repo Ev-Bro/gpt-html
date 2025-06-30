@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genetic Algorithm Ecosystem</title>
+    <style>
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: 'monospace', 'Courier New', Courier;
+            display: flex;
+            flex-direction: column; /* Changed to stack button and container */
+            align-items: center; /* Center content horizontally */
+            margin: 0;
+            padding: 10px; /* Reduced padding slightly */
+            font-size: 15px;
+            line-height: 1.2;
+            font-weight: bold;
+        }
+        #resize-btn-container {
+            padding: 5px 0 15px 0; /* Add some space around the button */
+        }
+        #resize-restart-btn {
+            background-color: #00BCD4;
+            color: #000;
+            border: none;
+            padding: 8px 15px;
+            font-family: 'monospace', 'Courier New', Courier;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        #resize-restart-btn:hover {
+            background-color: #0097a7;
+        }
+        .container {
+            display: flex;
+            flex-wrap: no-wrap; /* Prevent wrapping */
+            justify-content: center;
+        }
+        #simulation-container {
+            white-space: pre;
+            padding: 10px;
+        }
+        #stats-container {
+            white-space: pre;
+            padding: 10px;
+            width: 550px;
+        }
+        .green { color: #4CAF50; }
+        .blue { color: #2196F3; }
+        .red { color: #F44336; }
+        .yellow { color: #FFEB3B; }
+        .cyan { color: #00BCD4; }
+        .white { color: #FFFFFF; }
+        .dim { color: #555; }
+        .bar-fill {
+            display: inline-block;
+            background-color: #00BCD4;
+            height: 1em;
+            vertical-align: middle;
+        }
+        .bar-empty {
+            display: inline-block;
+            background-color: #555;
+            height: 1em;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <div id="resize-btn-container">
+        <button id="resize-restart-btn">Fit to Window & Restart</button>
+    </div>
+    <div class="container">
+        <div id="simulation-container"></div>
+        <div id="stats-container"></div>
+    </div>
+
+    <script>
+        // --- Toggles & Settings ---
+        let SHOW_GRID = true;
+        const EMPTY_CHAR = ' '; // '·'
+
+        // --- Simulation Parameters ---
+        let GRID_WIDTH = 70;
+        let GRID_HEIGHT = 50;
+        let SIMULATION_SPEED_MS = 75;
+
+        // --- Organism Representation ---
+        const PLANT_CHAR = 'T';
+        const HERBIVORE_CHAR = 'H';
+        const CARNIVORE_CHAR = 'X';
+
+        // --- Global Simulation State ---
+        let organisms = {};
+        let organism_counts = {};
+        let grid = [];
+        let simulationRunning = false;
+        let animationFrameId;
+        let mainController; // To control the main learning loop
+
+        // --- Utility to generate a UUID ---
+        function uuidv4() {
+            return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+                (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+            );
+        }
+
+        // --- Organism Classes ---
+        class Organism {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.id = uuidv4();
+                this.energy = 0;
+            }
+
+            update() {
+                throw new Error("Update method must be implemented by subclasses");
+            }
+
+            die() {
+                organism_counts[this.type]--;
+                if (this.y < grid.length && this.x < grid[0].length && grid[this.y][this.x] === this) {
+                    grid[this.y][this.x] = null;
+                }
+                if (organisms[this.id]) {
+                    delete organisms[this.id];
+                }
+            }
+        }
+
+        class Plant extends Organism {
+            constructor(x, y) {
+                super(x, y);
+                this.energy = 30;
+                this.reproduction_rate = 0.1;
+                this.type = 'plant';
+                this.char = PLANT_CHAR;
+            }
+
+            update() {
+                this.energy += 1;
+                if (Math.random() < this.reproduction_rate && this.energy > 40) {
+                    this.reproduce();
+                }
+            }
+
+            reproduce() {
+                const available_neighbors = this.get_available_neighbors();
+                if (available_neighbors.length > 0) {
+                    const new_pos = available_neighbors[Math.floor(Math.random() * available_neighbors.length)];
+                    const new_plant = new Plant(new_pos.x, new_pos.y);
+                    organisms[new_plant.id] = new_plant;
+                    grid[new_pos.y][new_pos.x] = new_plant;
+                    organism_counts['plant']++;
+                    this.energy -= 35;
+                }
+            }
+
+            get_available_neighbors() {
+                let neighbors = [];
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dy = -1; dy <= 1; dy++) {
+                        if (dx === 0 && dy === 0) continue;
+                        const new_x = (this.x + dx + GRID_WIDTH) % GRID_WIDTH;
+                        const new_y = (this.y + dy + GRID_HEIGHT) % GRID_HEIGHT;
+                        if (!grid[new_y] || grid[new_y][new_x] === undefined || !grid[new_y][new_x]) {
+                            neighbors.push({ x: new_x, y: new_y });
+                        }
+                    }
+                }
+                return neighbors;
+            }
+        }
+
+        class Herbivore extends Organism {
+            constructor(x, y) {
+                super(x, y);
+                this.energy = 100;
+                this.reproduction_energy = 200;
+                this.move_cost = 2;
+                this.type = 'herbivore';
+                this.char = HERBIVORE_CHAR;
+            }
+
+            update() {
+                this.energy -= this.move_cost;
+                const potential_food = this.move();
+                this.eat(potential_food);
+                if (this.energy > this.reproduction_energy) {
+                    this.reproduce();
+                }
+                if (this.energy <= 0) {
+                    this.die();
+                }
+            }
+
+            move() {
+                const new_x = (this.x + Math.floor(Math.random() * 3) - 1 + GRID_WIDTH) % GRID_WIDTH;
+                const new_y = (this.y + Math.floor(Math.random() * 3) - 1 + GRID_HEIGHT) % GRID_HEIGHT;
+                const target = grid[new_y][new_x];
+
+                if (target && target.type === this.type) return null;
+                if (grid[this.y][this.x] === this) grid[this.y][this.x] = null;
+                this.x = new_x;
+                this.y = new_y;
+                grid[this.y][this.x] = this;
+                return target;
+            }
+
+            eat(target) {
+                if (target && target.type === 'plant') {
+                    this.energy += target.energy;
+                    target.die();
+                }
+            }
+
+            reproduce() {
+                const available_neighbors = this.get_available_neighbors();
+                if (available_neighbors.length > 0) {
+                    this.energy -= 100;
+                    const new_pos = available_neighbors[Math.floor(Math.random() * available_neighbors.length)];
+                    const new_herbivore = new Herbivore(new_pos.x, new_pos.y);
+                    organisms[new_herbivore.id] = new_herbivore;
+                    grid[new_pos.y][new_pos.x] = new_herbivore;
+                    organism_counts['herbivore']++;
+                }
+            }
+
+            get_available_neighbors() {
+                let neighbors = [];
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dy = -1; dy <= 1; dy++) {
+                        if (dx === 0 && dy === 0) continue;
+                        const new_x = (this.x + dx + GRID_WIDTH) % GRID_WIDTH;
+                        const new_y = (this.y + dy + GRID_HEIGHT) % GRID_HEIGHT;
+                        if (!grid[new_y] || grid[new_y][new_x] === undefined || !grid[new_y][new_x]) {
+                            neighbors.push({ x: new_x, y: new_y });
+                        }
+                    }
+                }
+                return neighbors;
+            }
+        }
+
+        class Carnivore extends Herbivore { // Inherits move, reproduce, get_available_neighbors
+            constructor(x, y) {
+                super(x, y);
+                this.energy = 150;
+                this.reproduction_energy = 300;
+                this.move_cost = 4;
+                this.type = 'carnivore';
+                this.char = CARNIVORE_CHAR;
+            }
+
+            eat(target) {
+                if (target && target.type === 'herbivore') {
+                    this.energy += target.energy;
+                    target.die();
+                }
+            }
+            
+            reproduce() { // Override reproduce to create Carnivores
+                const available_neighbors = this.get_available_neighbors();
+                if (available_neighbors.length > 0) {
+                    this.energy -= 120;
+                    const new_pos = available_neighbors[Math.floor(Math.random() * available_neighbors.length)];
+                    const new_carnivore = new Carnivore(new_pos.x, new_pos.y);
+                    organisms[new_carnivore.id] = new_carnivore;
+                    grid[new_pos.y][new_pos.x] = new_carnivore;
+                    organism_counts['carnivore']++;
+                }
+            }
+        }
+        
+        // --- Simulation Setup ---
+        function setup_simulation(initial_plants, initial_herbivores, initial_carnivores) {
+            grid = Array(GRID_HEIGHT).fill(null).map(() => Array(GRID_WIDTH).fill(null));
+            organisms = {};
+            organism_counts = { 'plant': 0, 'herbivore': 0, 'carnivore': 0 };
+
+            for (let i = 0; i < initial_plants; i++) {
+                let x, y;
+                do {
+                    x = Math.floor(Math.random() * GRID_WIDTH);
+                    y = Math.floor(Math.random() * GRID_HEIGHT);
+                } while (grid[y][x]);
+                const plant = new Plant(x, y);
+                organisms[plant.id] = plant;
+                grid[y][x] = plant;
+                organism_counts['plant']++;
+            }
+            for (let i = 0; i < initial_herbivores; i++) {
+                let x, y;
+                do {
+                    x = Math.floor(Math.random() * GRID_WIDTH);
+                    y = Math.floor(Math.random() * GRID_HEIGHT);
+                } while (grid[y][x]);
+                const herbivore = new Herbivore(x, y);
+                organisms[herbivore.id] = herbivore;
+                grid[y][x] = herbivore;
+                organism_counts['herbivore']++;
+            }
+            for (let i = 0; i < initial_carnivores; i++) {
+                let x, y;
+                do {
+                    x = Math.floor(Math.random() * GRID_WIDTH);
+                    y = Math.floor(Math.random() * GRID_HEIGHT);
+                } while (grid[y][x]);
+                const carnivore = new Carnivore(x, y);
+                organisms[carnivore.id] = carnivore;
+                grid[y][x] = carnivore;
+                organism_counts['carnivore']++;
+            }
+        }
+
+        // --- Display Logic ---
+        function getPaddedLine(line, width) {
+            const cleanLine = line.replace(/<[^>]*>/g, '');
+            const paddingNeeded = width - cleanLine.length;
+            return line + ' '.repeat(Math.max(0, paddingNeeded));
+        }
+
+        function drawPerformanceMeter(current, maximum, width = 30) {
+            const ratio = Math.min(1, maximum > 0 ? current / maximum : 0);
+            const filledWidth = Math.floor(ratio * width);
+            const emptyWidth = width - filledWidth;
+            const barFill = `<span class="bar-fill">${'█'.repeat(filledWidth)}</span>`;
+            const barEmpty = `<span class="bar-empty">${'-'.repeat(emptyWidth)}</span>`;
+            return `[${barFill}${barEmpty}] ${current}/${maximum}`;
+        }
+
+        function updateDisplay(mode, full_redraw = false, options = {}) {
+            const { stats = {}, params = {}, time_step = 0, timer = "00:00", scoreboard = [], recent_history = [], average_snapshots = [], current_duration = 0, max_duration_for_meter = 1 } = options;
+            
+            let rightPanelHtml = '';
+            rightPanelHtml += `<span class="yellow">--- Genetic Algorithm Ecosystem ---</span>\n`;
+            rightPanelHtml += `<span class="white">Gen: ${stats.generation || 0} | All-Time Avg: ${(stats.average_duration || 0).toFixed(1)}</span>\n`;
+            const best_p = stats.best_params || {};
+            rightPanelHtml += `<span class="white">Best Sim: ${stats.best_duration || 0} steps (<span class="green">${best_p.plants || 0}P</span>,<span class="blue">${best_p.herbivores || 0}H</span>,<span class="red">${best_p.carnivores || 0}C</span><span class="white">)</span></span>\n`;
+            rightPanelHtml += `<span class="white">Gens since new best: ${stats.gens_since_best || 0}</span>\n`;
+
+            if (mode === 'simulating') {
+                 if (!SHOW_GRID) {
+                     rightPanelHtml = rightPanelHtml.replace('---', '--- (HEADLESS) ---');
+                 }
+                rightPanelHtml += `<span class="white">Testing: <span class="green">${params.plants}P</span>, <span class="blue">${params.herbivores}H</span>, <span class="red">${params.carnivores}C</span></span>\n`;
+                rightPanelHtml += `Step: ${time_step} | Timer: ${timer}\n`;
+                rightPanelHtml += `Speed: ${SIMULATION_SPEED_MS}ms [Up/Down]\n`;
+                rightPanelHtml += `Counts: <span class="green">${organism_counts.plant}P</span>, <span class="blue">${organism_counts.herbivore}H</span>, <span class="red">${organism_counts.carnivore}C</span>\n`;
+                rightPanelHtml += `Duration: ${drawPerformanceMeter(current_duration, max_duration_for_meter)}\n`;
+
+            } else {
+                rightPanelHtml += `<span class="yellow">Status: Breeding next generation...</span>\n`;
+                rightPanelHtml += '\n\n\n\n';
+            }
+
+            rightPanelHtml += '\n';
+
+            // Leaderboard and History
+            const top_lines = [`<span class="cyan">--- Population Leaderboard ---</span>`];
+            scoreboard.slice(0, 10).forEach((score, i) => {
+                const p = score.params;
+                const gen_str = `${score.generation}-${score.sim_number}`.padEnd(6);
+                let line = `${(i + 1).toString().padStart(2)}. D:${score.duration.toString().padEnd(5)} G:${gen_str} P:<span class="green">${p.plants.toString().padEnd(3)}</span><span class="cyan"> H:</span><span class="blue">${p.herbivores.toString().padEnd(2)}</span><span class="cyan"> C:</span><span class="red">${p.carnivores.toString().padEnd(2)}</span>`;
+                top_lines.push(line);
+            });
+
+            const history_lines = [`<span class="yellow">--- Recent Sim History ---</span>`];
+            recent_history.slice(0, 10).forEach((score, i) => {
+                 const p = score.params;
+                 const gen_str = `${score.generation}-${score.sim_number}`.padEnd(6);
+                 let line = `${(i + 1).toString().padStart(2)}. D:${score.duration.toString().padEnd(5)} G:${gen_str} P:<span class="green">${p.plants.toString().padEnd(3)}</span><span class="yellow"> H:</span><span class="blue">${p.herbivores.toString().padEnd(2)}</span><span class="yellow"> C:</span><span class="red">${p.carnivores.toString().padEnd(2)}</span>`;
+                 history_lines.push(line);
+            });
+            
+            const max_lines = Math.max(top_lines.length, history_lines.length);
+            for (let i = 0; i < max_lines; i++) {
+                const left_line = top_lines[i] || "";
+                const right_line = history_lines[i] || "";
+                rightPanelHtml += `${getPaddedLine(left_line, 43)}   ${right_line}\n`;
+            }
+
+            rightPanelHtml += '\n';
+
+            // Snapshots
+            const snapshot_lines = [`<span class="yellow">--- Avg. Duration Snapshots (30s) ---</span>`];
+            average_snapshots.forEach(item => snapshot_lines.push(`<span class="white">${item}</span>`));
+            rightPanelHtml += snapshot_lines.join('\n') + '\n\n';
+
+            // Rules Summary
+            rightPanelHtml += `<span class="cyan">-------------- How It Works --------------</span>\n`;
+            rightPanelHtml += `<span class="white">Goal: Find P/H/C mix for longest survival.</span>\n`;
+            rightPanelHtml += `<span class="green">T</span><span class="white">: Plants grow & spread.</span>\n`;
+            rightPanelHtml += `<span class="blue">H</span><span class="white">: Herbivores eat Plants to reproduce.</span>\n`;
+            rightPanelHtml += `<span class="red">X</span><span class="white">: Carnivores eat Herbivores to reproduce.</span>\n`;
+            rightPanelHtml += `<span class="white">A run ends when any population goes extinct.</span>\n\n`;
+
+            rightPanelHtml += `<span class="white">Use Arrow Up/Down to change speed.</span>\n`;
+            
+            document.getElementById('stats-container').innerHTML = rightPanelHtml;
+
+            // Build Grid
+            if (SHOW_GRID) {
+                let gridHtml = '';
+                const GRID_PANEL_WIDTH = (GRID_WIDTH * 2) + 2;
+                gridHtml += `<span class="white">${'-'.repeat(GRID_PANEL_WIDTH)}</span>\n`;
+                for (let y = 0; y < GRID_HEIGHT; y++) {
+                    gridHtml += `<span class="white">|</span>`;
+                    for (let x = 0; x < GRID_WIDTH; x++) {
+                        const organism = grid[y][x];
+                        if (organism) {
+                            let colorClass = 'green';
+                            if (organism.type === 'herbivore') colorClass = 'blue';
+                            else if (organism.type === 'carnivore') colorClass = 'red';
+                            gridHtml += `<span class="${colorClass}">${organism.char}</span> `;
+                        } else {
+                            gridHtml += `<span class="dim">${EMPTY_CHAR}</span> `;
+                        }
+                    }
+                    gridHtml += `<span class="white">|</span>\n`;
+                }
+                gridHtml += `<span class="white">${'-'.repeat(GRID_PANEL_WIDTH)}</span>\n`;
+                document.getElementById('simulation-container').innerHTML = gridHtml;
+            } else {
+                 document.getElementById('simulation-container').innerHTML = '';
+            }
+        }
+        
+        // --- Simulation Runner ---
+        async function run_simulation(stats, params, scoreboard, recent_history, average_snapshots, signal) {
+            return new Promise(resolve => {
+                let time_step = 0;
+                const start_time = performance.now();
+                let meter_max_duration = Math.max(stats.best_duration || 1, 1);
+                setup_simulation(params.plants, params.herbivores, params.carnivores);
+
+                let lastFrameTime = 0;
+
+                function gameLoop(currentTime) {
+                    if (signal.aborted) {
+                        simulationRunning = false;
+                        if(animationFrameId) cancelAnimationFrame(animationFrameId);
+                        resolve(time_step);
+                        return;
+                    }
+                    if (!simulationRunning) {
+                        resolve(time_step);
+                        return;
+                    }
+
+                    const deltaTime = currentTime - lastFrameTime;
+
+                    if (deltaTime < SIMULATION_SPEED_MS && SHOW_GRID) {
+                        animationFrameId = requestAnimationFrame(gameLoop);
+                        return;
+                    }
+                    lastFrameTime = currentTime;
+
+                    // --- Display Update ---
+                    const elapsed_seconds = (performance.now() - start_time) / 1000;
+                    const timer_str = `${Math.floor(elapsed_seconds / 60).toString().padStart(2, '0')}:${Math.floor(elapsed_seconds % 60).toString().padStart(2, '0')}`;
+                    if (time_step > meter_max_duration) meter_max_duration = time_step;
+
+                    const displayOptions = {
+                        stats, time_step, params, scoreboard, recent_history,
+                        average_snapshots: Array.from(average_snapshots),
+                        timer: timer_str, current_duration: time_step,
+                        max_duration_for_meter: meter_max_duration
+                    };
+                    updateDisplay('simulating', time_step === 0, displayOptions);
+
+                    // --- Simulation Logic ---
+                    const plant_count = organism_counts.plant;
+                    const herbivore_count = organism_counts.herbivore;
+                    const carnivore_count = organism_counts.carnivore;
+
+                    if (herbivore_count === 0 || carnivore_count === 0 || plant_count === 0 ||
+                        plant_count > (GRID_WIDTH * GRID_HEIGHT * 0.95) || time_step > 5000) {
+                        simulationRunning = false;
+                        resolve(time_step);
+                        return;
+                    }
+
+                    const organism_list = Object.values(organisms);
+                    for (let i = organism_list.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [organism_list[i], organism_list[j]] = [organism_list[j], organism_list[i]];
+                    }
+
+                    for (const organism of organism_list) {
+                        if (organisms[organism.id]) {
+                            organism.update();
+                        }
+                    }
+                    time_step++;
+                    
+                    if (SHOW_GRID) {
+                       animationFrameId = requestAnimationFrame(gameLoop);
+                    } else {
+                        setTimeout(() => gameLoop(performance.now()), 0);
+                    }
+                }
+                
+                simulationRunning = true;
+                if (SHOW_GRID) {
+                    animationFrameId = requestAnimationFrame(gameLoop);
+                } else {
+                    gameLoop(performance.now());
+                }
+            });
+        }
+        
+        // --- Genetic Algorithm Controller ---
+        function create_random_individual(generation, sim_number) {
+            return {
+                params: {
+                    plants: Math.floor(Math.random() * 351) + 50,
+                    herbivores: Math.floor(Math.random() * 46) + 5,
+                    carnivores: Math.floor(Math.random() * 24) + 2,
+                },
+                duration: 0,
+                generation: generation,
+                sim_number: sim_number
+            };
+        }
+
+        function update_top_leaderboard(top_dict, duration, params, generation, sim_number) {
+            const params_key = JSON.stringify(Object.entries(params).sort());
+            if (!top_dict[params_key] || duration > top_dict[params_key].duration) {
+                top_dict[params_key] = { duration, params, generation, sim_number };
+            }
+            return Object.values(top_dict).sort((a, b) => b.duration - a.duration);
+        }
+
+        async function learning_controller(signal) {
+            const POPULATION_SIZE = 20;
+            const ELITISM_COUNT = 2;
+            const MUTATION_RATE = 0.8;
+            const MUTATION_STRENGTH = 0.35;
+            const FRESH_BLOOD_COUNT = 4;
+            const STAGNATION_LIMIT = 5;
+            const SNAPSHOT_INTERVAL_S = 30;
+
+            let stats = {
+                generation: 0, total_sims_run: 0, total_time_steps: 0,
+                average_duration: 0, best_duration: 0, best_params: {},
+                gens_since_best: 0
+            };
+            
+            let top_scores_dict = {};
+            let scoreboard = [];
+            let recent_history = [];
+            let average_snapshots = [];
+            
+            const program_start_time = performance.now();
+            let last_snapshot_time = program_start_time;
+
+            let population = Array.from({ length: POPULATION_SIZE }, (_, i) => create_random_individual(1, i + 1));
+
+            while (!signal.aborted) {
+                stats.generation++;
+                let sim_counter_in_gen = 0;
+
+                if (stats.gens_since_best >= STAGNATION_LIMIT) {
+                    population.sort((a, b) => b.duration - a.duration);
+                    let new_population = population.slice(0, ELITISM_COUNT);
+                    for (let i = 0; i < POPULATION_SIZE - ELITISM_COUNT; i++) {
+                        new_population.push(create_random_individual(stats.generation, i + 1));
+                    }
+                    population = new_population;
+                    stats.gens_since_best = 0;
+                }
+
+                for (const individual of population) {
+                    if (signal.aborted) break;
+                    if (individual.duration > 0 && individual.generation < stats.generation) {
+                        continue;
+                    }
+
+                    sim_counter_in_gen++;
+                    
+                    const current_time = performance.now();
+                    if ((current_time - last_snapshot_time) / 1000 >= SNAPSHOT_INTERVAL_S) {
+                         const elapsed_seconds = Math.floor((current_time - program_start_time) / 1000);
+                         const minutes = Math.floor(elapsed_seconds / 60).toString().padStart(2, '0');
+                         const seconds = (elapsed_seconds % 60).toString().padStart(2, '0');
+                         const timestamp_str = `${minutes}:${seconds}`;
+                         const snapshot_str = `${(average_snapshots.length + 1).toString().padStart(2)}. Avg: ${(stats.average_duration || 0).toFixed(1).padEnd(6)} @ ${timestamp_str}`;
+                         if (average_snapshots.length >= 10) average_snapshots.pop();
+                         average_snapshots.unshift(snapshot_str);
+                         last_snapshot_time = current_time;
+                    }
+
+                    const duration = await run_simulation(stats, individual.params, scoreboard, recent_history, average_snapshots, signal);
+                    if (signal.aborted) break;
+
+                    individual.duration = duration;
+                    individual.generation = stats.generation;
+                    individual.sim_number = sim_counter_in_gen;
+
+                    stats.total_sims_run++;
+                    stats.total_time_steps += duration;
+                    stats.average_duration = stats.total_time_steps / stats.total_sims_run;
+                    if (recent_history.length >= 10) recent_history.pop();
+                    recent_history.unshift(individual);
+
+                    scoreboard = update_top_leaderboard(top_scores_dict, duration, individual.params, stats.generation, sim_counter_in_gen);
+
+                    if (duration > stats.best_duration) {
+                        stats.best_duration = duration;
+                        stats.best_params = JSON.parse(JSON.stringify(individual.params));
+                        stats.gens_since_best = 0;
+                    }
+                }
+                if (signal.aborted) break;
+
+                population.sort((a, b) => b.duration - a.duration);
+                stats.gens_since_best++;
+
+                updateDisplay('summary', true, { stats, scoreboard, recent_history, average_snapshots });
+
+                let next_generation = [];
+                next_generation.push(...population.slice(0, ELITISM_COUNT));
+
+                for (let i = 0; i < FRESH_BLOOD_COUNT; i++) {
+                    next_generation.push(create_random_individual(stats.generation + 1, 0));
+                }
+
+                while (next_generation.length < POPULATION_SIZE) {
+                    const parent1 = population[Math.floor(Math.random() * (POPULATION_SIZE / 2))];
+                    const parent2 = population[Math.floor(Math.random() * (POPULATION_SIZE / 2))];
+
+                    let child_params = {};
+                    for (const key in parent1.params) {
+                        child_params[key] = Math.floor((parent1.params[key] + parent2.params[key]) / 2);
+                    }
+
+                    if (Math.random() < MUTATION_RATE) {
+                        for (const key in child_params) {
+                            const mutation_amount = Math.floor(child_params[key] * MUTATION_STRENGTH * (Math.random() * 2 - 1));
+                            child_params[key] = Math.max(1, child_params[key] + mutation_amount);
+                        }
+                    }
+                    next_generation.push({ params: child_params, duration: 0, generation: stats.generation + 1, sim_number: 0 });
+                }
+                population = next_generation;
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
+
+        // --- Keyboard Listener ---
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'ArrowUp') {
+                SIMULATION_SPEED_MS = Math.max(1, SIMULATION_SPEED_MS - 10);
+            } else if (event.key === 'ArrowDown') {
+                SIMULATION_SPEED_MS = Math.min(200, SIMULATION_SPEED_MS + 10);
+            }
+        });
+
+        // --- App Start and Restart Logic ---
+        async function startApp(signal) {
+             try {
+                await learning_controller(signal);
+            } catch (err) {
+                // Ignore AbortError since it's an expected part of the restart process
+                if (err.name !== 'AbortError') {
+                    console.error("An unexpected error occurred:", err);
+                    document.body.innerHTML = `<pre style="color:red;">An error occurred. Check the console for details.\n${err.stack}</pre>`;
+                }
+            }
+        }
+
+        function handleResizeAndRestart() {
+            // 1. Abort the current running loops
+            if(mainController) {
+                mainController.abort();
+            }
+
+            // 2. Give loops a moment to terminate before restarting
+            setTimeout(() => {
+                // 3. Calculate new dimensions based on window size
+                const temp = document.createElement('span');
+                temp.style.fontFamily = "'monospace', 'Courier New', Courier";
+                temp.style.fontSize = '15px';
+                temp.style.lineHeight = '1.2';
+                temp.style.fontWeight = 'bold';
+                temp.style.whiteSpace = 'pre';
+                temp.style.visibility = 'hidden';
+                temp.style.position = 'absolute';
+                temp.innerHTML = 'X '; // Measure character cell
+                document.body.appendChild(temp);
+                const cellWidth = temp.getBoundingClientRect().width;
+                const cellHeight = temp.getBoundingClientRect().height;
+                document.body.removeChild(temp);
+                
+                const statsPanelWidth = 550; 
+                const horizontalPadding = 120; // Increased for more side padding
+                const verticalPadding = 100; // Increased for more top/bottom padding
+
+                const availableWidth = window.innerWidth - statsPanelWidth - horizontalPadding;
+                const availableHeight = window.innerHeight - verticalPadding;
+
+                GRID_WIDTH = Math.max(10, Math.floor(availableWidth / cellWidth));
+                GRID_HEIGHT = Math.max(10, Math.floor(availableHeight / cellHeight));
+
+                // 4. Create a new controller and restart the main application loop
+                mainController = new AbortController();
+                startApp(mainController.signal);
+            }, 100);
+        }
+
+        // --- Initial Start ---
+        window.onload = () => {
+            document.getElementById('resize-restart-btn').addEventListener('click', handleResizeAndRestart);
+            
+            // Initial run
+            mainController = new AbortController();
+            startApp(mainController.signal);
+        };
+    </script>
+</body>
+</html>
+ 
