@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rock Paper Scissors Simulation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            touch-action: none; /* Disable panning and zooming on mobile */
+        }
+        #game-area {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            max-width: 80vh; /* Max width based on viewport height */
+            max-height: 80vw; /* Max height based on viewport width */
+            background-color: #1a1a1a;
+            border: 2px solid #333;
+            overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        .entity {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            font-size: 16px;
+            line-height: 20px;
+            text-align: center;
+            user-select: none;
+        }
+        .winner-banner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px 40px;
+            background-color: rgba(0, 255, 127, 0.85);
+            color: #111;
+            font-size: 3rem;
+            font-weight: 700;
+            border-radius: 15px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            backdrop-filter: blur(5px);
+            z-index: 100;
+            display: none; /* Initially hidden */
+        }
+        #chart-container {
+            height: 150px;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 flex flex-col lg:flex-row items-center justify-center min-h-screen p-4 gap-8">
+
+    <!-- Game Area -->
+    <div id="game-area" class="rounded-lg">
+        <div id="winner-banner" class="winner-banner"></div>
+    </div>
+
+    <!-- Stats and Controls Panel -->
+    <div class="w-full lg:w-80 bg-gray-800 p-6 rounded-lg shadow-lg flex flex-col gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-white">RPS Sim</h1>
+            <p class="text-sm text-gray-400">Watch the battle unfold.</p>
+        </div>
+        
+        <div class="w-full h-px bg-gray-700"></div>
+
+        <!-- Current Round Stats -->
+        <div>
+            <h2 class="text-lg font-semibold mb-2 text-gray-300">Current Population</h2>
+            <div class="space-y-2 text-lg">
+                <div class="flex justify-between items-center">
+                    <span class="font-mono">🗿 Rock</span>
+                    <span id="rock-count" class="font-bold text-blue-400">0</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="font-mono">📄 Paper</span>
+                    <span id="paper-count" class="font-bold text-green-400">0</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="font-mono">✂️ Scissors</span>
+                    <span id="scissors-count" class="font-bold text-red-400">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Population Graph -->
+        <div id="chart-container">
+            <canvas id="population-chart"></canvas>
+        </div>
+
+        <div class="w-full h-px bg-gray-700"></div>
+
+        <!-- Overall Game Stats -->
+        <div>
+            <h2 class="text-lg font-semibold mb-2 text-gray-300">Round Info</h2>
+            <div class="space-y-2">
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-400">Conversions</span>
+                    <span id="conversions-count" class="font-bold">0</span>
+                </div>
+                 <div class="flex justify-between items-center">
+                    <span class="text-gray-400">Elapsed Time</span>
+                    <span id="time-elapsed" class="font-bold">0.0s</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="w-full h-px bg-gray-700"></div>
+
+        <!-- Controls -->
+        <div class="flex flex-col gap-3">
+            <button id="movement-toggle-btn" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-3 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400">
+                Mode: Targeted
+            </button>
+            <button id="restart-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                Start New Round
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- DOM Elements ---
+        const gameArea = document.getElementById('game-area');
+        const rockCountEl = document.getElementById('rock-count');
+        const paperCountEl = document.getElementById('paper-count');
+        const scissorsCountEl = document.getElementById('scissors-count');
+        const conversionsCountEl = document.getElementById('conversions-count');
+        const timeElapsedEl = document.getElementById('time-elapsed');
+        const restartBtn = document.getElementById('restart-btn');
+        const movementToggleBtn = document.getElementById('movement-toggle-btn');
+        const winnerBanner = document.getElementById('winner-banner');
+        const chartCanvas = document.getElementById('population-chart');
+
+        // --- Game Configuration ---
+        const ENTITY_COUNT = 150;
+        const ENTITY_SIZE = 20;
+        const ENTITY_SPEED = 45;
+        const TARGET_LOCK_DURATION = 2000;
+        const GRAPH_UPDATE_INTERVAL = 500; // ms
+        const MAX_GRAPH_POINTS = 120; // Keep 60 seconds of data (120 * 500ms)
+
+        // --- Game State ---
+        let entities = [];
+        let gameLoopId = null;
+        let conversions = 0;
+        let startTime = 0;
+        let movementMode = 'targeted'; // 'targeted', 'dvd', 'paths'
+        let populationChart = null;
+        let lastGraphUpdate = 0;
+
+        const TYPES = { ROCK: 'rock', PAPER: 'paper', SCISSORS: 'scissors' };
+        const EMOJIS = { [TYPES.ROCK]: '🗿', [TYPES.PAPER]: '📄', [TYPES.SCISSORS]: '✂️' };
+        const RULES = { [TYPES.ROCK]: TYPES.SCISSORS, [TYPES.PAPER]: TYPES.ROCK, [TYPES.SCISSORS]: TYPES.PAPER };
+        
+        class Entity {
+            constructor(type, x, y) {
+                this.id = Math.random().toString(36).substr(2, 9);
+                this.type = type;
+                this.x = x;
+                this.y = y;
+                this.element = this.createElement();
+                
+                // Movement properties
+                this.lockedTargetId = null;
+                this.lockEndTime = 0;
+                const angle = Math.random() * 2 * Math.PI;
+                this.dx = Math.cos(angle);
+                this.dy = Math.sin(angle);
+                this.staggerGroup = parseInt(this.id.slice(-1), 36) % 2;
+
+                // Path mode properties
+                this.pathDuration = 0;
+                this.pathChangeTimestamp = 0;
+                this.resetPathTimer(performance.now());
+            }
+
+            resetPathTimer(currentTime) {
+                this.pathDuration = Math.random() * 4000 + 1000; // 1 to 5 seconds
+                this.pathChangeTimestamp = currentTime + this.pathDuration;
+            }
+
+            createElement() {
+                const el = document.createElement('div');
+                el.className = 'entity';
+                el.textContent = EMOJIS[this.type];
+                el.style.left = `${this.x}px`;
+                el.style.top = `${this.y}px`;
+                gameArea.appendChild(el);
+                return el;
+            }
+            
+            setPosition(newX, newY) {
+                const gameBounds = gameArea.getBoundingClientRect();
+                this.x = Math.max(0, Math.min(gameBounds.width - ENTITY_SIZE, newX));
+                this.y = Math.max(0, Math.min(gameBounds.height - ENTITY_SIZE, newY));
+                this.element.style.left = `${this.x}px`;
+                this.element.style.top = `${this.y}px`;
+            }
+
+            updatePosition(dx, dy) { this.setPosition(this.x + dx, this.y + dy); }
+            changeType(newType) {
+                this.type = newType;
+                this.element.textContent = EMOJIS[newType];
+                this.lockedTargetId = null;
+                this.lockEndTime = 0;
+                conversions++;
+            }
+            setTargetLock(targetId) {
+                this.lockedTargetId = targetId;
+                this.lockEndTime = performance.now() + TARGET_LOCK_DURATION;
+            }
+            hasValidLock() { return this.lockedTargetId && performance.now() < this.lockEndTime; }
+        }
+        
+        function getDistanceSq(a, b) { const dx = a.x - b.x; const dy = a.y - b.y; return dx * dx + dy * dy; }
+
+        function init() {
+            if (gameLoopId) cancelAnimationFrame(gameLoopId);
+            gameArea.innerHTML = '';
+            winnerBanner.style.display = 'none';
+            gameArea.appendChild(winnerBanner);
+            entities = [];
+            conversions = 0;
+            startTime = performance.now();
+            lastGraphUpdate = 0;
+            const gameBounds = gameArea.getBoundingClientRect();
+
+            for (let i = 0; i < ENTITY_COUNT; i++) {
+                let type;
+                if (i < ENTITY_COUNT / 3) type = TYPES.ROCK;
+                else if (i < (ENTITY_COUNT * 2) / 3) type = TYPES.PAPER;
+                else type = TYPES.SCISSORS;
+                const x = Math.random() * (gameBounds.width - ENTITY_SIZE);
+                const y = Math.random() * (gameBounds.height - ENTITY_SIZE);
+                entities.push(new Entity(type, x, y));
+            }
+            
+            setupChart();
+            gameLoopId = requestAnimationFrame(gameLoop);
+        }
+        
+        function resolveCollision(a, b, distSq) {
+            const dist = Math.sqrt(distSq);
+            const overlap = ENTITY_SIZE - dist;
+            if (dist === 0) { a.updatePosition((Math.random() - 0.5) * 0.1, (Math.random() - 0.5) * 0.1); return; }
+            const nx = (a.x - b.x) / dist;
+            const ny = (a.y - b.y) / dist;
+            const moveX = nx * (overlap / 2);
+            const moveY = ny * (overlap / 2);
+            a.setPosition(a.x + moveX, a.y + moveY);
+            b.setPosition(b.x - moveX, b.y - moveY);
+        }
+        
+        let lastTimestamp = 0;
+        function gameLoop(timestamp) {
+            if (!lastTimestamp) lastTimestamp = timestamp;
+            const deltaTime = (timestamp - lastTimestamp) / 1000;
+            lastTimestamp = timestamp;
+
+            const counts = { [TYPES.ROCK]: 0, [TYPES.PAPER]: 0, [TYPES.SCISSORS]: 0 };
+            const typeGroups = { [TYPES.ROCK]: [], [TYPES.PAPER]: [], [TYPES.SCISSORS]: [] };
+            const entityMap = new Map(entities.map(e => [e.id, e]));
+
+            for (const entity of entities) {
+                counts[entity.type]++;
+                typeGroups[entity.type].push(entity);
+            }
+
+            if (counts[TYPES.ROCK] === ENTITY_COUNT || counts[TYPES.PAPER] === ENTITY_COUNT || counts[TYPES.SCISSORS] === ENTITY_COUNT) {
+                endGame(Object.keys(counts).find(type => counts[type] === ENTITY_COUNT));
+                return;
+            }
+
+            // --- Movement Logic ---
+            const staggerGroupThisFrame = Math.floor(timestamp / 150) % 2; // Stagger is always on
+            for (const entity of entities) {
+                const canMove = entity.staggerGroup === staggerGroupThisFrame;
+                if (!canMove) continue;
+
+                if (movementMode === 'targeted') {
+                    const enemyType = RULES[entity.type];
+                    const targets = typeGroups[enemyType];
+                    let currentTarget = null;
+                    if (targets.length === 0) continue;
+
+                    if (entity.hasValidLock()) {
+                        const lockedTarget = entityMap.get(entity.lockedTargetId);
+                        if (lockedTarget && lockedTarget.type === enemyType) currentTarget = lockedTarget;
+                    }
+                    
+                    if (!currentTarget) {
+                        let minDistanceSq = Infinity;
+                        for (const target of targets) {
+                            const distanceSq = getDistanceSq(entity, target);
+                            if (distanceSq < minDistanceSq) {
+                                minDistanceSq = distanceSq;
+                                currentTarget = target;
+                            }
+                        }
+                        if (currentTarget) entity.setTargetLock(currentTarget.id);
+                    }
+
+                    if (currentTarget) {
+                        const distance = Math.sqrt(getDistanceSq(entity, currentTarget));
+                        if (distance > 1) {
+                            const moveAmount = ENTITY_SPEED * deltaTime;
+                            const dx = (currentTarget.x - entity.x) / distance * moveAmount;
+                            const dy = (currentTarget.y - entity.y) / distance * moveAmount;
+                            entity.updatePosition(dx, dy);
+                        }
+                    }
+                } else { // DVD and Paths logic
+                    const gameBounds = gameArea.getBoundingClientRect();
+                    // Bounce off walls
+                    if ((entity.x <= 0 && entity.dx < 0) || (entity.x >= gameBounds.width - ENTITY_SIZE && entity.dx > 0)) entity.dx *= -1;
+                    if ((entity.y <= 0 && entity.dy < 0) || (entity.y >= gameBounds.height - ENTITY_SIZE && entity.dy > 0)) entity.dy *= -1;
+
+                    // Paths mode specific logic
+                    if (movementMode === 'paths' && timestamp > entity.pathChangeTimestamp) {
+                        const angle = Math.random() * 2 * Math.PI;
+                        entity.dx = Math.cos(angle);
+                        entity.dy = Math.sin(angle);
+                        entity.resetPathTimer(timestamp);
+                    }
+                    
+                    entity.updatePosition(entity.dx * ENTITY_SPEED * deltaTime, entity.dy * ENTITY_SPEED * deltaTime);
+                }
+            }
+            
+            // --- Two-Pass Fight and Collision Resolution ---
+            const changesToApply = [];
+            const losersThisFrame = new Set();
+            for (let j = 0; j < entities.length; j++) {
+                for (let k = j + 1; k < entities.length; k++) {
+                    const entityA = entities[j];
+                    const entityB = entities[k];
+                    const distanceSq = getDistanceSq(entityA, entityB);
+                    if (distanceSq < ENTITY_SIZE * ENTITY_SIZE) {
+                        if (losersThisFrame.has(entityA.id) || losersThisFrame.has(entityB.id)) continue;
+                        const aBeatsB = RULES[entityA.type] === entityB.type;
+                        const bBeatsA = RULES[entityB.type] === entityA.type;
+                        if (aBeatsB) {
+                            changesToApply.push({ loser: entityB, newType: entityA.type });
+                            losersThisFrame.add(entityB.id);
+                        } else if (bBeatsA) {
+                            changesToApply.push({ loser: entityA, newType: entityB.type });
+                            losersThisFrame.add(entityA.id);
+                        } else {
+                            resolveCollision(entityA, entityB, distanceSq);
+                        }
+                    }
+                }
+            }
+            for (const change of changesToApply) {
+                change.loser.changeType(change.newType);
+            }
+
+            updateStats(counts, timestamp);
+            gameLoopId = requestAnimationFrame(gameLoop);
+        }
+
+        function updateStats(counts, timestamp) {
+            rockCountEl.textContent = counts[TYPES.ROCK];
+            paperCountEl.textContent = counts[TYPES.PAPER];
+            scissorsCountEl.textContent = counts[TYPES.SCISSORS];
+            conversionsCountEl.textContent = conversions;
+            const elapsedTime = ((performance.now() - startTime) / 1000);
+            timeElapsedEl.textContent = `${elapsedTime.toFixed(1)}s`;
+
+            if (timestamp - lastGraphUpdate > GRAPH_UPDATE_INTERVAL) {
+                lastGraphUpdate = timestamp;
+                updateChart(counts, elapsedTime);
+            }
+        }
+        
+        function endGame(winnerType) {
+            cancelAnimationFrame(gameLoopId);
+            gameLoopId = null;
+            lastTimestamp = 0;
+            winnerBanner.textContent = `${EMOJIS[winnerType]} WINS!`;
+            winnerBanner.style.display = 'block';
+        }
+
+        function setupChart() {
+            if (populationChart) populationChart.destroy();
+            const ctx = chartCanvas.getContext('2d');
+            populationChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        { label: 'Rock', data: [], borderColor: '#60a5fa', tension: 0.1 },
+                        { label: 'Paper', data: [], borderColor: '#4ade80', tension: 0.1 },
+                        { label: 'Scissors', data: [], borderColor: '#f87171', tension: 0.1 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    animation: { duration: 0 },
+                    plugins: { legend: { display: false } },
+                    elements: { point: { radius: 0 } },
+                    scales: {
+                        x: { display: false },
+                        y: { display: false, min: 0, max: ENTITY_COUNT }
+                    }
+                }
+            });
+        }
+
+        function updateChart(counts, elapsedTime) {
+            const data = populationChart.data;
+            data.labels.push(elapsedTime.toFixed(1));
+            data.datasets[0].data.push(counts[TYPES.ROCK]);
+            data.datasets[1].data.push(counts[TYPES.PAPER]);
+            data.datasets[2].data.push(counts[TYPES.SCISSORS]);
+
+            if (data.labels.length > MAX_GRAPH_POINTS) {
+                data.labels.shift();
+                data.datasets.forEach(dataset => dataset.data.shift());
+            }
+            populationChart.update('none');
+        }
+
+        // --- Event Listeners ---
+        restartBtn.addEventListener('click', init);
+        
+        movementToggleBtn.addEventListener('click', () => {
+            if (movementMode === 'targeted') {
+                movementMode = 'dvd';
+                movementToggleBtn.textContent = 'Mode: DVD';
+            } else if (movementMode === 'dvd') {
+                movementMode = 'paths';
+                movementToggleBtn.textContent = 'Mode: Paths';
+            } else {
+                movementMode = 'targeted';
+                movementToggleBtn.textContent = 'Mode: Targeted';
+            }
+        });
+
+        window.addEventListener('resize', () => { if (gameLoopId) init(); });
+        window.onload = init;
+
+    </script>
+</body>
+</html>
