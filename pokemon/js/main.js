@@ -2,7 +2,7 @@ import * as game from './game.js';
 import * as ui from './ui.js';
 import * as config from './config.js';
 
-// --- Event Listeners ---
+// Event Listeners
 ui.restartBtn.addEventListener('click', game.init);
 
 ui.movementToggleBtn.addEventListener('click', () => {

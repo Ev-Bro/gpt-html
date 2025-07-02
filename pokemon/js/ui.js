@@ -38,7 +38,7 @@ export function setupPopulationDisplay() {
     });
 }
 
-export function updateStats(counts, timestamp, startTime, conversions, roundCounter, lastTypeCount, timeTypeCountLastChanged, speedMultiplier, stalemateModeActive) {
+export function updateStats(counts, startTime, conversions, roundCounter, timeTypeCountLastChanged, timestamp) {
     TYPE_KEYS.forEach(type => {
         const el = document.getElementById(`${type.toLowerCase()}-count`);
         if (el) el.textContent = counts[type] || 0;
@@ -52,7 +52,6 @@ export function updateStats(counts, timestamp, startTime, conversions, roundCoun
     const remainingTypes = Object.keys(counts).filter(type => counts[type] > 0);
     remainingTypesEl.textContent = remainingTypes.length;
 
-    // Update remaining types icons
     if (remainingTypes.length <= 4 && remainingTypes.length > 1) {
         remainingTypesIconsEl.innerHTML = remainingTypes.map(type => EMOJIS[type]).join(' vs. ');
         remainingTypesIconsEl.classList.remove('hidden');
@@ -60,7 +59,6 @@ export function updateStats(counts, timestamp, startTime, conversions, roundCoun
         remainingTypesIconsEl.classList.add('hidden');
     }
 
-    // Calculate and display stalemate timer
     const timeWithSameTypeCount = (timestamp - timeTypeCountLastChanged) / 1000;
     stalemateTimerEl.textContent = `${timeWithSameTypeCount.toFixed(1)}s`;
 }
@@ -78,8 +76,8 @@ export function updateWinnerHistoryDisplay(winnerHistory) {
     });
 }
 
-export function updateSpeedDisplay(speedMultiplier) {
-    speedDisplay.textContent = `${speedMultiplier.toFixed(1)}x`;
+export function updateSpeedDisplay(newSpeedMultiplier) {
+    speedDisplay.textContent = `${newSpeedMultiplier.toFixed(1)}x`;
 }
 
 export function capitalize(s) {

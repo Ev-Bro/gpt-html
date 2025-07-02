@@ -2,24 +2,52 @@ import { Entity } from './entity.js';
 import * as ui from './ui.js';
 import * as config from './config.js';
 
+// Game State
 let entities = [];
 let gameLoopId = null;
 let conversions = 0;
 let startTime = 0;
 let populationChart = null;
 let lastGraphUpdate = 0;
-let speedMultiplier = 1.0;
 let winnerHistory = [];
 let roundCounter = 0;
 let lastTypeCount = 0;
 let timeTypeCountLastChanged = 0;
 let stalemateModeActive = false;
+let lastTimestamp = 0;
 
-let currentEmojiSizeIndex = 1;
-let currentMapSizeIndex = 1;
-let currentMovementModeIndex = 0;
+// Control State
+export let speedMultiplier = 1.0;
+export let currentMovementModeIndex = 0;
+export let currentEmojiSizeIndex = 1;
+export let currentMapSizeIndex = 1;
 
+// Type Chart
 const TYPE_CHART = {};
+
+// State Modifiers
+export function setSpeedMultiplier(value) { speedMultiplier = value; }
+export function setCurrentMovementModeIndex(value) { currentMovementModeIndex = value; }
+export function setCurrentEmojiSizeIndex(value) { currentEmojiSizeIndex = value; }
+export function setCurrentMapSizeIndex(value) { currentMapSizeIndex = value; }
+
+function getDistanceSq(a, b) {
+    const dx = a.x - b.x;
+    const dy = a.y - b.y;
+    return dx * dx + dy * dy;
+}
+
+function resolveCollision(a, b, distSq) {
+    const currentSize = config.EMOJI_SIZES[config.EMOJI_SIZE_KEYS[currentEmojiSizeIndex]].size;
+    const dist = Math.sqrt(distSq);
+    const overlap = currentSize - dist;
+    if (dist === 0) { a.updatePosition((Math.random() - 0.5) * 0.1, (Math.random() - 0.5) * 0.1); return; }
+    const nx = (a.x - b.x) / dist;
+    const ny = (a.y - b.y) / dist;
+    a.setPosition(a.x + nx * (overlap / 2), a.y + ny * (overlap / 2));
+    b.setPosition(b.x - nx * (overlap / 2), b.y - ny * (overlap / 2));
+}
+
 
 function setupTypeChart() {
     config.TYPE_KEYS.forEach(attacker => {
@@ -46,27 +74,11 @@ function setupTypeChart() {
 
     for (let i = 0; i < numTypes; i++) {
         const attacker = clockOrder[i];
-        const strongTargets = [
-            clockOrder[(i + 1) % numTypes],
-            clockOrder[(i + 2) % numTypes],
-            clockOrder[(i + 3) % numTypes],
-            clockOrder[(i + 4) % numTypes]
-        ];
+        const strongTargets = [ clockOrder[(i + 1) % numTypes], clockOrder[(i + 2) % numTypes], clockOrder[(i + 3) % numTypes], clockOrder[(i + 4) % numTypes] ];
         setEffectiveness(attacker, 2, strongTargets);
-        const resistantTargets = [
-            clockOrder[(i + 5) % numTypes],
-            clockOrder[(i + 6) % numTypes],
-            clockOrder[(i + 7) % numTypes],
-            clockOrder[(i + 8) % numTypes],
-            clockOrder[(i + 9) % numTypes]
-        ];
+        const resistantTargets = [ clockOrder[(i + 5) % numTypes], clockOrder[(i + 6) % numTypes], clockOrder[(i + 7) % numTypes], clockOrder[(i + 8) % numTypes], clockOrder[(i + 9) % numTypes] ];
         setEffectiveness(attacker, 0.5, resistantTargets);
-        const immuneTargets = [
-            clockOrder[(i + 10) % numTypes],
-            clockOrder[(i + 11) % numTypes],
-            clockOrder[(i + 12) % numTypes],
-            clockOrder[(i + 13) % numTypes]
-        ];
+        const immuneTargets = [ clockOrder[(i + 10) % numTypes], clockOrder[(i + 11) % numTypes], clockOrder[(i + 12) % numTypes], clockOrder[(i + 13) % numTypes] ];
         setEffectiveness(attacker, 0, immuneTargets);
     }
 }
@@ -74,21 +86,15 @@ function setupTypeChart() {
 function updateTypeChartTable() {
     ui.typeChartBody.innerHTML = '';
     config.TYPE_KEYS.forEach(attacker => {
-        const strong = [];
-        const weak = [];
-        const resistant = [];
-        const immune = [];
-
+        const strong = [], weak = [], resistant = [], immune = [];
         config.TYPE_KEYS.forEach(defender => {
             const effectiveness = TYPE_CHART[attacker][defender];
             if (effectiveness === 2) strong.push(defender);
             if (effectiveness === 0.5) resistant.push(defender);
             if (effectiveness === 0) immune.push(defender);
-
             const weakness = TYPE_CHART[defender][attacker];
             if (weakness === 2) weak.push(defender);
         });
-
         const row = document.createElement('tr');
         row.className = 'bg-gray-800 hover:bg-gray-700';
         row.innerHTML = `
@@ -102,19 +108,88 @@ function updateTypeChartTable() {
     });
 }
 
-function init() {
+function setupChart() {
+    if (populationChart) populationChart.destroy();
+    const ctx = ui.chartCanvas.getContext('2d');
+    
+    const datasets = config.TYPE_KEYS.map(type => ({
+        label: type,
+        data: [],
+        borderColor: config.TYPE_COLORS[type],
+        tension: 0.4,
+        borderWidth: 2
+    }));
+
+    populationChart = new Chart(ctx, {
+        type: 'line',
+        data: { labels: [], datasets: datasets },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            animation: { duration: 0 },
+            plugins: { legend: { display: false } },
+            elements: { point: { radius: 0 } },
+            scales: {
+                x: { display: false },
+                y: { display: false, min: 0, max: config.ENTITY_COUNT }
+            }
+        }
+    });
+}
+
+function updateChart(counts, elapsedTime) {
+    const data = populationChart.data;
+    data.labels.push(elapsedTime.toFixed(1));
+    
+    data.datasets.forEach((dataset, index) => {
+        const type = config.TYPE_KEYS[index];
+        dataset.data.push(counts[type] || 0);
+    });
+
+    if (data.labels.length > config.MAX_GRAPH_POINTS) {
+        data.labels.shift();
+        data.datasets.forEach(dataset => dataset.data.shift());
+    }
+    populationChart.update('none');
+}
+
+function endGame(winnerType) {
+    if (!gameLoopId) return;
+    cancelAnimationFrame(gameLoopId);
+    gameLoopId = null;
+    
+    ui.remainingTypesIconsEl.classList.add('hidden');
+    ui.suddenDeathMessageEl.classList.add('hidden');
+
+    if(winnerType) {
+        ui.winnerBanner.textContent = `${config.EMOJIS[winnerType]} ${winnerType} Wins!`;
+        ui.winnerBanner.style.display = 'block';
+        if (!winnerHistory.some(entry => entry.round === roundCounter)) {
+             winnerHistory.push({ round: roundCounter, winner: winnerType });
+             ui.updateWinnerHistoryDisplay(winnerHistory);
+        }
+    } else {
+        ui.winnerBanner.textContent = `Mutual Annihilation!`;
+        ui.winnerBanner.style.backgroundColor = '#ef4444';
+        ui.winnerBanner.style.display = 'block';
+    }
+}
+
+function activateStalemateMode() {
+    if (stalemateModeActive) return;
+    stalemateModeActive = true;
+    ui.suddenDeathMessageEl.classList.remove('hidden');
+}
+
+
+export function init() {
     if (gameLoopId) cancelAnimationFrame(gameLoopId);
     
     roundCounter++;
-
     const currentMapSizeKey = config.MAP_SIZE_KEYS[currentMapSizeIndex];
     if (currentMapSizeKey === 'fit') {
-        const padding = 32;
-        const gap = 32;
+        const padding = 32, gap = 32, controlsWidth = 384;
         const controlsPanel = document.getElementById('controls-panel');
         const controlsHeight = controlsPanel.offsetHeight;
-        const controlsWidth = 384; 
-
         let availableWidth, availableHeight;
         if (window.innerWidth >= 1024) {
             availableWidth = window.innerWidth - controlsWidth - gap - padding;
@@ -145,6 +220,7 @@ function init() {
     lastTypeCount = 0;
     timeTypeCountLastChanged = performance.now();
     stalemateModeActive = false;
+    lastTimestamp = 0;
     
     ui.setupPopulationDisplay();
     setupTypeChart();
@@ -152,6 +228,10 @@ function init() {
 
     setTimeout(() => {
         const gameBounds = ui.gameArea.getBoundingClientRect();
+        if (gameBounds.width === 0) {
+            init();
+            return;
+        }
         const currentSize = config.EMOJI_SIZES[config.EMOJI_SIZE_KEYS[currentEmojiSizeIndex]].size;
         const numTypes = config.TYPE_KEYS.length;
         const entitiesPerType = Math.floor(config.ENTITY_COUNT / numTypes);
@@ -161,37 +241,22 @@ function init() {
             for (let j = 0; j < entitiesPerType; j++) {
                 const x = Math.random() * (gameBounds.width - currentSize);
                 const y = Math.random() * (gameBounds.height - currentSize);
-                entities.push(new Entity(type, x, y, currentEmojiSizeIndex, conversions));
+                entities.push(new Entity(type, x, y, currentEmojiSizeIndex));
             }
         }
         const remainder = config.ENTITY_COUNT % numTypes;
         for(let i = 0; i < remainder; i++){
-                const type = config.TYPE_KEYS[i];
-                const x = Math.random() * (gameBounds.width - currentSize);
-                const y = Math.random() * (gameBounds.height - currentSize);
-            entities.push(new Entity(type, x, y, currentEmojiSizeIndex, conversions));
+            const type = config.TYPE_KEYS[i];
+            const x = Math.random() * (gameBounds.width - currentSize);
+            const y = Math.random() * (gameBounds.height - currentSize);
+            entities.push(new Entity(type, x, y, currentEmojiSizeIndex));
         }
 
         setupChart();
         gameLoopId = requestAnimationFrame(gameLoop);
-    }, 50);
+    }, 100);
 }
 
-
-function resolveCollision(a, b, distSq) {
-    const currentSize = config.EMOJI_SIZES[config.EMOJI_SIZE_KEYS[currentEmojiSizeIndex]].size;
-    const dist = Math.sqrt(distSq);
-    const overlap = currentSize - dist;
-    if (dist === 0) { a.updatePosition((Math.random() - 0.5) * 0.1, (Math.random() - 0.5) * 0.1); return; }
-    const nx = (a.x - b.x) / dist;
-    const ny = (a.y - b.y) / dist;
-    const moveX = nx * (overlap / 2);
-    const moveY = ny * (overlap / 2);
-    a.setPosition(a.x + moveX, a.y + moveY);
-    b.setPosition(b.x - moveX, b.y - moveY);
-}
-
-let lastTimestamp = 0;
 function gameLoop(timestamp) {
     if (!lastTimestamp) lastTimestamp = timestamp;
     const deltaTime = (timestamp - lastTimestamp) / 1000;
@@ -199,7 +264,7 @@ function gameLoop(timestamp) {
     
     const aliveEntities = entities.filter(e => e.hp > 0);
     
-    const allTypes = new Set(entities.filter(e => e.hp > -1).map(e => e.type));
+    const allTypes = new Set(aliveEntities.map(e => e.type));
     if (allTypes.size <= 1) { 
         endGame(allTypes.values().next().value);
         return;
@@ -207,11 +272,11 @@ function gameLoop(timestamp) {
 
     const counts = {};
     config.TYPE_KEYS.forEach(key => counts[key] = 0);
-    for (const entity of entities) { 
-        if (entity.hp > -1) counts[entity.type]++;
+    for (const entity of aliveEntities) { 
+        counts[entity.type]++;
     }
 
-    const currentTypeCount = Object.values(counts).filter(c => c > 0).length;
+    const currentTypeCount = allTypes.size;
     if (currentTypeCount !== lastTypeCount) {
         lastTypeCount = currentTypeCount;
         timeTypeCountLastChanged = timestamp;
@@ -250,33 +315,23 @@ function gameLoop(timestamp) {
                 entity.resetPathTimer(timestamp);
             }
         }
-        
         entity.updatePosition(entity.dx * currentEntitySpeed * deltaTime, entity.dy * currentEntitySpeed * deltaTime);
     }
+
     const changesToApply = [];
     const processedInFrame = new Set();
-
     for (let j = 0; j < aliveEntities.length; j++) {
         for (let k = j + 1; k < aliveEntities.length; k++) {
-            const entityA = aliveEntities[j];
-            const entityB = aliveEntities[k];
-
+            const entityA = aliveEntities[j], entityB = aliveEntities[k];
             if (processedInFrame.has(entityA.id) || processedInFrame.has(entityB.id)) continue;
-
             const distanceSq = getDistanceSq(entityA, entityB);
-
             if (distanceSq < currentSize * currentSize) {
-                
-                if (entityA.type === entityB.type) {
-                    continue;
-                }
+                if (entityA.type === entityB.type) continue;
                 const damageAdeals = TYPE_CHART[entityA.type][entityB.type];
                 const damageBdeals = TYPE_CHART[entityB.type][entityA.type];
                 entityA.takeDamage(damageBdeals, timestamp);
                 entityB.takeDamage(damageAdeals, timestamp);
-                const aFainted = entityA.hp <= 0;
-                const bFainted = entityB.hp <= 0;
-
+                const aFainted = entityA.hp <= 0, bFainted = entityB.hp <= 0;
                 if (aFainted && !bFainted) {
                     changesToApply.push({ loser: entityA, winnerType: entityB.type });
                 } else if (bFainted && !aFainted) {
@@ -284,40 +339,33 @@ function gameLoop(timestamp) {
                 } else if (aFainted && bFainted) {
                     if (Math.random() < 0.5) {
                         changesToApply.push({ loser: entityB, winnerType: entityA.type });
-                        entityA.hp = entityA.maxHp;
-                        entityA.updateHealthBar();
+                        entityA.hp = entityA.maxHp; entityA.updateHealthBar();
                     } else {
                         changesToApply.push({ loser: entityA, winnerType: entityB.type });
-                        entityB.hp = entityB.maxHp;
-                        entityB.updateHealthBar();
+                        entityB.hp = entityB.maxHp; entityB.updateHealthBar();
                     }
                 } else {
-                        resolveCollision(entityA, entityB, distanceSq);
+                    resolveCollision(entityA, entityB, distanceSq);
                 }
-                
-                processedInFrame.add(entityA.id);
-                processedInFrame.add(entityB.id);
+                processedInFrame.add(entityA.id); processedInFrame.add(entityB.id);
             }
         }
     }
-    
     for (const change of changesToApply) {
         if (stalemateModeActive) {
             change.loser.disappear();
         } else {
             change.loser.changeType(change.winnerType);
+            conversions++;
         }
     }
-    
     if(stalemateModeActive) {
         entities = entities.filter(e => e.hp !== -1);
     }
-
-
-    ui.updateStats(counts, timestamp, startTime, conversions, roundCounter, lastTypeCount, timeTypeCountLastChanged, speedMultiplier, stalemateModeActive);
+    
+    ui.updateStats(counts, startTime, conversions, roundCounter, timeTypeCountLastChanged, timestamp);
     const currentStalemateThreshold = config.BASE_STALEMATE_SECONDS / speedMultiplier;
-    const timeWithSameTypeCount = (timestamp - timeTypeCountLastChanged) / 1000;
-    if (timeWithSameTypeCount > currentStalemateThreshold) {
+    if ((timestamp - timeTypeCountLastChanged) / 1000 > currentStalemateThreshold) {
         activateStalemateMode();
     }
 
@@ -326,108 +374,4 @@ function gameLoop(timestamp) {
         updateChart(counts, ((performance.now() - startTime) / 1000));
     }
     gameLoopId = requestAnimationFrame(gameLoop);
-}
-function getDistanceSq(a, b) {
-    const dx = a.x - b.x;
-    const dy = a.y - b.y;
-    return dx * dx + dy * dy;
-}
-function endGame(winnerType) {
-    if (!gameLoopId) return;
-    cancelAnimationFrame(gameLoopId);
-    gameLoopId = null;
-    lastTimestamp = 0;
-    
-    ui.remainingTypesIconsEl.classList.add('hidden');
-    ui.suddenDeathMessageEl.classList.add('hidden');
-
-    if(winnerType) {
-        ui.winnerBanner.textContent = `${config.EMOJIS[winnerType]} ${winnerType} Wins!`;
-        ui.winnerBanner.style.display = 'block';
-        if (!winnerHistory.some(entry => entry.round === roundCounter)) {
-             winnerHistory.push({ round: roundCounter, winner: winnerType });
-             ui.updateWinnerHistoryDisplay(winnerHistory);
-        }
-    } else {
-        ui.winnerBanner.textContent = `Mutual Annihilation!`;
-        ui.winnerBanner.style.backgroundColor = '#ef4444';
-        ui.winnerBanner.style.display = 'block';
-    }
-}
-function activateStalemateMode() {
-    if (stalemateModeActive) return;
-    stalemateModeActive = true;
-    ui.suddenDeathMessageEl.classList.remove('hidden');
-    console.log("Stalemate mode activated: Fainted Pokémon will now be removed.");
-}
-
-function setupChart() {
-    if (populationChart) populationChart.destroy();
-    const ctx = ui.chartCanvas.getContext('2d');
-    
-    const datasets = config.TYPE_KEYS.map(type => ({
-        label: type,
-        data: [],
-        borderColor: config.TYPE_COLORS[type],
-        tension: 0.4,
-        borderWidth: 2
-    }));
-
-    populationChart = new Chart(ctx, {
-        type: 'line',
-        data: { labels: [], datasets: datasets },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            animation: { duration: 0 },
-            plugins: { legend: { display: false } },
-            elements: { point: { radius: 0 } },
-            scales: {
-                x: { display: false },
-                y: { display: false, min: 0, max: config.ENTITY_COUNT }
-            }
-        }
-    });
-}
-function updateChart(counts, elapsedTime) {
-    const data = populationChart.data;
-    data.labels.push(elapsedTime.toFixed(1));
-    
-    data.datasets.forEach((dataset, index) => {
-        const type = config.TYPE_KEYS[index];
-        dataset.data.push(counts[type] || 0);
-    });
-
-    if (data.labels.length > config.MAX_GRAPH_POINTS) {
-        data.labels.shift();
-        data.datasets.forEach(dataset => dataset.data.shift());
-    }
-    populationChart.update('none');
-}
-
-export {
-    init,
-    speedMultiplier,
-    currentMovementModeIndex,
-    currentEmojiSizeIndex,
-    currentMapSizeIndex,
-    setSpeedMultiplier,
-    setCurrentMovementModeIndex,
-    setCurrentEmojiSizeIndex,
-    setCurrentMapSizeIndex
-};
-
-function setSpeedMultiplier(value) {
-    speedMultiplier = value;
-}
-
-function setCurrentMovementModeIndex(value) {
-    currentMovementModeIndex = value;
-}
-
-function setCurrentEmojiSizeIndex(value) {
-    currentEmojiSizeIndex = value;
-}
-
-function setCurrentMapSizeIndex(value) {
-    currentMapSizeIndex = value;
 }

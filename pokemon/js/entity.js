@@ -1,17 +1,16 @@
-import { EMOJIS, EMOJI_SIZES, EMOJI_SIZE_KEYS } from './config.js';
-import * as ui from './ui.js';
+import { EMOJIS, EMOJI_SIZES, EMOJI_SIZE_KEYS, INITIAL_HP, INVINCIBILITY_DURATION } from './config.js';
+import { gameArea } from './ui.js';
 
 export class Entity {
-    constructor(type, x, y, currentEmojiSizeIndex, conversions) {
+    constructor(type, x, y, currentEmojiSizeIndex) {
         this.id = Math.random().toString(36).substr(2, 9);
         this.type = type;
         this.x = x;
         this.y = y;
-        this.hp = 3;
-        this.maxHp = 3;
+        this.hp = INITIAL_HP;
+        this.maxHp = INITIAL_HP;
         this.lastDamageTimestamp = 0;
         this.currentEmojiSizeIndex = currentEmojiSizeIndex;
-        this.conversions = conversions;
 
         this.element = document.createElement('div');
         this.element.className = 'entity';
@@ -28,7 +27,7 @@ export class Entity {
         this.element.appendChild(healthBarContainer);
 
         this.updateElementSize();
-        ui.gameArea.appendChild(this.element);
+        gameArea.appendChild(this.element);
 
         const angle = Math.random() * 2 * Math.PI;
         this.dx = Math.cos(angle);
@@ -46,18 +45,18 @@ export class Entity {
         const hpPercent = Math.max(0, this.hp / this.maxHp);
         this.healthBar.style.width = `${hpPercent * 100}%`;
         if (hpPercent < 0.3) {
-            this.healthBar.style.backgroundColor = '#ef4444'; // red-500
+            this.healthBar.style.backgroundColor = '#ef4444';
         } else if (hpPercent < 0.6) {
-            this.healthBar.style.backgroundColor = '#f59e0b'; // amber-500
+            this.healthBar.style.backgroundColor = '#f59e0b';
         } else {
-            this.healthBar.style.backgroundColor = '#22c55e'; // green-500
+            this.healthBar.style.backgroundColor = '#22c55e';
         }
     }
 
     takeDamage(damage, currentTime) {
-        if (this.hp <= 0) return; // Already fainted, do nothing
-        if (currentTime - this.lastDamageTimestamp < 250) {
-            return; // Still invincible
+        if (this.hp <= 0) return;
+        if (currentTime - this.lastDamageTimestamp < INVINCIBILITY_DURATION) {
+            return;
         }
         this.hp -= damage;
         this.updateHealthBar();
@@ -80,7 +79,7 @@ export class Entity {
     }
 
     setPosition(newX, newY) {
-        const gameBounds = ui.gameArea.getBoundingClientRect();
+        const gameBounds = gameArea.getBoundingClientRect();
         const currentSize = EMOJI_SIZES[EMOJI_SIZE_KEYS[this.currentEmojiSizeIndex]].size;
         this.x = Math.max(0, Math.min(gameBounds.width - currentSize, newX));
         this.y = Math.max(0, Math.min(gameBounds.height - currentSize, newY));
@@ -93,14 +92,13 @@ export class Entity {
     changeType(newType) {
         this.type = newType;
         this.emojiEl.textContent = EMOJIS[newType];
-        this.hp = this.maxHp; // Reset HP
+        this.hp = this.maxHp;
         this.updateHealthBar();
-        this.conversions++;
         this.targetId = null;
     }
 
     disappear() {
         this.element.remove();
-        this.hp = -1; // Mark as permanently gone
+        this.hp = -1;
     }
 }
