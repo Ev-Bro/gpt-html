@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokémon Type Battle Simulator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-gray-900 text-gray-100 flex flex-col items-center justify-center min-h-screen p-4 gap-8">
+
+    <div class="flex flex-col lg:flex-row items-start justify-center w-full gap-8">
+        <div class="flex flex-col items-center w-full">
+             <div id="game-area" class="rounded-lg w-full">
+                <div id="winner-banner" class="winner-banner"></div>
+            </div>
+            <div id="game-status-container" class="h-16 mt-2 text-center">
+                 <div id="sudden-death-message" class="hidden text-red-500 font-bold text-2xl uppercase">SUDDEN DEATH</div>
+                 <div id="remaining-types-icons" class="hidden text-3xl"></div>
+            </div>
+        </div>
+
+        <div id="controls-panel" class="w-full lg:w-96 bg-gray-800 p-6 rounded-lg shadow-lg flex flex-col gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-white">Pokémon Type Sim</h1>
+                <p class="text-sm text-gray-400">Watch the type battle unfold.</p>
+            </div>
+            <div class="w-full h-px bg-gray-700"></div>
+            <div>
+                <h2 class="text-lg font-semibold mb-2 text-gray-300">Population</h2>
+                <div id="population-stats" class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                    </div>
+            </div>
+            <div id="chart-container"><canvas id="population-chart"></canvas></div>
+            <div class="w-full h-px bg-gray-700"></div>
+            <div>
+                <div class="flex justify-between items-center"><span class="text-gray-400">Round</span><span id="round-number" class="font-bold">0</span></div>
+                <div class="flex justify-between items-center"><span class="text-gray-400">Conversions</span><span id="conversions-count" class="font-bold">0</span></div>
+                <div class="flex justify-between items-center"><span class="text-gray-400">Elapsed Time</span><span id="time-elapsed" class="font-bold">0.0s</span></div>
+                <div class="flex justify-between items-center"><span class="text-gray-400">Remaining Types</span><span id="remaining-types" class="font-bold">0</span></div>
+                <div class="flex justify-between items-center"><span class="text-gray-400">Stalemate Timer</span><span id="stalemate-timer" class="font-bold">0.0s</span></div>
+            </div>
+            <div class="w-full h-px bg-gray-700"></div>
+            <div>
+                <h2 class="text-lg font-semibold mb-2 text-gray-300">Round History</h2>
+                <div id="winner-history" class="space-y-1 text-sm h-24 overflow-y-auto pr-2">
+                    </div>
+            </div>
+            <div class="w-full h-px bg-gray-700"></div>
+            <div class="flex flex-col gap-4">
+                <div class="grid grid-cols-2 gap-3">
+                    <button id="map-size-btn" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-3 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400">Map: Medium</button>
+                    <button id="emoji-size-btn" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-3 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400">Sprite Size: Medium</button>
+                </div>
+                <button id="movement-toggle-btn" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-3 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400">Mode: Paths</button>
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2 text-center">Speed</label>
+                    <div class="flex items-center justify-center gap-2">
+                        <button id="decrease-speed-btn" class="w-12 h-10 bg-gray-600 hover:bg-gray-500 rounded-lg font-bold text-xl transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400">-</button>
+                        <span id="speed-display" class="font-bold text-lg w-20 text-center bg-gray-700 py-1.5 rounded-md">1.0x</span>
+                        <button id="increase-speed-btn" class="w-12 h-10 bg-gray-600 hover:bg-gray-500 rounded-lg font-bold text-xl transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400">+</button>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 mt-2">
+                         <button id="min-speed-btn" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-1.5 px-2 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400 text-xs">Min</button>
+                         <button id="default-speed-btn" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-1.5 px-2 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400 text-xs">1x</button>
+                         <button id="max-speed-btn" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-1.5 px-2 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400 text-xs">Max</button>
+                    </div>
+                </div>
+                <button id="restart-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400">New Round</button>
+            </div>
+        </div>
+    </div>
+    <div class="w-full max-w-7xl mt-8 p-4 bg-gray-800 rounded-lg shadow-lg">
+        <h2 class="text-xl font-bold text-white text-center mb-4">Type Effectiveness Chart</h2>
+        <div class="overflow-x-auto">
+            <table class="w-full text-xs text-center text-gray-300">
+                <thead class="bg-gray-700">
+                    <tr>
+                        <th class="p-2 border border-gray-600">Type</th>
+                        <th class="p-2 border border-gray-600">Strong Against (×2)</th>
+                        <th class="p-2 border border-gray-600">Weak To (×2)</th>
+                        <th class="p-2 border border-gray-600">Resistant To (½)</th>
+                        <th class="p-2 border border-gray-600">Immune To (0)</th>
+                    </tr>
+                </thead>
+                <tbody id="type-chart-body" class="divide-y divide-gray-600">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
