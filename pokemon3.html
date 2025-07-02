@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokémon Type Battle Simulator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        #game-area {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            background-color: #1a1a1a;
+            border: 2px solid #333;
+            overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            transition: max-width 0.3s ease, max-height 0.3s ease;
+        }
+
+        .entity {
+            position: absolute;
+            text-align: center;
+            user-select: none;
+            transition: font-size 0.3s ease, width 0.3s ease, height 0.3s ease, line-height 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .health-bar-container {
+            position: absolute;
+            bottom: -6px;
+            width: 80%;
+            height: 4px;
+            background-color: #444;
+            border-radius: 2px;
+            border: 1px solid #111;
+        }
+
+        .health-bar {
+            width: 100%;
+            height: 100%;
+            background-color: #22c55e; /* green-500 */
+            border-radius: 2px;
+            transition: width 0.2s ease;
+        }
+
+        .winner-banner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px 40px;
+            background-color: rgba(0, 255, 127, 0.85);
+            color: #111;
+            font-size: 3rem;
+            font-weight: 700;
+            border-radius: 15px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(5px);
+            z-index: 100;
+            display: none;
+        }
+
+        #chart-container {
+            height: 120px;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-900 text-gray-100 flex flex-col items-center justify-center min-h-screen p-4 gap-8">
+
+    <div class="flex flex-col lg:flex-row items-start justify-center w-full gap-8">
+        <!-- Game Area and Status Messages -->
+        <div class="flex flex-col items-center w-full">
+             <div id="game-area" class="rounded-lg w-full">
+                <div id="winner-banner" class="winner-banner"></div>
+            </div>
+            <div id="game-status-container" class="h-16 mt-2 text-center">
+                 <div id="sudden-death-message" class="hidden text-red-500 font-bold text-2xl uppercase">SUDDEN DEATH</div>
+                 <div id="remaining-types-icons" class="hidden text-3xl"></div>
+            </div>
+        </div>
+
+
+        <!-- Stats and Controls Panel -->
+        <div id="controls-panel" class="w-full lg:w-96 bg-gray-800 p-6 rounded-lg shadow-lg flex flex-col gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-white">Pokémon Type Sim</h1>
+                <p class="text-sm text-gray-400">Watch the type battle unfold.</p>
+            </div>
+
+            <div class="w-full h-px bg-gray-700"></div>
+
+            <!-- Current Round Stats -->
+            <div>
+                <h2 class="text-lg font-semibold mb-2 text-gray-300">Population</h2>
+                <div id="population-stats" class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                    <!-- Population counts will be dynamically inserted here -->
+                </div>
+            </div>
+
+            <!-- Population Graph -->
+            <div id="chart-container"><canvas id="population-chart"></canvas></div>
+
+            <div class="w-full h-px bg-gray-700"></div>
+
+            <!-- Round Info -->
+            <div>
+                <div class="flex justify-between items-center"><span class="text-gray-400">Round</span><span id="round-number" class="font-bold">0</span></div>
+                <div class="flex justify-between items-center"><span class="text-gray-400">Conversions</span><span id="conversions-count" class="font-bold">0</span></div>
+                <div class="flex justify-between items-center"><span class="text-gray-400">Elapsed Time</span><span id="time-elapsed" class="font-bold">0.0s</span></div>
+                <div class="flex justify-between items-center"><span class="text-gray-400">Remaining Types</span><span id="remaining-types" class="font-bold">0</span></div>
+                <div class="flex justify-between items-center"><span class="text-gray-400">Stalemate Timer</span><span id="stalemate-timer" class="font-bold">0.0s</span></div>
+            </div>
+
+            <div class="w-full h-px bg-gray-700"></div>
+
+            <!-- Winner History -->
+            <div>
+                <h2 class="text-lg font-semibold mb-2 text-gray-300">Round History</h2>
+                <div id="winner-history" class="space-y-1 text-sm h-24 overflow-y-auto pr-2">
+                    <!-- Winner history will be dynamically inserted here -->
+                </div>
+            </div>
+
+            <div class="w-full h-px bg-gray-700"></div>
+
+            <!-- Controls -->
+            <div class="flex flex-col gap-4">
+                <div class="grid grid-cols-2 gap-3">
+                    <button id="map-size-btn" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-3 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400">Map: Medium</button>
+                    <button id="emoji-size-btn" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-3 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400">Sprite Size: Medium</button>
+                </div>
+                <button id="movement-toggle-btn" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-3 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400">Mode: Paths</button>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2 text-center">Speed</label>
+                    <div class="flex items-center justify-center gap-2">
+                        <button id="decrease-speed-btn" class="w-12 h-10 bg-gray-600 hover:bg-gray-500 rounded-lg font-bold text-xl transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400">-</button>
+                        <span id="speed-display" class="font-bold text-lg w-20 text-center bg-gray-700 py-1.5 rounded-md">1.0x</span>
+                        <button id="increase-speed-btn" class="w-12 h-10 bg-gray-600 hover:bg-gray-500 rounded-lg font-bold text-xl transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400">+</button>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 mt-2">
+                         <button id="min-speed-btn" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-1.5 px-2 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400 text-xs">Min</button>
+                         <button id="default-speed-btn" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-1.5 px-2 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400 text-xs">1x</button>
+                         <button id="max-speed-btn" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-1.5 px-2 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400 text-xs">Max</button>
+                    </div>
+                </div>
+
+                <button id="restart-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400">New Round</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Type Chart -->
+    <div class="w-full max-w-7xl mt-8 p-4 bg-gray-800 rounded-lg shadow-lg">
+        <h2 class="text-xl font-bold text-white text-center mb-4">Type Effectiveness Chart</h2>
+        <div class="overflow-x-auto">
+            <table class="w-full text-xs text-center text-gray-300">
+                <thead class="bg-gray-700">
+                    <tr>
+                        <th class="p-2 border border-gray-600">Type</th>
+                        <th class="p-2 border border-gray-600">Strong Against (×2)</th>
+                        <th class="p-2 border border-gray-600">Weak To (×2)</th>
+                        <th class="p-2 border border-gray-600">Resistant To (½)</th>
+                        <th class="p-2 border border-gray-600">Immune To (0)</th>
+                    </tr>
+                </thead>
+                <tbody id="type-chart-body" class="divide-y divide-gray-600">
+                    <!-- Type chart rows will be dynamically inserted here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+
+    <script>
+        // --- DOM Elements ---
+        const gameArea = document.getElementById('game-area');
+        const populationStatsEl = document.getElementById('population-stats');
+        const conversionsCountEl = document.getElementById('conversions-count');
+        const timeElapsedEl = document.getElementById('time-elapsed');
+        const restartBtn = document.getElementById('restart-btn');
+        const movementToggleBtn = document.getElementById('movement-toggle-btn');
+        const winnerBanner = document.getElementById('winner-banner');
+        const chartCanvas = document.getElementById('population-chart');
+        const decreaseSpeedBtn = document.getElementById('decrease-speed-btn');
+        const increaseSpeedBtn = document.getElementById('increase-speed-btn');
+        const speedDisplay = document.getElementById('speed-display');
+        const emojiSizeBtn = document.getElementById('emoji-size-btn');
+        const mapSizeBtn = document.getElementById('map-size-btn');
+        const winnerHistoryEl = document.getElementById('winner-history');
+        const roundNumberEl = document.getElementById('round-number');
+        const minSpeedBtn = document.getElementById('min-speed-btn');
+        const defaultSpeedBtn = document.getElementById('default-speed-btn');
+        const maxSpeedBtn = document.getElementById('max-speed-btn');
+        const typeChartBody = document.getElementById('type-chart-body');
+        const stalemateTimerEl = document.getElementById('stalemate-timer');
+        const remainingTypesEl = document.getElementById('remaining-types');
+        const suddenDeathMessageEl = document.getElementById('sudden-death-message');
+        const remainingTypesIconsEl = document.getElementById('remaining-types-icons');
+
+        // --- Game Configuration ---
+        const ENTITY_COUNT = 180;
+        const BASE_ENTITY_SPEED = 100;
+        const GRAPH_UPDATE_INTERVAL = 200; // ms
+        const MAX_GRAPH_POINTS = 120;
+        const TARGET_LOCK_DURATION = 4000; // ms
+        const INITIAL_HP = 3;
+        const INVINCIBILITY_DURATION = 250; 
+        const BASE_STALEMATE_SECONDS = 60; // Base time at 1x speed (15 seconds at 4x speed)
+
+        const EMOJI_SIZES = { small: {size: 14, font: 12}, medium: {size: 22, font: 18}, large: {size: 30, font: 24} };
+        const MAP_SIZES = { small: '400px', medium: '600px', large: '800px', fit: 'fit' };
+        const MOVEMENT_MODES = ['paths', 'dvd', 'targeted'];
+
+        // --- Game State ---
+        let entities = [];
+        let gameLoopId = null;
+        let conversions = 0;
+        let startTime = 0;
+        let populationChart = null;
+        let lastGraphUpdate = 0;
+        let speedMultiplier = 1.0;
+        let winnerHistory = [];
+        let roundCounter = 0;
+        let lastTypeCount = 0;
+        let timeTypeCountLastChanged = 0;
+        let stalemateModeActive = false;
+        
+        const EMOJI_SIZE_KEYS = Object.keys(EMOJI_SIZES);
+        const MAP_SIZE_KEYS = Object.keys(MAP_SIZES);
+        let currentEmojiSizeIndex = 1; // medium
+        let currentMapSizeIndex = 1; // medium
+        let currentMovementModeIndex = 0; // paths
+
+        // --- Pokémon Type System ---
+        const TYPES = {
+            NORMAL: 'Normal', FIRE: 'Fire', WATER: 'Water', ELECTRIC: 'Electric', GRASS: 'Grass',
+            ICE: 'Ice', FIGHTING: 'Fighting', POISON: 'Poison', GROUND: 'Ground', FLYING: 'Flying',
+            PSYCHIC: 'Psychic', BUG: 'Bug', ROCK: 'Rock', GHOST: 'Ghost', DRAGON: 'Dragon',
+            DARK: 'Dark', STEEL: 'Steel', FAIRY: 'Fairy'
+        };
+
+        const TYPE_KEYS = Object.values(TYPES);
+
+        const EMOJIS = {
+            [TYPES.NORMAL]: '⭐', [TYPES.FIRE]: '🔥', [TYPES.WATER]: '💧', [TYPES.GRASS]: '�',
+            [TYPES.ELECTRIC]: '⚡', [TYPES.ICE]: '❄️', [TYPES.FIGHTING]: '🥊', [TYPES.POISON]: '☠️',
+            [TYPES.GROUND]: '⛰️', [TYPES.FLYING]: '🕊️', [TYPES.PSYCHIC]: '🔮', [TYPES.BUG]: '🐛',
+            [TYPES.ROCK]: '🗿', [TYPES.GHOST]: '👻', [TYPES.DRAGON]: '🐲', [TYPES.DARK]: '🌙',
+            [TYPES.STEEL]: '🔩', [TYPES.FAIRY]: '✨'
+        };
+        
+        const TYPE_COLORS = {
+            [TYPES.NORMAL]: '#A8A77A', [TYPES.FIRE]: '#EE8130', [TYPES.WATER]: '#6390F0', [TYPES.GRASS]: '#7AC74C',
+            [TYPES.ELECTRIC]: '#F7D02C', [TYPES.ICE]: '#96D9D6', [TYPES.FIGHTING]: '#C22E28', [TYPES.POISON]: '#A33EA1',
+            [TYPES.GROUND]: '#E2BF65', [TYPES.FLYING]: '#A98FF3', [TYPES.PSYCHIC]: '#F95587', [TYPES.BUG]: '#A6B91A',
+            [TYPES.ROCK]: '#B6A136', [TYPES.GHOST]: '#735797', [TYPES.DRAGON]: '#6F35FC', [TYPES.DARK]: '#705746',
+            [TYPES.STEEL]: '#B7B7CE', [TYPES.FAIRY]: '#D685AD'
+        };
+
+        const TYPE_CHART = {};
+
+        function setupTypeChart() {
+            // Reset chart to default (all 1x)
+            TYPE_KEYS.forEach(attacker => {
+                TYPE_CHART[attacker] = {};
+                TYPE_KEYS.forEach(defender => {
+                    TYPE_CHART[attacker][defender] = 1;
+                });
+            });
+
+            const setEffectiveness = (attacker, effectiveness, defenders) => {
+                if (!defenders || defenders.length === 0) return;
+                defenders.forEach(defender => {
+                    if (TYPE_CHART[attacker] && TYPE_KEYS.includes(defender)) {
+                        TYPE_CHART[attacker][defender] = effectiveness;
+                    }
+                });
+            };
+
+            // --- "4-5-4" BALANCED CLOCK ---
+            const clockOrder = [
+                TYPES.NORMAL, TYPES.FIRE, TYPES.WATER, TYPES.ELECTRIC, TYPES.GRASS, TYPES.ICE,
+                TYPES.FIGHTING, TYPES.POISON, TYPES.GROUND, TYPES.FLYING, TYPES.PSYCHIC,
+                TYPES.BUG, TYPES.ROCK, TYPES.GHOST, TYPES.DRAGON, TYPES.DARK, TYPES.STEEL, TYPES.FAIRY
+            ];
+            const numTypes = clockOrder.length;
+
+            for (let i = 0; i < numTypes; i++) {
+                const attacker = clockOrder[i];
+                
+                // Strong (x2) vs 4 types ahead
+                const strongTargets = [
+                    clockOrder[(i + 1) % numTypes],
+                    clockOrder[(i + 2) % numTypes],
+                    clockOrder[(i + 3) % numTypes],
+                    clockOrder[(i + 4) % numTypes]
+                ];
+                setEffectiveness(attacker, 2, strongTargets);
+
+                // Resistant (x0.5) vs 5 types further ahead
+                const resistantTargets = [
+                    clockOrder[(i + 5) % numTypes],
+                    clockOrder[(i + 6) % numTypes],
+                    clockOrder[(i + 7) % numTypes],
+                    clockOrder[(i + 8) % numTypes],
+                    clockOrder[(i + 9) % numTypes]
+                ];
+                setEffectiveness(attacker, 0.5, resistantTargets);
+
+                // Immune (x0) vs 4 types opposite
+                const immuneTargets = [
+                    clockOrder[(i + 10) % numTypes],
+                    clockOrder[(i + 11) % numTypes],
+                    clockOrder[(i + 12) % numTypes],
+                    clockOrder[(i + 13) % numTypes]
+                ];
+                setEffectiveness(attacker, 0, immuneTargets);
+            }
+        }
+        
+        function updateTypeChartTable() {
+            typeChartBody.innerHTML = '';
+            TYPE_KEYS.forEach(attacker => {
+                const strong = [];
+                const weak = [];
+                const resistant = [];
+                const immune = [];
+
+                TYPE_KEYS.forEach(defender => {
+                    // Attacking relationships (Attacker -> Defender)
+                    const effectiveness = TYPE_CHART[attacker][defender];
+                    if (effectiveness === 2) strong.push(defender);
+                    if (effectiveness === 0.5) resistant.push(defender);
+                    if (effectiveness === 0) immune.push(defender);
+                    
+                    // Defending relationships (Defender -> Attacker)
+                    const weakness = TYPE_CHART[defender][attacker];
+                    if (weakness === 2) weak.push(defender);
+                });
+
+                const row = document.createElement('tr');
+                row.className = 'bg-gray-800 hover:bg-gray-700';
+                row.innerHTML = `
+                    <td class="p-2 border-r border-gray-600 font-semibold">${attacker}</td>
+                    <td class="p-2 border-r border-gray-600">${strong.join(', ')}</td>
+                    <td class="p-2 border-r border-gray-600">${weak.join(', ')}</td>
+                    <td class="p-2 border-r border-gray-600">${resistant.join(', ')}</td>
+                    <td class="p-2 border-r border-gray-600">${immune.join(', ')}</td>
+                `;
+                typeChartBody.appendChild(row);
+            });
+        }
+
+
+        class Entity {
+            constructor(type, x, y) {
+                this.id = Math.random().toString(36).substr(2, 9);
+                this.type = type;
+                this.x = x;
+                this.y = y;
+                this.hp = INITIAL_HP;
+                this.maxHp = INITIAL_HP;
+                this.lastDamageTimestamp = 0;
+
+                this.element = document.createElement('div');
+                this.element.className = 'entity';
+                
+                this.emojiEl = document.createElement('span');
+                this.emojiEl.textContent = EMOJIS[this.type];
+                this.element.appendChild(this.emojiEl);
+
+                const healthBarContainer = document.createElement('div');
+                healthBarContainer.className = 'health-bar-container';
+                this.healthBar = document.createElement('div');
+                this.healthBar.className = 'health-bar';
+                healthBarContainer.appendChild(this.healthBar);
+                this.element.appendChild(healthBarContainer);
+                
+                this.updateElementSize();
+                gameArea.appendChild(this.element);
+
+                const angle = Math.random() * 2 * Math.PI;
+                this.dx = Math.cos(angle);
+                this.dy = Math.sin(angle);
+
+                this.pathDuration = 0;
+                this.pathChangeTimestamp = 0;
+                this.resetPathTimer(performance.now());
+                
+                this.targetId = null;
+                this.targetAcquiredTimestamp = 0;
+            }
+
+            updateHealthBar() {
+                const hpPercent = Math.max(0, this.hp / this.maxHp);
+                this.healthBar.style.width = `${hpPercent * 100}%`;
+                if (hpPercent < 0.3) {
+                    this.healthBar.style.backgroundColor = '#ef4444'; // red-500
+                } else if (hpPercent < 0.6) {
+                    this.healthBar.style.backgroundColor = '#f59e0b'; // amber-500
+                } else {
+                    this.healthBar.style.backgroundColor = '#22c55e'; // green-500
+                }
+            }
+            
+            takeDamage(damage, currentTime) {
+                if (this.hp <= 0) return; // Already fainted, do nothing
+                if (currentTime - this.lastDamageTimestamp < INVINCIBILITY_DURATION) {
+                    return; // Still invincible
+                }
+                this.hp -= damage;
+                this.updateHealthBar();
+                if (damage > 0) {
+                    this.lastDamageTimestamp = currentTime;
+                }
+            }
+
+            resetPathTimer(currentTime) {
+                this.pathDuration = Math.random() * 4000 + 1000;
+                this.pathChangeTimestamp = currentTime + this.pathDuration;
+            }
+            
+            updateElementSize() {
+                const sizeKey = EMOJI_SIZE_KEYS[currentEmojiSizeIndex];
+                const sizeConfig = EMOJI_SIZES[sizeKey];
+                this.element.style.width = `${sizeConfig.size}px`;
+                this.element.style.height = `${sizeConfig.size}px`;
+                this.emojiEl.style.fontSize = `${sizeConfig.font}px`;
+            }
+
+            setPosition(newX, newY) {
+                const gameBounds = gameArea.getBoundingClientRect();
+                const currentSize = EMOJI_SIZES[EMOJI_SIZE_KEYS[currentEmojiSizeIndex]].size;
+                this.x = Math.max(0, Math.min(gameBounds.width - currentSize, newX));
+                this.y = Math.max(0, Math.min(gameBounds.height - currentSize, newY));
+                this.element.style.left = `${this.x}px`;
+                this.element.style.top = `${this.y}px`;
+            }
+
+            updatePosition(dx, dy) { this.setPosition(this.x + dx, this.y + dy); }
+            
+            changeType(newType) {
+                this.type = newType;
+                this.emojiEl.textContent = EMOJIS[newType];
+                this.hp = this.maxHp; // Reset HP
+                this.updateHealthBar();
+                conversions++;
+                this.targetId = null; 
+            }
+
+            disappear() {
+                this.element.remove();
+                this.hp = -1; // Mark as permanently gone
+            }
+        }
+
+        function getDistanceSq(a, b) { const dx = a.x - b.x; const dy = a.y - b.y; return dx * dx + dy * dy; }
+
+        function init() {
+            if (gameLoopId) cancelAnimationFrame(gameLoopId);
+            
+            roundCounter++;
+
+            const currentMapSizeKey = MAP_SIZE_KEYS[currentMapSizeIndex];
+            if (currentMapSizeKey === 'fit') {
+                const padding = 32;
+                const gap = 32;
+                const controlsPanel = document.getElementById('controls-panel');
+                const controlsHeight = controlsPanel.offsetHeight;
+                const controlsWidth = 384; 
+
+                let availableWidth, availableHeight;
+                if (window.innerWidth >= 1024) {
+                    availableWidth = window.innerWidth - controlsWidth - gap - padding;
+                    availableHeight = window.innerHeight - padding;
+                } else {
+                    availableWidth = window.innerWidth - padding;
+                    availableHeight = window.innerHeight - controlsHeight - gap - padding;
+                }
+                const fitSize = Math.floor(Math.min(availableWidth, availableHeight));
+                gameArea.style.maxWidth = `${fitSize}px`;
+                gameArea.style.maxHeight = `${fitSize}px`;
+            } else {
+                gameArea.style.maxWidth = MAP_SIZES[currentMapSizeKey];
+                gameArea.style.maxHeight = MAP_SIZES[currentMapSizeIndex];
+            }
+            
+            gameArea.innerHTML = '';
+            winnerBanner.style.display = 'none';
+            gameArea.appendChild(winnerBanner);
+            
+            // Reset status messages
+            suddenDeathMessageEl.classList.add('hidden');
+            remainingTypesIconsEl.classList.add('hidden');
+
+            entities = [];
+            conversions = 0;
+            startTime = performance.now();
+            lastGraphUpdate = 0;
+            lastTypeCount = 0;
+            timeTypeCountLastChanged = performance.now();
+            stalemateModeActive = false;
+            
+            setupPopulationDisplay();
+            setupTypeChart();
+            updateTypeChartTable();
+
+            setTimeout(() => {
+                const gameBounds = gameArea.getBoundingClientRect();
+                const currentSize = EMOJI_SIZES[EMOJI_SIZE_KEYS[currentEmojiSizeIndex]].size;
+                const numTypes = TYPE_KEYS.length;
+                const entitiesPerType = Math.floor(ENTITY_COUNT / numTypes);
+
+                for (let i = 0; i < numTypes; i++) {
+                    const type = TYPE_KEYS[i];
+                    for (let j = 0; j < entitiesPerType; j++) {
+                        const x = Math.random() * (gameBounds.width - currentSize);
+                        const y = Math.random() * (gameBounds.height - currentSize);
+                        entities.push(new Entity(type, x, y));
+                    }
+                }
+                const remainder = ENTITY_COUNT % numTypes;
+                for(let i = 0; i < remainder; i++){
+                        const type = TYPE_KEYS[i];
+                        const x = Math.random() * (gameBounds.width - currentSize);
+                        const y = Math.random() * (gameBounds.height - currentSize);
+                        entities.push(new Entity(type, x, y));
+                }
+
+                setupChart();
+                gameLoopId = requestAnimationFrame(gameLoop);
+            }, 50);
+        }
+
+        function resolveCollision(a, b, distSq) {
+            const currentSize = EMOJI_SIZES[EMOJI_SIZE_KEYS[currentEmojiSizeIndex]].size;
+            const dist = Math.sqrt(distSq);
+            const overlap = currentSize - dist;
+            if (dist === 0) { a.updatePosition((Math.random() - 0.5) * 0.1, (Math.random() - 0.5) * 0.1); return; }
+            const nx = (a.x - b.x) / dist;
+            const ny = (a.y - b.y) / dist;
+            const moveX = nx * (overlap / 2);
+            const moveY = ny * (overlap / 2);
+            a.setPosition(a.x + moveX, a.y + moveY);
+            b.setPosition(b.x - moveX, b.y - moveY);
+        }
+
+        let lastTimestamp = 0;
+        function gameLoop(timestamp) {
+            if (!lastTimestamp) lastTimestamp = timestamp;
+            const deltaTime = (timestamp - lastTimestamp) / 1000;
+            lastTimestamp = timestamp;
+            
+            const aliveEntities = entities.filter(e => e.hp > 0);
+            
+            const allTypes = new Set(entities.filter(e => e.hp > -1).map(e => e.type));
+            if (allTypes.size <= 1) { 
+                endGame(allTypes.values().next().value);
+                return;
+            }
+
+            const counts = {};
+            TYPE_KEYS.forEach(key => counts[key] = 0);
+            for (const entity of entities) { 
+                if (entity.hp > -1) counts[entity.type]++;
+            }
+
+            const currentTypeCount = Object.values(counts).filter(c => c > 0).length;
+            if (currentTypeCount !== lastTypeCount) {
+                lastTypeCount = currentTypeCount;
+                timeTypeCountLastChanged = timestamp;
+            }
+
+            const currentEntitySpeed = BASE_ENTITY_SPEED * speedMultiplier;
+            const movementMode = MOVEMENT_MODES[currentMovementModeIndex];
+            const currentSize = EMOJI_SIZES[EMOJI_SIZE_KEYS[currentEmojiSizeIndex]].size;
+            const gameBounds = gameArea.getBoundingClientRect();
+
+            // --- Movement ---
+            for (const entity of aliveEntities) {
+                let hasTarget = false;
+                if (movementMode === 'targeted' && entity.targetId) {
+                    const target = aliveEntities.find(e => e.id === entity.targetId);
+                    if (target) {
+                        const dist = Math.sqrt(getDistanceSq(entity, target));
+                        if (dist > 1) {
+                            entity.dx = (target.x - entity.x) / dist;
+                            entity.dy = (target.y - entity.y) / dist;
+                        }
+                        hasTarget = true;
+                    }
+                }
+
+                if (!hasTarget) {
+                    if ((entity.x <= 0 && entity.dx < 0) || (entity.x >= gameBounds.width - currentSize && entity.dx > 0)) {
+                        entity.dx *= -1;
+                    }
+                    if ((entity.y <= 0 && entity.dy < 0) || (entity.y >= gameBounds.height - currentSize && entity.dy > 0)) {
+                        entity.dy *= -1;
+                    }
+                    if ((movementMode === 'paths' || (movementMode === 'targeted' && !hasTarget)) && timestamp > entity.pathChangeTimestamp) {
+                        const angle = Math.random() * 2 * Math.PI;
+                        entity.dx = Math.cos(angle);
+                        entity.dy = Math.sin(angle);
+                        entity.resetPathTimer(timestamp);
+                    }
+                }
+                
+                entity.updatePosition(entity.dx * currentEntitySpeed * deltaTime, entity.dy * currentEntitySpeed * deltaTime);
+            }
+
+            // --- Battle Logic ---
+            const changesToApply = [];
+            const processedInFrame = new Set();
+
+            for (let j = 0; j < aliveEntities.length; j++) {
+                for (let k = j + 1; k < aliveEntities.length; k++) {
+                    const entityA = aliveEntities[j];
+                    const entityB = aliveEntities[k];
+
+                    if (processedInFrame.has(entityA.id) || processedInFrame.has(entityB.id)) continue;
+
+                    const distanceSq = getDistanceSq(entityA, entityB);
+
+                    if (distanceSq < currentSize * currentSize) {
+                        
+                        if (entityA.type === entityB.type) {
+                            continue;
+                        }
+
+                        // Damage phase
+                        const damageAdeals = TYPE_CHART[entityA.type][entityB.type];
+                        const damageBdeals = TYPE_CHART[entityB.type][entityA.type];
+                        entityA.takeDamage(damageBdeals, timestamp);
+                        entityB.takeDamage(damageAdeals, timestamp);
+
+                        // Resolution phase
+                        const aFainted = entityA.hp <= 0;
+                        const bFainted = entityB.hp <= 0;
+
+                        if (aFainted && !bFainted) {
+                            changesToApply.push({ loser: entityA, winnerType: entityB.type });
+                        } else if (bFainted && !aFainted) {
+                            changesToApply.push({ loser: entityB, winnerType: entityA.type });
+                        } else if (aFainted && bFainted) {
+                            if (Math.random() < 0.5) {
+                                changesToApply.push({ loser: entityB, winnerType: entityA.type });
+                                entityA.hp = entityA.maxHp;
+                                entityA.updateHealthBar();
+                            } else {
+                                changesToApply.push({ loser: entityA, winnerType: entityB.type });
+                                entityB.hp = entityB.maxHp;
+                                entityB.updateHealthBar();
+                            }
+                        } else {
+                                resolveCollision(entityA, entityB, distanceSq);
+                        }
+                        
+                        processedInFrame.add(entityA.id);
+                        processedInFrame.add(entityB.id);
+                    }
+                }
+            }
+            
+            // Apply changes based on stalemate mode
+            for (const change of changesToApply) {
+                if (stalemateModeActive) {
+                    change.loser.disappear();
+                } else {
+                    change.loser.changeType(change.winnerType);
+                }
+            }
+            
+            // Clean up disappeared entities from the main array
+            if(stalemateModeActive) {
+                entities = entities.filter(e => e.hp !== -1);
+            }
+
+
+            updateStats(counts, timestamp);
+            gameLoopId = requestAnimationFrame(gameLoop);
+        }
+
+        function setupPopulationDisplay() {
+            populationStatsEl.innerHTML = '';
+            TYPE_KEYS.forEach(type => {
+                const div = document.createElement('div');
+                div.className = 'flex justify-between items-center font-mono';
+                div.innerHTML = `
+                    <span class="flex-shrink-0">${EMOJIS[type]} ${type}</span>
+                    <span id="${type.toLowerCase()}-count" class="font-bold ml-2" style="color: ${TYPE_COLORS[type]}">0</span>
+                `;
+                populationStatsEl.appendChild(div);
+            });
+        }
+
+        function updateStats(counts, timestamp) {
+            TYPE_KEYS.forEach(type => {
+                const el = document.getElementById(`${type.toLowerCase()}-count`);
+                if(el) el.textContent = counts[type] || 0;
+            });
+
+            roundNumberEl.textContent = roundCounter;
+            conversionsCountEl.textContent = conversions;
+            const elapsedTime = ((performance.now() - startTime) / 1000);
+            timeElapsedEl.textContent = `${elapsedTime.toFixed(1)}s`;
+            
+            const remainingTypes = Object.keys(counts).filter(type => counts[type] > 0);
+            remainingTypesEl.textContent = remainingTypes.length;
+
+            // Update remaining types icons
+            if (remainingTypes.length <= 4 && remainingTypes.length > 1) {
+                remainingTypesIconsEl.innerHTML = remainingTypes.map(type => EMOJIS[type]).join(' vs. ');
+                remainingTypesIconsEl.classList.remove('hidden');
+            } else {
+                remainingTypesIconsEl.classList.add('hidden');
+            }
+
+
+            // Calculate and display stalemate timer
+            const timeWithSameTypeCount = (timestamp - timeTypeCountLastChanged) / 1000;
+            stalemateTimerEl.textContent = `${timeWithSameTypeCount.toFixed(1)}s`;
+
+            const currentStalemateThreshold = BASE_STALEMATE_SECONDS / speedMultiplier;
+            if (timeWithSameTypeCount > currentStalemateThreshold) {
+                activateStalemateMode();
+            }
+
+            if (timestamp - lastGraphUpdate > GRAPH_UPDATE_INTERVAL) {
+                lastGraphUpdate = timestamp;
+                updateChart(counts, elapsedTime);
+            }
+        }
+
+        function updateWinnerHistoryDisplay() {
+            winnerHistoryEl.innerHTML = '';
+            [...winnerHistory].reverse().forEach(entry => {
+                const div = document.createElement('div');
+                div.className = 'flex justify-between items-center font-mono';
+                div.innerHTML = `
+                    <span>Round ${entry.round}</span>
+                    <span class="font-bold" style="color: ${TYPE_COLORS[entry.winner]}">${EMOJIS[entry.winner]} ${entry.winner}</span>
+                `;
+                winnerHistoryEl.appendChild(div);
+            });
+        }
+
+        function endGame(winnerType) {
+            if (!gameLoopId) return; // Prevent multiple endings
+            cancelAnimationFrame(gameLoopId);
+            gameLoopId = null;
+            lastTimestamp = 0;
+            
+            remainingTypesIconsEl.classList.add('hidden');
+            suddenDeathMessageEl.classList.add('hidden');
+
+            if(winnerType) {
+                winnerBanner.textContent = `${EMOJIS[winnerType]} ${winnerType} Wins!`;
+                winnerBanner.style.display = 'block';
+                if (!winnerHistory.some(entry => entry.round === roundCounter)) {
+                     winnerHistory.push({ round: roundCounter, winner: winnerType });
+                     updateWinnerHistoryDisplay();
+                }
+            } else {
+                // This case can happen if all entities are removed in stalemate mode
+                winnerBanner.textContent = `Mutual Annihilation!`;
+                winnerBanner.style.backgroundColor = '#ef4444';
+                winnerBanner.style.display = 'block';
+            }
+        }
+
+        function activateStalemateMode() {
+            if (stalemateModeActive) return;
+            stalemateModeActive = true;
+            suddenDeathMessageEl.classList.remove('hidden');
+            console.log("Stalemate mode activated: Fainted Pokémon will now be removed.");
+        }
+
+        function setupChart() {
+            if (populationChart) populationChart.destroy();
+            const ctx = chartCanvas.getContext('2d');
+            
+            const datasets = TYPE_KEYS.map(type => ({
+                label: type,
+                data: [],
+                borderColor: TYPE_COLORS[type],
+                tension: 0.4,
+                borderWidth: 2
+            }));
+
+            populationChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: [], datasets: datasets },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    animation: { duration: 0 },
+                    plugins: { legend: { display: false } },
+                    elements: { point: { radius: 0 } },
+                    scales: {
+                        x: { display: false },
+                        y: { display: false, min: 0, max: ENTITY_COUNT }
+                    }
+                }
+            });
+        }
+
+        function updateChart(counts, elapsedTime) {
+            const data = populationChart.data;
+            data.labels.push(elapsedTime.toFixed(1));
+            
+            data.datasets.forEach((dataset, index) => {
+                const type = TYPE_KEYS[index];
+                dataset.data.push(counts[type] || 0);
+            });
+
+            if (data.labels.length > MAX_GRAPH_POINTS) {
+                data.labels.shift();
+                data.datasets.forEach(dataset => dataset.data.shift());
+            }
+            populationChart.update('none');
+        }
+
+        function updateSpeedDisplay() {
+            speedDisplay.textContent = `${speedMultiplier.toFixed(1)}x`;
+        }
+        
+        function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+        // --- Event Listeners ---
+        restartBtn.addEventListener('click', init);
+
+        movementToggleBtn.addEventListener('click', () => {
+            currentMovementModeIndex = (currentMovementModeIndex + 1) % MOVEMENT_MODES.length;
+            const modeName = MOVEMENT_MODES[currentMovementModeIndex];
+            movementToggleBtn.textContent = `Mode: ${capitalize(modeName)}`;
+        });
+        
+        emojiSizeBtn.addEventListener('click', () => {
+             currentEmojiSizeIndex = (currentEmojiSizeIndex + 1) % EMOJI_SIZE_KEYS.length;
+             const sizeKey = EMOJI_SIZE_KEYS[currentEmojiSizeIndex];
+             emojiSizeBtn.textContent = `Sprite Size: ${capitalize(sizeKey)}`;
+             init();
+        });
+        
+        mapSizeBtn.addEventListener('click', () => {
+             currentMapSizeIndex = (currentMapSizeIndex + 1) % MAP_SIZE_KEYS.length;
+             const sizeKey = MAP_SIZE_KEYS[currentMapSizeIndex];
+             mapSizeBtn.textContent = `Map: ${capitalize(sizeKey)}`;
+             init();
+        });
+
+        increaseSpeedBtn.addEventListener('click', () => {
+            if (speedMultiplier < 4.0) {
+                speedMultiplier = parseFloat((speedMultiplier + 0.2).toFixed(1));
+                updateSpeedDisplay();
+            }
+        });
+
+        decreaseSpeedBtn.addEventListener('click', () => {
+            if (speedMultiplier > 0.2) {
+                speedMultiplier = parseFloat((speedMultiplier - 0.2).toFixed(1));
+                updateSpeedDisplay();
+            }
+        });
+
+        minSpeedBtn.addEventListener('click', () => {
+            speedMultiplier = 0.2;
+            updateSpeedDisplay();
+        });
+
+        defaultSpeedBtn.addEventListener('click', () => {
+            speedMultiplier = 1.0;
+            updateSpeedDisplay();
+        });
+
+        maxSpeedBtn.addEventListener('click', () => {
+            speedMultiplier = 4.0;
+            updateSpeedDisplay();
+        });
+
+        window.addEventListener('resize', init);
+        
+        window.onload = init;
+
+    </script>
+</body>
+
+</html>
+�
