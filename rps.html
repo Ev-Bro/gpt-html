@@ -1,452 +1,567 @@
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Rock Paper Scissors Simulation</title>
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-        <script src="https://cdn.tailwindcss.com"></script>
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        <style>
-            body {
-                font-family: 'Inter', sans-serif;
-                touch-action: none; /* Disable panning and zooming on mobile */
-            }
-            #game-area {
-                position: relative;
-                width: 100%;
-                aspect-ratio: 1 / 1;
-                max-width: 80vh; /* Max width based on viewport height */
-                max-height: 80vw; /* Max height based on viewport width */
-                background-color: #1a1a1a;
-                border: 2px solid #333;
-                overflow: hidden;
-                box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-            }
-            .entity {
-                position: absolute;
-                width: 20px;
-                height: 20px;
-                font-size: 16px;
-                line-height: 20px;
-                text-align: center;
-                user-select: none;
-            }
-            .winner-banner {
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                padding: 20px 40px;
-                background-color: rgba(0, 255, 127, 0.85);
-                color: #111;
-                font-size: 3rem;
-                font-weight: 700;
-                border-radius: 15px;
-                text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-                backdrop-filter: blur(5px);
-                z-index: 100;
-                display: none; /* Initially hidden */
-            }
-            #chart-container {
-                height: 150px;
-            }
-        </style>
-    </head>
-    <body class="bg-gray-900 text-gray-100 flex flex-col lg:flex-row items-center justify-center min-h-screen p-4 gap-8">
+<!DOCTYPE html>
+<html lang="en">
 
-        <!-- Game Area -->
-        <div id="game-area" class="rounded-lg">
-            <div id="winner-banner" class="winner-banner"></div>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rock Paper Scissors Simulation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            touch-action: none;
+            /* Disable panning and zooming on mobile */
+        }
+
+        #game-area {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            background-color: #1a1a1a;
+            border: 2px solid #333;
+            overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            transition: max-width 0.3s ease, max-height 0.3s ease;
+        }
+
+        .entity {
+            position: absolute;
+            text-align: center;
+            user-select: none;
+            transition: font-size 0.3s ease, width 0.3s ease, height 0.3s ease, line-height 0.3s ease;
+        }
+
+        .winner-banner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px 40px;
+            background-color: rgba(0, 255, 127, 0.85);
+            color: #111;
+            font-size: 3rem;
+            font-weight: 700;
+            border-radius: 15px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(5px);
+            z-index: 100;
+            display: none;
+            /* Initially hidden */
+        }
+
+        #chart-container {
+            height: 120px;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-900 text-gray-100 flex flex-col lg:flex-row items-center justify-center min-h-screen p-4 gap-8">
+
+    <!-- Game Area -->
+    <div id="game-area" class="rounded-lg">
+        <div id="winner-banner" class="winner-banner"></div>
+    </div>
+
+    <!-- Stats and Controls Panel -->
+    <div id="controls-panel" class="w-full lg:w-80 bg-gray-800 p-6 rounded-lg shadow-lg flex flex-col gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-white">RPS Sim</h1>
+            <p class="text-sm text-gray-400">Watch the battle unfold.</p>
         </div>
 
-        <!-- Stats and Controls Panel -->
-        <div class="w-full lg:w-80 bg-gray-800 p-6 rounded-lg shadow-lg flex flex-col gap-4">
-            <div>
-                <h1 class="text-2xl font-bold text-white">RPS Sim</h1>
-                <p class="text-sm text-gray-400">Watch the battle unfold.</p>
-            </div>
-            
-            <div class="w-full h-px bg-gray-700"></div>
+        <div class="w-full h-px bg-gray-700"></div>
 
-            <!-- Current Round Stats -->
-            <div>
-                <h2 class="text-lg font-semibold mb-2 text-gray-300">Current Population</h2>
-                <div class="space-y-2 text-lg">
-                    <div class="flex justify-between items-center">
-                        <span class="font-mono">🗿 Rock</span>
-                        <span id="rock-count" class="font-bold text-blue-400">0</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="font-mono">📄 Paper</span>
-                        <span id="paper-count" class="font-bold text-green-400">0</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="font-mono">✂️ Scissors</span>
-                        <span id="scissors-count" class="font-bold text-red-400">0</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Population Graph -->
-            <div id="chart-container">
-                <canvas id="population-chart"></canvas>
-            </div>
-
-            <div class="w-full h-px bg-gray-700"></div>
-
-            <!-- Overall Game Stats -->
-            <div>
-                <h2 class="text-lg font-semibold mb-2 text-gray-300">Round Info</h2>
-                <div class="space-y-2">
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-400">Conversions</span>
-                        <span id="conversions-count" class="font-bold">0</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-400">Elapsed Time</span>
-                        <span id="time-elapsed" class="font-bold">0.0s</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="w-full h-px bg-gray-700"></div>
-
-            <!-- Controls -->
-            <div class="flex flex-col gap-3">
-                <button id="movement-toggle-btn" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-3 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400">
-                    Mode: Paths
-                </button>
-                <button id="restart-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400">
-                    Start New Round
-                </button>
+        <!-- Current Round Stats -->
+        <div>
+            <h2 class="text-lg font-semibold mb-2 text-gray-300">Population</h2>
+            <div class="space-y-2 text-lg">
+                <div class="flex justify-between items-center"><span class="font-mono">🗿 Rock</span><span id="rock-count" class="font-bold text-blue-400">0</span></div>
+                <div class="flex justify-between items-center"><span class="font-mono">📜 Paper</span><span id="paper-count" class="font-bold text-green-400">0</span></div>
+                <div class="flex justify-between items-center"><span class="font-mono">✂️ Scissors</span><span id="scissors-count" class="font-bold text-red-400">0</span></div>
             </div>
         </div>
 
-        <script>
-            // --- DOM Elements ---
-            const gameArea = document.getElementById('game-area');
-            const rockCountEl = document.getElementById('rock-count');
-            const paperCountEl = document.getElementById('paper-count');
-            const scissorsCountEl = document.getElementById('scissors-count');
-            const conversionsCountEl = document.getElementById('conversions-count');
-            const timeElapsedEl = document.getElementById('time-elapsed');
-            const restartBtn = document.getElementById('restart-btn');
-            const movementToggleBtn = document.getElementById('movement-toggle-btn');
-            const winnerBanner = document.getElementById('winner-banner');
-            const chartCanvas = document.getElementById('population-chart');
+        <!-- Population Graph -->
+        <div id="chart-container"><canvas id="population-chart"></canvas></div>
 
-            // --- Game Configuration ---
-            const ENTITY_COUNT = 150;
-            const ENTITY_SIZE = 20;
-            const ENTITY_SPEED = 45;
-            const TARGET_LOCK_DURATION = 2000;
-            const GRAPH_UPDATE_INTERVAL = 500; // ms
-            const MAX_GRAPH_POINTS = 120; // Keep 60 seconds of data (120 * 500ms)
+        <div class="w-full h-px bg-gray-700"></div>
 
-            // --- Game State ---
-            let entities = [];
-            let gameLoopId = null;
-            let conversions = 0;
-            let startTime = 0;
-            let movementMode = 'paths'; // 'targeted', 'dvd', 'paths'
-            let populationChart = null;
-            let lastGraphUpdate = 0;
+        <!-- Round Info -->
+        <div>
+            <div class="flex justify-between items-center"><span class="text-gray-400">Conversions</span><span id="conversions-count" class="font-bold">0</span></div>
+            <div class="flex justify-between items-center"><span class="text-gray-400">Elapsed Time</span><span id="time-elapsed" class="font-bold">0.0s</span></div>
+        </div>
 
-            const TYPES = { ROCK: 'rock', PAPER: 'paper', SCISSORS: 'scissors' };
-            const EMOJIS = { [TYPES.ROCK]: '🗿', [TYPES.PAPER]: '📄', [TYPES.SCISSORS]: '✂️' };
-            const RULES = { [TYPES.ROCK]: TYPES.SCISSORS, [TYPES.PAPER]: TYPES.ROCK, [TYPES.SCISSORS]: TYPES.PAPER };
+        <div class="w-full h-px bg-gray-700"></div>
+
+        <!-- Controls -->
+        <div class="flex flex-col gap-4">
+             <div class="grid grid-cols-2 gap-3">
+                  <button id="map-size-btn" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-3 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400">Map: Medium</button>
+                  <button id="emoji-size-btn" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-3 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400">Sprite Size: Medium</button>
+             </div>
+            <button id="movement-toggle-btn" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-3 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400">Mode: Paths</button>
             
-            class Entity {
-                constructor(type, x, y) {
-                    this.id = Math.random().toString(36).substr(2, 9);
-                    this.type = type;
-                    this.x = x;
-                    this.y = y;
-                    this.element = this.createElement();
-                    
-                    // Movement properties
-                    this.lockedTargetId = null;
-                    this.lockEndTime = 0;
-                    const angle = Math.random() * 2 * Math.PI;
-                    this.dx = Math.cos(angle);
-                    this.dy = Math.sin(angle);
-                    this.staggerGroup = parseInt(this.id.slice(-1), 36) % 2;
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-2 text-center">Speed</label>
+                <div class="flex items-center justify-center gap-2">
+                    <button id="decrease-speed-btn" class="w-12 h-10 bg-gray-600 hover:bg-gray-500 rounded-lg font-bold text-xl transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400">-</button>
+                    <span id="speed-display" class="font-bold text-lg w-20 text-center bg-gray-700 py-1.5 rounded-md">1.0x</span>
+                    <button id="increase-speed-btn" class="w-12 h-10 bg-gray-600 hover:bg-gray-500 rounded-lg font-bold text-xl transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400">+</button>
+                </div>
+            </div>
 
-                    // Path mode properties
-                    this.pathDuration = 0;
-                    this.pathChangeTimestamp = 0;
-                    this.resetPathTimer(performance.now());
-                }
+            <button id="restart-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400">New Round</button>
+        </div>
+    </div>
 
-                resetPathTimer(currentTime) {
-                    this.pathDuration = Math.random() * 4000 + 1000; // 1 to 5 seconds
-                    this.pathChangeTimestamp = currentTime + this.pathDuration;
-                }
+    <script>
+        // --- DOM Elements ---
+        const gameArea = document.getElementById('game-area');
+        const rockCountEl = document.getElementById('rock-count');
+        const paperCountEl = document.getElementById('paper-count');
+        const scissorsCountEl = document.getElementById('scissors-count');
+        const conversionsCountEl = document.getElementById('conversions-count');
+        const timeElapsedEl = document.getElementById('time-elapsed');
+        const restartBtn = document.getElementById('restart-btn');
+        const movementToggleBtn = document.getElementById('movement-toggle-btn');
+        const winnerBanner = document.getElementById('winner-banner');
+        const chartCanvas = document.getElementById('population-chart');
+        const decreaseSpeedBtn = document.getElementById('decrease-speed-btn');
+        const increaseSpeedBtn = document.getElementById('increase-speed-btn');
+        const speedDisplay = document.getElementById('speed-display');
+        const emojiSizeBtn = document.getElementById('emoji-size-btn');
+        const mapSizeBtn = document.getElementById('map-size-btn');
 
-                createElement() {
-                    const el = document.createElement('div');
-                    el.className = 'entity';
-                    el.textContent = EMOJIS[this.type];
-                    el.style.left = `${this.x}px`;
-                    el.style.top = `${this.y}px`;
-                    gameArea.appendChild(el);
-                    return el;
-                }
+        // --- Game Configuration ---
+        const ENTITY_COUNT = 150;
+        const BASE_ENTITY_SPEED = 100;
+        const GRAPH_UPDATE_INTERVAL = 200; // ms
+        const MAX_GRAPH_POINTS = 120;
+        const TARGET_LOCK_DURATION = 4000; // ms
+
+        const EMOJI_SIZES = { small: {size: 14, font: 12}, medium: {size: 22, font: 18}, large: {size: 30, font: 24} };
+        const MAP_SIZES = { small: '400px', medium: '600px', large: '800px', fit: 'fit' };
+        const MOVEMENT_MODES = ['paths', 'dvd', 'targeted'];
+
+        // --- Game State ---
+        let entities = [];
+        let gameLoopId = null;
+        let conversions = 0;
+        let startTime = 0;
+        let populationChart = null;
+        let lastGraphUpdate = 0;
+        let speedMultiplier = 1.0;
+        
+        const EMOJI_SIZE_KEYS = Object.keys(EMOJI_SIZES);
+        const MAP_SIZE_KEYS = Object.keys(MAP_SIZES);
+        let currentEmojiSizeIndex = 1; // medium
+        let currentMapSizeIndex = 1; // medium
+        let currentMovementModeIndex = 0; // paths
+
+        const TYPES = { ROCK: 'rock', PAPER: 'paper', SCISSORS: 'scissors' };
+        const EMOJIS = { [TYPES.ROCK]: '🗿', [TYPES.PAPER]: '📜', [TYPES.SCISSORS]: '✂️' };
+        const RULES = { [TYPES.ROCK]: TYPES.SCISSORS, [TYPES.PAPER]: TYPES.ROCK, [TYPES.SCISSORS]: TYPES.PAPER };
+
+        class Entity {
+            constructor(type, x, y) {
+                this.id = Math.random().toString(36).substr(2, 9);
+                this.type = type;
+                this.x = x;
+                this.y = y;
+
+                const el = document.createElement('div');
+                el.className = 'entity';
+                el.textContent = EMOJIS[this.type];
+                this.element = el;
+                this.updateElementSize();
+                gameArea.appendChild(this.element);
+
+                const angle = Math.random() * 2 * Math.PI;
+                this.dx = Math.cos(angle);
+                this.dy = Math.sin(angle);
+
+                this.pathDuration = 0;
+                this.pathChangeTimestamp = 0;
+                this.resetPathTimer(performance.now());
                 
-                setPosition(newX, newY) {
-                    const gameBounds = gameArea.getBoundingClientRect();
-                    this.x = Math.max(0, Math.min(gameBounds.width - ENTITY_SIZE, newX));
-                    this.y = Math.max(0, Math.min(gameBounds.height - ENTITY_SIZE, newY));
-                    this.element.style.left = `${this.x}px`;
-                    this.element.style.top = `${this.y}px`;
-                }
+                // Properties for targeted movement
+                this.targetId = null; // ID of the entity this one is hunting
+                this.targetedById = null; // ID of the entity hunting this one
+                this.targetAcquiredTimestamp = 0; // Timestamp for target lock
+            }
 
-                updatePosition(dx, dy) { this.setPosition(this.x + dx, this.y + dy); }
-                changeType(newType) {
-                    this.type = newType;
-                    this.element.textContent = EMOJIS[newType];
-                    this.lockedTargetId = null;
-                    this.lockEndTime = 0;
-                    conversions++;
-                }
-                setTargetLock(targetId) {
-                    this.lockedTargetId = targetId;
-                    this.lockEndTime = performance.now() + TARGET_LOCK_DURATION;
-                }
-                hasValidLock() { return this.lockedTargetId && performance.now() < this.lockEndTime; }
+            resetPathTimer(currentTime) {
+                this.pathDuration = Math.random() * 4000 + 1000;
+                this.pathChangeTimestamp = currentTime + this.pathDuration;
             }
             
-            function getDistanceSq(a, b) { const dx = a.x - b.x; const dy = a.y - b.y; return dx * dx + dy * dy; }
+            updateElementSize() {
+                const sizeKey = EMOJI_SIZE_KEYS[currentEmojiSizeIndex];
+                const sizeConfig = EMOJI_SIZES[sizeKey];
+                this.element.style.width = `${sizeConfig.size}px`;
+                this.element.style.height = `${sizeConfig.size}px`;
+                this.element.style.fontSize = `${sizeConfig.font}px`;
+                this.element.style.lineHeight = `${sizeConfig.size}px`;
+            }
 
-            function init() {
-                if (gameLoopId) cancelAnimationFrame(gameLoopId);
-                gameArea.innerHTML = '';
-                winnerBanner.style.display = 'none';
-                gameArea.appendChild(winnerBanner);
-                entities = [];
-                conversions = 0;
-                startTime = performance.now();
-                lastGraphUpdate = 0;
+            setPosition(newX, newY) {
                 const gameBounds = gameArea.getBoundingClientRect();
+                const currentSize = EMOJI_SIZES[EMOJI_SIZE_KEYS[currentEmojiSizeIndex]].size;
+                this.x = Math.max(0, Math.min(gameBounds.width - currentSize, newX));
+                this.y = Math.max(0, Math.min(gameBounds.height - currentSize, newY));
+                this.element.style.left = `${this.x}px`;
+                this.element.style.top = `${this.y}px`;
+            }
 
+            updatePosition(dx, dy) { this.setPosition(this.x + dx, this.y + dy); }
+            
+            changeType(newType) {
+                this.type = newType;
+                this.element.textContent = EMOJIS[newType];
+                conversions++;
+            }
+        }
+
+        function getDistanceSq(a, b) { const dx = a.x - b.x; const dy = a.y - b.y; return dx * dx + dy * dy; }
+
+        function init() {
+            if (gameLoopId) cancelAnimationFrame(gameLoopId);
+            
+            const currentMapSizeKey = MAP_SIZE_KEYS[currentMapSizeIndex];
+            if (currentMapSizeKey === 'fit') {
+                const padding = 32;
+                const gap = 32;
+                const controlsPanel = document.getElementById('controls-panel');
+                const controlsHeight = controlsPanel.offsetHeight;
+                const controlsWidth = 320;
+
+                let availableWidth, availableHeight;
+                if (window.innerWidth >= 1024) {
+                    availableWidth = window.innerWidth - controlsWidth - gap - padding;
+                    availableHeight = window.innerHeight - padding;
+                } else {
+                    availableWidth = window.innerWidth - padding;
+                    availableHeight = window.innerHeight - controlsHeight - gap - padding;
+                }
+                const fitSize = Math.floor(Math.min(availableWidth, availableHeight));
+                gameArea.style.maxWidth = `${fitSize}px`;
+                gameArea.style.maxHeight = `${fitSize}px`;
+            } else {
+                gameArea.style.maxWidth = MAP_SIZES[currentMapSizeKey];
+                gameArea.style.maxHeight = MAP_SIZES[currentMapSizeKey];
+            }
+            
+            gameArea.innerHTML = '';
+            winnerBanner.style.display = 'none';
+            gameArea.appendChild(winnerBanner);
+            entities = [];
+            conversions = 0;
+            startTime = performance.now();
+            lastGraphUpdate = 0;
+            
+            setTimeout(() => {
+                const gameBounds = gameArea.getBoundingClientRect();
+                const currentSize = EMOJI_SIZES[EMOJI_SIZE_KEYS[currentEmojiSizeIndex]].size;
                 for (let i = 0; i < ENTITY_COUNT; i++) {
                     let type;
                     if (i < ENTITY_COUNT / 3) type = TYPES.ROCK;
                     else if (i < (ENTITY_COUNT * 2) / 3) type = TYPES.PAPER;
                     else type = TYPES.SCISSORS;
-                    const x = Math.random() * (gameBounds.width - ENTITY_SIZE);
-                    const y = Math.random() * (gameBounds.height - ENTITY_SIZE);
+                    const x = Math.random() * (gameBounds.width - currentSize);
+                    const y = Math.random() * (gameBounds.height - currentSize);
                     entities.push(new Entity(type, x, y));
                 }
-                
                 setupChart();
                 gameLoopId = requestAnimationFrame(gameLoop);
-            }
-            
-            function resolveCollision(a, b, distSq) {
-                const dist = Math.sqrt(distSq);
-                const overlap = ENTITY_SIZE - dist;
-                if (dist === 0) { a.updatePosition((Math.random() - 0.5) * 0.1, (Math.random() - 0.5) * 0.1); return; }
-                const nx = (a.x - b.x) / dist;
-                const ny = (a.y - b.y) / dist;
-                const moveX = nx * (overlap / 2);
-                const moveY = ny * (overlap / 2);
-                a.setPosition(a.x + moveX, a.y + moveY);
-                b.setPosition(b.x - moveX, b.y - moveY);
-            }
-            
-            let lastTimestamp = 0;
-            function gameLoop(timestamp) {
-                if (!lastTimestamp) lastTimestamp = timestamp;
-                const deltaTime = (timestamp - lastTimestamp) / 1000;
-                lastTimestamp = timestamp;
+            }, 50);
+        }
 
-                const counts = { [TYPES.ROCK]: 0, [TYPES.PAPER]: 0, [TYPES.SCISSORS]: 0 };
-                const typeGroups = { [TYPES.ROCK]: [], [TYPES.PAPER]: [], [TYPES.SCISSORS]: [] };
+        function resolveCollision(a, b, distSq) {
+            const currentSize = EMOJI_SIZES[EMOJI_SIZE_KEYS[currentEmojiSizeIndex]].size;
+            const dist = Math.sqrt(distSq);
+            const overlap = currentSize - dist;
+            if (dist === 0) { a.updatePosition((Math.random() - 0.5) * 0.1, (Math.random() - 0.5) * 0.1); return; }
+            const nx = (a.x - b.x) / dist;
+            const ny = (a.y - b.y) / dist;
+            const moveX = nx * (overlap / 2);
+            const moveY = ny * (overlap / 2);
+            a.setPosition(a.x + moveX, a.y + moveY);
+            b.setPosition(b.x - moveX, b.y - moveY);
+        }
+
+        let lastTimestamp = 0;
+        function gameLoop(timestamp) {
+            if (!lastTimestamp) lastTimestamp = timestamp;
+            const deltaTime = (timestamp - lastTimestamp) / 1000;
+            lastTimestamp = timestamp;
+
+            const counts = { [TYPES.ROCK]: 0, [TYPES.PAPER]: 0, [TYPES.SCISSORS]: 0 };
+            for (const entity of entities) {
+                counts[entity.type]++;
+            }
+
+            if (counts[TYPES.ROCK] === ENTITY_COUNT || counts[TYPES.PAPER] === ENTITY_COUNT || counts[TYPES.SCISSORS] === ENTITY_COUNT) {
+                endGame(Object.keys(counts).find(type => counts[type] === ENTITY_COUNT));
+                return;
+            }
+
+            const currentEntitySpeed = BASE_ENTITY_SPEED * speedMultiplier;
+            const movementMode = MOVEMENT_MODES[currentMovementModeIndex];
+            const currentSize = EMOJI_SIZES[EMOJI_SIZE_KEYS[currentEmojiSizeIndex]].size;
+            const gameBounds = gameArea.getBoundingClientRect();
+
+            // --- Targeting Phase (for 'targeted' mode) ---
+            if (movementMode === 'targeted') {
                 const entityMap = new Map(entities.map(e => [e.id, e]));
 
-                for (const entity of entities) {
-                    counts[entity.type]++;
-                    typeGroups[entity.type].push(entity);
+                // --- Pass 1: Target Validation and Unlocking ---
+                // Check all existing targets. If a target is invalid or the lock has expired, free up the hunter.
+                for (const hunter of entities) {
+                    if (hunter.targetId) {
+                        const target = entityMap.get(hunter.targetId);
+                        const isLockExpired = timestamp - hunter.targetAcquiredTimestamp > TARGET_LOCK_DURATION;
+                        const isTargetInvalid = !target || RULES[hunter.type] !== target.type;
+
+                        if (isLockExpired || isTargetInvalid) {
+                            hunter.targetId = null;
+                            hunter.targetAcquiredTimestamp = 0;
+                        }
+                    }
                 }
 
-                if (counts[TYPES.ROCK] === ENTITY_COUNT || counts[TYPES.PAPER] === ENTITY_COUNT || counts[TYPES.SCISSORS] === ENTITY_COUNT) {
-                    endGame(Object.keys(counts).find(type => counts[type] === ENTITY_COUNT));
-                    return;
+                // --- Pass 2: Target Acquisition ---
+                // Find targets for any hunter that doesn't have one.
+                
+                // Get a fresh list of available prey (those not currently targeted by a locked-in hunter)
+                const targetedPreyIds = new Set(entities.filter(e => e.targetId).map(e => e.targetId));
+                const availablePrey = new Map();
+                for(const entity of entities){
+                    if(!targetedPreyIds.has(entity.id)){
+                        if(!availablePrey.has(entity.type)){
+                            availablePrey.set(entity.type, []);
+                        }
+                        availablePrey.get(entity.type).push(entity);
+                    }
                 }
 
-                // --- Movement Logic ---
-                const staggerGroupThisFrame = Math.floor(timestamp / 150) % 2; // Stagger is always on
-                for (const entity of entities) {
-                    const canMove = entity.staggerGroup === staggerGroupThisFrame;
-                    if (!canMove) continue;
+                for (const hunter of entities) {
+                    if (hunter.targetId) continue; // Skip if already has a valid, locked target.
 
-                    if (movementMode === 'targeted') {
-                        const enemyType = RULES[entity.type];
-                        const targets = typeGroups[enemyType];
-                        let currentTarget = null;
-                        if (targets.length === 0) continue;
+                    const preyType = RULES[hunter.type];
+                    const potentialPrey = availablePrey.get(preyType) || [];
+                    
+                    if (potentialPrey.length === 0) continue;
 
-                        if (entity.hasValidLock()) {
-                            const lockedTarget = entityMap.get(entity.lockedTargetId);
-                            if (lockedTarget && lockedTarget.type === enemyType) currentTarget = lockedTarget;
-                        }
-                        
-                        if (!currentTarget) {
-                            let minDistanceSq = Infinity;
-                            for (const target of targets) {
-                                const distanceSq = getDistanceSq(entity, target);
-                                if (distanceSq < minDistanceSq) {
-                                    minDistanceSq = distanceSq;
-                                    currentTarget = target;
-                                }
-                            }
-                            if (currentTarget) entity.setTargetLock(currentTarget.id);
-                        }
+                    let closestPrey = null;
+                    let minDistanceSq = Infinity;
+                    let closestPreyIndex = -1;
 
-                        if (currentTarget) {
-                            const distance = Math.sqrt(getDistanceSq(entity, currentTarget));
-                            if (distance > 1) {
-                                const moveAmount = ENTITY_SPEED * deltaTime;
-                                const dx = (currentTarget.x - entity.x) / distance * moveAmount;
-                                const dy = (currentTarget.y - entity.y) / distance * moveAmount;
-                                entity.updatePosition(dx, dy);
-                            }
+                    // Find the closest available prey
+                    for (let i = 0; i < potentialPrey.length; i++) {
+                        const prey = potentialPrey[i];
+                        const distSq = getDistanceSq(hunter, prey);
+                        if (distSq < minDistanceSq) {
+                            minDistanceSq = distSq;
+                            closestPrey = prey;
+                            closestPreyIndex = i;
                         }
-                    } else { // DVD and Paths logic
-                        const gameBounds = gameArea.getBoundingClientRect();
-                        // Bounce off walls
-                        if ((entity.x <= 0 && entity.dx < 0) || (entity.x >= gameBounds.width - ENTITY_SIZE && entity.dx > 0)) entity.dx *= -1;
-                        if ((entity.y <= 0 && entity.dy < 0) || (entity.y >= gameBounds.height - ENTITY_SIZE && entity.dy > 0)) entity.dy *= -1;
+                    }
 
-                        // Paths mode specific logic
-                        if (movementMode === 'paths' && timestamp > entity.pathChangeTimestamp) {
-                            const angle = Math.random() * 2 * Math.PI;
-                            entity.dx = Math.cos(angle);
-                            entity.dy = Math.sin(angle);
-                            entity.resetPathTimer(timestamp);
+                    if (closestPrey) {
+                        hunter.targetId = closestPrey.id;
+                        hunter.targetAcquiredTimestamp = timestamp;
+                        // Remove the chosen prey from the available list so it can't be picked again this frame.
+                        potentialPrey.splice(closestPreyIndex, 1);
+                    }
+                }
+            }
+
+
+            // --- Movement Calculation and Execution Pass ---
+            for (const entity of entities) {
+                let hasTarget = false;
+
+                // Targeted Movement Logic
+                if (movementMode === 'targeted' && entity.targetId) {
+                    const target = entities.find(e => e.id === entity.targetId);
+                    if (target) {
+                        const dist = Math.sqrt(getDistanceSq(entity, target));
+                        if (dist > 1) { // Avoid division by zero
+                            entity.dx = (target.x - entity.x) / dist;
+                            entity.dy = (target.y - entity.y) / dist;
                         }
-                        
-                        entity.updatePosition(entity.dx * ENTITY_SPEED * deltaTime, entity.dy * ENTITY_SPEED * deltaTime);
+                        hasTarget = true;
+                    }
+                }
+
+                // Fallback / Other Movement Modes
+                if (!hasTarget) {
+                    // Wall bouncing for non-targeted movement
+                    if ((entity.x <= 0 && entity.dx < 0) || (entity.x >= gameBounds.width - currentSize && entity.dx > 0)) {
+                        entity.dx *= -1;
+                    }
+                    if ((entity.y <= 0 && entity.dy < 0) || (entity.y >= gameBounds.height - currentSize && entity.dy > 0)) {
+                        entity.dy *= -1;
+                    }
+
+                    // Path changing for 'paths' mode or 'targeted' fallback
+                    if ((movementMode === 'paths' || (movementMode === 'targeted' && !hasTarget)) && timestamp > entity.pathChangeTimestamp) {
+                        const angle = Math.random() * 2 * Math.PI;
+                        entity.dx = Math.cos(angle);
+                        entity.dy = Math.sin(angle);
+                        entity.resetPathTimer(timestamp);
                     }
                 }
                 
-                // --- Two-Pass Fight and Collision Resolution ---
-                const changesToApply = [];
-                const losersThisFrame = new Set();
-                for (let j = 0; j < entities.length; j++) {
-                    for (let k = j + 1; k < entities.length; k++) {
-                        const entityA = entities[j];
-                        const entityB = entities[k];
-                        const distanceSq = getDistanceSq(entityA, entityB);
-                        if (distanceSq < ENTITY_SIZE * ENTITY_SIZE) {
-                            if (losersThisFrame.has(entityA.id) || losersThisFrame.has(entityB.id)) continue;
-                            const aBeatsB = RULES[entityA.type] === entityB.type;
-                            const bBeatsA = RULES[entityB.type] === entityA.type;
-                            if (aBeatsB) {
-                                changesToApply.push({ loser: entityB, newType: entityA.type });
-                                losersThisFrame.add(entityB.id);
-                            } else if (bBeatsA) {
-                                changesToApply.push({ loser: entityA, newType: entityB.type });
-                                losersThisFrame.add(entityA.id);
-                            } else {
-                                resolveCollision(entityA, entityB, distanceSq);
-                            }
+                entity.updatePosition(entity.dx * currentEntitySpeed * deltaTime, entity.dy * currentEntitySpeed * deltaTime);
+            }
+
+            const changesToApply = [];
+            const losersThisFrame = new Set();
+            for (let j = 0; j < entities.length; j++) {
+                for (let k = j + 1; k < entities.length; k++) {
+                    const entityA = entities[j];
+                    const entityB = entities[k];
+                    const distanceSq = getDistanceSq(entityA, entityB);
+                    if (distanceSq < currentSize * currentSize) {
+                        if (losersThisFrame.has(entityA.id) || losersThisFrame.has(entityB.id)) continue;
+                        const aBeatsB = RULES[entityA.type] === entityB.type;
+                        const bBeatsA = RULES[entityB.type] === entityA.type;
+                        if (aBeatsB) {
+                            changesToApply.push({ loser: entityB, newType: entityA.type });
+                            losersThisFrame.add(entityB.id);
+                        } else if (bBeatsA) {
+                            changesToApply.push({ loser: entityA, newType: entityB.type });
+                            losersThisFrame.add(entityA.id);
+                        } else {
+                            resolveCollision(entityA, entityB, distanceSq);
                         }
                     }
                 }
-                for (const change of changesToApply) {
-                    change.loser.changeType(change.newType);
-                }
-
-                updateStats(counts, timestamp);
-                gameLoopId = requestAnimationFrame(gameLoop);
+            }
+            for (const change of changesToApply) {
+                change.loser.changeType(change.newType);
             }
 
-            function updateStats(counts, timestamp) {
-                rockCountEl.textContent = counts[TYPES.ROCK];
-                paperCountEl.textContent = counts[TYPES.PAPER];
-                scissorsCountEl.textContent = counts[TYPES.SCISSORS];
-                conversionsCountEl.textContent = conversions;
-                const elapsedTime = ((performance.now() - startTime) / 1000);
-                timeElapsedEl.textContent = `${elapsedTime.toFixed(1)}s`;
+            updateStats(counts, timestamp);
+            gameLoopId = requestAnimationFrame(gameLoop);
+        }
 
-                if (timestamp - lastGraphUpdate > GRAPH_UPDATE_INTERVAL) {
-                    lastGraphUpdate = timestamp;
-                    updateChart(counts, elapsedTime);
-                }
-            }
-            
-            function endGame(winnerType) {
-                cancelAnimationFrame(gameLoopId);
-                gameLoopId = null;
-                lastTimestamp = 0;
-                winnerBanner.textContent = `${EMOJIS[winnerType]} WINS!`;
-                winnerBanner.style.display = 'block';
-            }
+        function updateStats(counts, timestamp) {
+            rockCountEl.textContent = counts[TYPES.ROCK];
+            paperCountEl.textContent = counts[TYPES.PAPER];
+            scissorsCountEl.textContent = counts[TYPES.SCISSORS];
+            conversionsCountEl.textContent = conversions;
+            const elapsedTime = ((performance.now() - startTime) / 1000);
+            timeElapsedEl.textContent = `${elapsedTime.toFixed(1)}s`;
 
-            function setupChart() {
-                if (populationChart) populationChart.destroy();
-                const ctx = chartCanvas.getContext('2d');
-                populationChart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: [],
-                        datasets: [
-                            { label: 'Rock', data: [], borderColor: '#60a5fa', tension: 0.1 },
-                            { label: 'Paper', data: [], borderColor: '#4ade80', tension: 0.1 },
-                            { label: 'Scissors', data: [], borderColor: '#f87171', tension: 0.1 }
-                        ]
-                    },
-                    options: {
-                        responsive: true, maintainAspectRatio: false,
-                        animation: { duration: 0 },
-                        plugins: { legend: { display: false } },
-                        elements: { point: { radius: 0 } },
-                        scales: {
-                            x: { display: false },
-                            y: { display: false, min: 0, max: ENTITY_COUNT }
-                        }
+            if (timestamp - lastGraphUpdate > GRAPH_UPDATE_INTERVAL) {
+                lastGraphUpdate = timestamp;
+                updateChart(counts, elapsedTime);
+            }
+        }
+
+        function endGame(winnerType) {
+            cancelAnimationFrame(gameLoopId);
+            gameLoopId = null;
+            lastTimestamp = 0;
+            winnerBanner.textContent = `${EMOJIS[winnerType]} WINS!`;
+            winnerBanner.style.display = 'block';
+        }
+
+        function setupChart() {
+            if (populationChart) populationChart.destroy();
+            const ctx = chartCanvas.getContext('2d');
+            populationChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        { label: 'Rock', data: [], borderColor: '#60a5fa', tension: 0.4, borderWidth: 2 },
+                        { label: 'Paper', data: [], borderColor: '#4ade80', tension: 0.4, borderWidth: 2 },
+                        { label: 'Scissors', data: [], borderColor: '#f87171', tension: 0.4, borderWidth: 2 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    animation: { duration: 0 },
+                    plugins: { legend: { display: false } },
+                    elements: { point: { radius: 0 } },
+                    scales: {
+                        x: { display: false },
+                        y: { display: false, min: 0, max: ENTITY_COUNT }
                     }
-                });
-            }
-
-            function updateChart(counts, elapsedTime) {
-                const data = populationChart.data;
-                data.labels.push(elapsedTime.toFixed(1));
-                data.datasets[0].data.push(counts[TYPES.ROCK]);
-                data.datasets[1].data.push(counts[TYPES.PAPER]);
-                data.datasets[2].data.push(counts[TYPES.SCISSORS]);
-
-                if (data.labels.length > MAX_GRAPH_POINTS) {
-                    data.labels.shift();
-                    data.datasets.forEach(dataset => dataset.data.shift());
-                }
-                populationChart.update('none');
-            }
-
-            // --- Event Listeners ---
-            restartBtn.addEventListener('click', init);
-            
-            movementToggleBtn.addEventListener('click', () => {
-                if (movementMode === 'targeted') {
-                    movementMode = 'dvd';
-                    movementToggleBtn.textContent = 'Mode: DVD';
-                } else if (movementMode === 'dvd') {
-                    movementMode = 'paths';
-                    movementToggleBtn.textContent = 'Mode: Paths';
-                } else {
-                    movementMode = 'targeted';
-                    movementToggleBtn.textContent = 'Mode: Targeted';
                 }
             });
+        }
 
-            window.addEventListener('resize', () => { if (gameLoopId) init(); });
-            window.onload = init;
+        function updateChart(counts, elapsedTime) {
+            const data = populationChart.data;
+            data.labels.push(elapsedTime.toFixed(1));
+            data.datasets[0].data.push(counts[TYPES.ROCK]);
+            data.datasets[1].data.push(counts[TYPES.PAPER]);
+            data.datasets[2].data.push(counts[TYPES.SCISSORS]);
 
-        </script>
-    </body>
-    </html>
+            if (data.labels.length > MAX_GRAPH_POINTS) {
+                data.labels.shift();
+                data.datasets.forEach(dataset => dataset.data.shift());
+            }
+            populationChart.update('none');
+        }
+
+        function updateSpeedDisplay() {
+            speedDisplay.textContent = `${speedMultiplier.toFixed(1)}x`;
+        }
+        
+        function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+        // --- Event Listeners ---
+        restartBtn.addEventListener('click', init);
+
+        movementToggleBtn.addEventListener('click', () => {
+            currentMovementModeIndex = (currentMovementModeIndex + 1) % MOVEMENT_MODES.length;
+            const modeName = MOVEMENT_MODES[currentMovementModeIndex];
+            movementToggleBtn.textContent = `Mode: ${capitalize(modeName)}`;
+            // No init() call needed, the change applies in the next frame.
+        });
+        
+        emojiSizeBtn.addEventListener('click', () => {
+             currentEmojiSizeIndex = (currentEmojiSizeIndex + 1) % EMOJI_SIZE_KEYS.length;
+             const sizeKey = EMOJI_SIZE_KEYS[currentEmojiSizeIndex];
+             emojiSizeBtn.textContent = `Sprite Size: ${capitalize(sizeKey)}`;
+             init();
+        });
+        
+        mapSizeBtn.addEventListener('click', () => {
+             currentMapSizeIndex = (currentMapSizeIndex + 1) % MAP_SIZE_KEYS.length;
+             const sizeKey = MAP_SIZE_KEYS[currentMapSizeIndex];
+             mapSizeBtn.textContent = `Map: ${capitalize(sizeKey)}`;
+             init();
+        });
+
+        increaseSpeedBtn.addEventListener('click', () => {
+            if (speedMultiplier < 4.0) {
+                speedMultiplier = parseFloat((speedMultiplier + 0.2).toFixed(1));
+                updateSpeedDisplay();
+            }
+        });
+
+        decreaseSpeedBtn.addEventListener('click', () => {
+            if (speedMultiplier > 0.2) {
+                speedMultiplier = parseFloat((speedMultiplier - 0.2).toFixed(1));
+                updateSpeedDisplay();
+            }
+        });
+
+        window.addEventListener('resize', init);
+        window.onload = init;
+
+    </script>
+</body>
+
+</html>
