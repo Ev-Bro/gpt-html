@@ -9,6 +9,7 @@
 [OL Face Tap Madness](https://ev-bro.github.io/gpt-html/DVD2/OL-tap-tap.html)
 
 ## Sims
+[Ecosystem](https://ev-bro.github.io/gpt-html/ecosystem.html)  
 [RPS](https://ev-bro.github.io/gpt-html/rps.html)  
 [Pokemon Battle](https://ev-bro.github.io/gpt-html/pokemon_new_ui_sandbox2.html)  
 
