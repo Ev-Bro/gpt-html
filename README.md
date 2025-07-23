@@ -9,6 +9,8 @@
 [OL Face Tap Madness](https://ev-bro.github.io/gpt-html/DVD2/OL-tap-tap.html)
 
 ## Sims
-[RPS](https://ev-bro.github.io/gpt-html/rps.html)
-[Pokemon Battle](https://ev-bro.github.io/gpt-html/pokemon_new_ui_sandbox2.html)
+[RPS](https://ev-bro.github.io/gpt-html/rps.html)  
+[Pokemon Battle](https://ev-bro.github.io/gpt-html/pokemon_new_ui_sandbox2.html)  
+
+## Sunrise Sunset
 [Sunrise & Sunset Times](https://ev-bro.github.io/gpt-html/sunrise-sunset.html)
