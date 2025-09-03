@@ -3,16 +3,14 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Sand Art Studio</title>
+<title>Sand Art Studio — Fixed Grain (decoupled presets)</title>
 <style>
-  :root{
-    --bg:#121212; --panel:#1c1c1c; --text:#e8e8e8; --muted:#9aa0a6; --border:#2ecc71;
-    --clear:#E74C3C; --eraser:#444; --btn-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 2px 10px rgba(0,0,0,.35);
-  }
+  :root{ --bg:#121212; --panel:#1c1c1c; --text:#e8e8e8; --muted:#9aa0a6; --border:#2ecc71; --clear:#E74C3C; --eraser:#444; --btn-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 2px 10px rgba(0,0,0,.35); }
   *{box-sizing:border-box}
   body{margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; background:var(--bg); color:var(--text); display:flex; flex-direction:column; align-items:center; gap:14px; padding:18px 12px 36px; min-height:100vh}
   h1{margin:0; font-size:clamp(18px,3.2vw,32px); font-weight:800; display:flex; align-items:center; gap:.5ch}
   .toolbar{display:flex; flex-direction:column; gap:10px; align-items:stretch; justify-content:center; background:var(--panel); padding:10px 12px; border-radius:10px; border:1px solid #2a2a2a}
+  .toolbar-row{display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:center}
   .sim-wrap{background:#0c0c0c; padding:10px; border-radius:12px; border:1px solid #2a2a2a}
   canvas{image-rendering:pixelated; background:#000; border:2px solid var(--border); border-radius:6px; cursor:crosshair; display:block; max-width:92vw; height:auto}
   button{border:1px solid transparent; padding:8px 12px; border-radius:8px; font-weight:700; cursor:pointer; color:#101010; box-shadow:var(--btn-shadow); user-select:none}
@@ -25,14 +23,16 @@
   .picker{display:flex; align-items:center; gap:8px; color:var(--muted)}
   .slider-wrap{display:flex; align-items:center; gap:8px; color:var(--muted)}
   .slider-wrap input[type=range]{accent-color:#79ffa7}
+  label{user-select:none}
+  select{background:#181818; color:var(--text); border:1px solid #2a2a2a; padding:6px 8px; border-radius:8px}
   .hint{color:var(--muted); font-size:.92rem; text-align:center; max-width:900px}
-.toolbar-row{display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:center}
 </style>
 </head>
 <body>
   <h1>🎨 Sand Art Studio</h1>
 
   <div class="toolbar" role="toolbar" aria-label="controls">
+    <!-- Top row: color picking -->
     <div class="toolbar-row" aria-label="color row">
       <div class="swatches" id="swatches" aria-label="color swatches"></div>
       <div class="picker">
@@ -42,11 +42,28 @@
         <label style="margin-left:10px"><input type="checkbox" id="rainbow"> Rainbow</label>
       </div>
     </div>
+
+    <!-- Bottom row: tools & sizing -->
     <div class="toolbar-row" aria-label="tools row">
-      <div class="slider-wrap" style="margin-left:10px">
-        <label for="brush">Brush size:</label>
+      <div class="slider-wrap">
+        <label for="brush">Brush:</label>
         <input id="brush" type="range" min="1" max="12" step="1" value="3" />
         <span id="brush-val">3</span>
+      </div>
+      <div class="slider-wrap">
+        <label for="grain">Grain:</label>
+        <input id="grain" type="range" min="1" max="10" step="1" value="4" title="Pixel size per grain" />
+        <span id="grain-val">4</span>
+      </div>
+      <div class="slider-wrap">
+        <label for="screen">Screen:</label>
+        <select id="screen" title="Fixed canvas pixel size">
+          <option value="800x520" selected>800×520 (Default)</option>
+          <option value="960x540">960×540 (540p)</option>
+          <option value="1280x720">1280×720 (720p)</option>
+          <option value="900x900">900×900 (Square)</option>
+          <option value="540x960">540×960 (Tall 9:16)</option>
+        </select>
       </div>
       <button id="tool-eraser" class="eraser" title="Erase">Eraser</button>
       <button id="clear" class="clear" title="Clear the whole board">Clear</button>
@@ -57,72 +74,119 @@
     <canvas id="sim" width="800" height="520" aria-label="sand art canvas"></canvas>
   </div>
 
-  <div class="hint">Click and drag to pour colored sand. All sand shares the same physics; only the color differs. Keys: <b>P</b> pause • <b>C</b> clear • <b>[ / ]</b> brush size.</div>
+  <div class="hint">Changing <b>Grain</b> only alters the simulation resolution (off‑screen grid) while keeping the canvas pixel size fixed. Use <b>Screen</b> to change overall canvas size. Keys: <b>P</b> pause • <b>C</b> clear • <b>[ / ]</b> brush size.</div>
 
 <script>
 (() => {
-  // ===== Config =====
-  const CELL_SIZE = 4;    // pixels per cell
-  const W = 200;          // grid width (W * CELL_SIZE = canvas px width)
-  const H = 130;          // grid height
-  const FPS_CAP = 60;
-  const DIAGONAL_BIAS = 0.5; // chance to prefer left vs right when sliding
-
-  // Canvas setup
+  // ===== Canvas & resolution state =====
   const cvs = document.getElementById('sim');
-  cvs.width = W * CELL_SIZE; cvs.height = H * CELL_SIZE;
   const ctx = cvs.getContext('2d', {alpha:false});
 
-  // Grid stores color integers 0xRRGGBB. 0 means empty.
-  const grid = new Uint32Array(W * H);
+  let cellSize = 4; // visual pixel size per grid cell (grain)
+  let W = Math.max(1, Math.floor(cvs.width / cellSize));
+  let H = Math.max(1, Math.floor(cvs.height / cellSize));
 
-  // UI state
+  // Offscreen buffer that matches grid size (W×H)
+  let off = document.createElement('canvas');
+  let offCtx = off.getContext('2d');
+  off.width = W; off.height = H;
+  let image = offCtx.createImageData(W, H);
+  let data = image.data;
+
+  function rebuildOffscreen(newW, newH){
+    off.width = newW; off.height = newH;
+    image = offCtx.createImageData(newW, newH);
+    data = image.data;
+  }
+
+  // Grid stores color 0xRRGGBB per cell; 0 = empty
+  let grid = new Uint32Array(W * H);
+
+  // ===== UI state =====
   const brush = document.getElementById('brush');
   const brushVal = document.getElementById('brush-val');
+  const grain = document.getElementById('grain');
+  const grainVal = document.getElementById('grain-val');
+  const screenSel = document.getElementById('screen');
   const colorPick = document.getElementById('colorPick');
   const swatchesEl = document.getElementById('swatches');
   let currentColor = hexToInt(colorPick.value);
   let usingEraser = false;
   let rainbow = false, hue = 0;
-
   document.getElementById('rainbow').addEventListener('change', e => rainbow = e.target.checked);
 
-  // Default palette
+  // ===== Palette =====
   const defaultColors = ['#F2994A','#F2C94C','#6FCF97','#2D9CDB','#BB6BD9','#EB5757','#56CCF2','#27AE60','#F299C1','#FF8A65','#F2F2F2','#9AA0A6'];
   defaultColors.forEach(addSwatchButton);
-
   document.getElementById('addSwatch').addEventListener('click', () => addSwatchButton(colorPick.value));
   colorPick.addEventListener('input', e => { currentColor = hexToInt(e.target.value); usingEraser = false; selectNone(); });
 
   function addSwatchButton(hex){
     const btn = document.createElement('button');
-    btn.className = 'swatch';
-    btn.title = hex;
-    btn.style.background = hex;
+    btn.className = 'swatch'; btn.title = hex; btn.style.background = hex;
     btn.addEventListener('click', () => { currentColor = hexToInt(hex); usingEraser = false; selectNone(); btn.classList.add('active'); });
     swatchesEl.appendChild(btn);
   }
-
-  function selectNone(){
-    swatchesEl.querySelectorAll('.swatch').forEach(b=>b.classList.remove('active'));
-    document.getElementById('tool-eraser').classList.remove('active');
-  }
+  function selectNone(){ swatchesEl.querySelectorAll('.swatch').forEach(b=>b.classList.remove('active')); document.getElementById('tool-eraser').classList.remove('active'); }
 
   document.getElementById('tool-eraser').addEventListener('click', () => { usingEraser = true; selectNone(); document.getElementById('tool-eraser').classList.add('active'); });
   document.getElementById('clear').addEventListener('click', clearGrid);
 
-  brush.addEventListener('input', () => brushVal.textContent = brush.value);
-  brushVal.textContent = brush.value;
+  // ===== Controls =====
+  brush.addEventListener('input', () => brushVal.textContent = brush.value); brushVal.textContent = brush.value;
 
-  // Pointer paint
+  grain.addEventListener('input', () => {
+    const newSize = parseInt(grain.value,10);
+    setGrain(newSize);
+  });
+  grainVal.textContent = grain.value;
+
+  screenSel.addEventListener('change', () => {
+    const [cw,ch] = screenSel.value.split('x').map(Number);
+    setCanvasSize(cw, ch); // keeps grain (cellSize) unchanged
+  });
+
+  function setGrain(newSize){
+    if (newSize === cellSize) return;
+    const oldW = W, oldH = H, oldGrid = grid;
+    cellSize = newSize; grainVal.textContent = String(newSize);
+    // IMPORTANT: keep canvas width/height (pixel size) the same
+    W = Math.max(1, Math.floor(cvs.width / cellSize));
+    H = Math.max(1, Math.floor(cvs.height / cellSize));
+    grid = resampleGrid(oldGrid, oldW, oldH, W, H);
+    rebuildOffscreen(W, H);
+  }
+
+  function setCanvasSize(pxW, pxH){
+    const oldW = W, oldH = H, oldGrid = grid;
+    cvs.width = pxW; cvs.height = pxH; // only screen preset changes canvas size
+    W = Math.max(1, Math.floor(pxW / cellSize));
+    H = Math.max(1, Math.floor(pxH / cellSize));
+    grid = resampleGrid(oldGrid, oldW, oldH, W, H);
+    rebuildOffscreen(W, H);
+  }
+
+  function resampleGrid(src, sw, sh, dw, dh){
+    const dst = new Uint32Array(dw*dh);
+    if (sw === 0 || sh === 0) return dst;
+    for(let y=0; y<dh; y++){
+      const sy = Math.floor(y * sh / dh);
+      for(let x=0; x<dw; x++){
+        const sx = Math.floor(x * sw / dw);
+        dst[y*dw + x] = src[sy*sw + sx] || 0;
+      }
+    }
+    return dst;
+  }
+
+  // ===== Pointer painting =====
   let drawing = false;
   const toGrid = (clientX, clientY) => {
     const rect = cvs.getBoundingClientRect();
-    const x = Math.floor((clientX - rect.left) / rect.width * cvs.width);
-    const y = Math.floor((clientY - rect.top)  / rect.height * cvs.height);
-    return { gx: Math.floor(x / CELL_SIZE), gy: Math.floor(y / CELL_SIZE) };
+    const nx = (clientX - rect.left) / rect.width;    // 0..1
+    const ny = (clientY - rect.top)  / rect.height;   // 0..1
+    return { gx: Math.floor(nx * W), gy: Math.floor(ny * H) };
   };
-
   const putSand = (gx, gy) => {
     const r = parseInt(brush.value, 10);
     const col = rainbow ? hslToInt((hue = (hue + 2) % 360), 80, 55) : currentColor;
@@ -135,15 +199,13 @@
       }
     }
   };
-
   const pointerDown = (e) => { drawing = true; const p = e.touches ? e.touches[0] : e; const {gx, gy} = toGrid(p.clientX, p.clientY); putSand(gx, gy); };
   const pointerMove = (e) => { if(!drawing) return; const p = e.touches ? e.touches[0] : e; const {gx, gy} = toGrid(p.clientX, p.clientY); putSand(gx, gy); };
   const pointerUp   = () => { drawing = false; };
-
   cvs.addEventListener('mousedown', pointerDown); window.addEventListener('mousemove', pointerMove); window.addEventListener('mouseup', pointerUp);
   cvs.addEventListener('touchstart', pointerDown, {passive:true}); window.addEventListener('touchmove', pointerMove, {passive:true}); window.addEventListener('touchend', pointerUp);
 
-  // Keyboard
+  // ===== Keyboard =====
   let paused = false;
   window.addEventListener('keydown', (e) => {
     if (e.key.toLowerCase()==='p') paused = !paused;
@@ -151,13 +213,12 @@
     if (e.key==='[') brush.stepDown(); if (e.key===']') brush.stepUp();
     brushVal.textContent = brush.value;
   });
-
   function clearGrid(){ grid.fill(0); }
 
-  // ===== Physics (all sand uses identical rules) =====
+  // ===== Physics (all sand same) =====
+  const DIAGONAL_BIAS = 0.5; const FPS_CAP = 60;
   const idx = (x,y)=> y*W+x; const inb=(x,y)=> x>=0&&x<W&&y>=0&&y<H;
   function tryMove(x,y,nx,ny){ if(!inb(nx,ny)) return false; const a=idx(x,y), b=idx(nx,ny); if(grid[b]===0){ grid[b]=grid[a]; grid[a]=0; return true;} return false; }
-
   function step(){
     const leftFirst = Math.random()<0.5;
     for(let y=H-1; y>=0; y--){
@@ -165,40 +226,41 @@
       else { for(let x=W-1; x>=0; x--){ updateCell(x,y);} }
     }
   }
-
   function updateCell(x,y){
     if(grid[idx(x,y)]===0) return;
-    if(tryMove(x,y,x,y+1)) return; // fall
+    if(tryMove(x,y,x,y+1)) return;
     const dir = Math.random()<DIAGONAL_BIAS ? -1 : 1;
     if(tryMove(x,y,x+dir,y+1)) return;
     if(tryMove(x,y,x-dir,y+1)) return;
   }
 
-  // ===== Rendering =====
-  const img = ctx.createImageData(W,H); const data = img.data;
+  // ===== Rendering (offscreen -> main) =====
   function draw(){
+    // write colors into offscreen image data
     let p=0; for(let i=0;i<grid.length;i++){
-      const color = grid[i];
-      if(color===0){ data[p++]=0; data[p++]=0; data[p++]=0; data[p++]=255; }
-      else { data[p++]=(color>>16)&255; data[p++]=(color>>8)&255; data[p++]=color&255; data[p++]=255; }
+      const c = grid[i];
+      if(c===0){ data[p++]=0; data[p++]=0; data[p++]=0; data[p++]=255; }
+      else { data[p++]=(c>>16)&255; data[p++]=(c>>8)&255; data[p++]=c&255; data[p++]=255; }
     }
-    ctx.putImageData(img,0,0);
-    if(CELL_SIZE!==1){ ctx.imageSmoothingEnabled=false; ctx.drawImage(cvs,0,0,W,H,0,0,W*CELL_SIZE,H*CELL_SIZE); }
+    offCtx.putImageData(image, 0, 0);
+    // scale to fixed canvas
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0,0,cvs.width,cvs.height);
+    ctx.drawImage(off, 0, 0, cvs.width, cvs.height);
   }
 
   // ===== Main loop =====
-  let last=0; function loop(ts){ const dt=ts-last; if(dt>=1000/ FPS_CAP){ if(!paused) step(); draw(); last=ts; } requestAnimationFrame(loop); }
+  let last=0; function loop(ts){ const dt=ts-last; if(dt>=1000/FPS_CAP){ if(!paused) step(); draw(); last=ts; } requestAnimationFrame(loop); }
   requestAnimationFrame(loop);
-  clearGrid(); // start empty
 
   // ===== Helpers =====
   function hexToInt(hex){ hex = hex.replace('#',''); return parseInt(hex,16) & 0xFFFFFF; }
-  function hslToInt(h,s,l){ // s,l in [0-100]
-    s/=100; l/=100; const k=n=> (n + h/30)%12; const a=s*Math.min(l,1-l);
+  function hslToInt(h,s,l){ s/=100; l/=100; const k=n=> (n + h/30)%12; const a=s*Math.min(l,1-l);
     const f=n=> l - a*Math.max(-1, Math.min(k(n)-3, Math.min(9-k(n),1)));
-    const r=Math.round(255*f(0)), g=Math.round(255*f(8)), b=Math.round(255*f(4));
-    return (r<<16)|(g<<8)|b;
-  }
+    const r=Math.round(255*f(0)), g=Math.round(255*f(8)), b=Math.round(255*f(4)); return (r<<16)|(g<<8)|b; }
+
+  // start empty
+  clearGrid();
 })();
 </script>
 </body>
