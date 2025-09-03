@@ -17,5 +17,5 @@
 [Sunrise & Sunset Times](https://ev-bro.github.io/gpt-html/sunrise-sunset.html)
 
 ## Sand
-[Sand Sim](https://ev-bro.github.io/gpt-html/sandsim.html)
+[Sand Sim](https://ev-bro.github.io/gpt-html/sandsim.html)  
 [Sand Art](https://ev-bro.github.io/gpt-html/sandart.html)
