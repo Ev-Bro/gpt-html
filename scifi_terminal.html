@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sci-Fi Terminal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #00ffcc;
+            --background-color: #020a1a;
+            --container-bg-color: rgba(10, 25, 47, 0.5);
+            --border-color: rgba(0, 255, 204, 0.3);
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: var(--primary-color);
+            font-family: 'Share Tech Mono', monospace;
+            overflow: hidden;
+            text-shadow: 0 0 5px var(--primary-color), 0 0 10px var(--primary-color);
+        }
+
+        .terminal-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            grid-template-rows: repeat(12, 1fr);
+            gap: 1rem;
+            width: 100vw;
+            height: 100vh;
+            padding: 1rem;
+        }
+
+        .module {
+            background-color: var(--container-bg-color);
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(5px);
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 0 15px rgba(0, 255, 204, 0.1), 0 0 10px rgba(0, 255, 204, 0.1);
+        }
+        
+        .module::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px),
+                linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+            pointer-events: none;
+            opacity: 0.5;
+        }
+
+        .module-title {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            margin-bottom: 0.5rem;
+            letter-spacing: 2px;
+        }
+        
+        canvas {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background: linear-gradient(
+                to bottom,
+                rgba(0, 0, 0, 0),
+                rgba(0, 0, 0, 0.5) 50%,
+                rgba(0, 0, 0, 0)
+            );
+            background-size: 100% 4px;
+            animation: scan 7s linear infinite;
+        }
+        
+        @keyframes scan {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 100vh; }
+        }
+        
+        .flicker {
+            animation: flicker 0.05s infinite alternate;
+        }
+        
+        @keyframes flicker {
+            from { opacity: 0.95; }
+            to { opacity: 1; }
+        }
+
+        .data-log {
+            font-size: 0.75rem;
+            height: calc(100% - 40px);
+            overflow-y: scroll;
+            scrollbar-width: none; /* Firefox */
+        }
+        .data-log::-webkit-scrollbar {
+            display: none; /* Safari and Chrome */
+        }
+
+        .power-bar-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            height: calc(100% - 40px);
+        }
+
+        .power-bar {
+            width: 15%;
+            background-color: var(--primary-color);
+            transition: height 0.2s ease-in-out, background-color 0.2s;
+            box-shadow: 0 0 5px var(--primary-color);
+        }
+    </style>
+</head>
+<body class="flicker">
+    <div class="scanlines"></div>
+    <div class="terminal-grid">
+        <!-- Module 1: System Status -->
+        <div class="module" style="grid-column: 1 / 4; grid-row: 1 / 5;">
+            <div class="module-title">SYSTEM STATUS</div>
+            <div id="system-status" class="text-xs space-y-1"></div>
+        </div>
+        
+        <!-- Module 2: DNA Scanner -->
+        <div class="module" style="grid-column: 4 / 7; grid-row: 1 / 5;">
+            <div class="module-title">BIO-SIGNATURE</div>
+            <canvas id="dna-canvas" height="150"></canvas>
+        </div>
+        
+        <!-- Module 3: Star Map / Radar -->
+        <div class="module" style="grid-column: 7 / 10; grid-row: 1 / 7;">
+            <div class="module-title">Stellar Cartography</div>
+            <canvas id="radar-canvas" height="250"></canvas>
+        </div>
+        
+        <!-- Module 4: Data Log -->
+        <div class="module" style="grid-column: 1 / 7; grid-row: 5 / 13;">
+            <div class="module-title">INCOMING DATA STREAM</div>
+            <div id="data-log" class="data-log"></div>
+        </div>
+
+        <!-- Module 5: Power Levels -->
+        <div class="module" style="grid-column: 10 / 13; grid-row: 1 / 7;">
+            <div class="module-title">ENERGY CORE</div>
+            <div class="power-bar-container">
+                <div class="power-bar"></div>
+                <div class="power-bar"></div>
+                <div class="power-bar"></div>
+                <div class="power-bar"></div>
+            </div>
+        </div>
+
+        <!-- Module 6: Waveform Analysis -->
+        <div class="module" style="grid-column: 7 / 13; grid-row: 7 / 13;">
+            <div class="module-title">Waveform Analysis</div>
+            <canvas id="waveform-canvas" height="200"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const PRIMARY_COLOR = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim();
+
+        // --- Module 1: System Status ---
+        const statusEl = document.getElementById('system-status');
+        const statuses = [
+            "NAV_SYSTEM: ONLINE", "SHIELDS: 98%", "LIFE_SUPPORT: STABLE",
+            "WARP_DRIVE: STANDBY", "COMMS: ENCRYPTED", "SENSORS: ACTIVE",
+            "CARGO_BAY: SECURE", "REACTOR_TEMP: 451K", "AI_CORE: SYNCHRONIZED"
+        ];
+        function updateStatus() {
+            let content = '';
+            const activeStatuses = [...statuses].sort(() => 0.5 - Math.random()).slice(0, 5);
+            activeStatuses.forEach(status => {
+                const [key, val] = status.split(':');
+                const isOk = Math.random() > 0.1;
+                const color = isOk ? 'text-green-400' : 'text-red-500';
+                const statusText = isOk ? val : 'ERROR';
+                content += `<div><span class="font-bold">${key}:</span> <span class="${color}">${statusText}</span></div>`;
+            });
+            statusEl.innerHTML = content;
+        }
+
+        // --- Module 2: DNA Scanner ---
+        const dnaCanvas = document.getElementById('dna-canvas');
+        const dnaCtx = dnaCanvas.getContext('2d');
+        let dnaFrame = 0;
+        function drawDna() {
+            dnaCtx.clearRect(0, 0, dnaCanvas.width, dnaCanvas.height);
+            const w = dnaCanvas.width;
+            const h = dnaCanvas.height;
+            const amplitude = h / 4;
+            const frequency = 20;
+            const offset = dnaFrame * 0.02;
+
+            dnaCtx.strokeStyle = PRIMARY_COLOR;
+            dnaCtx.lineWidth = 1.5;
+
+            for (let i = 0; i < w; i++) {
+                const y1 = h / 2 + Math.sin(i / frequency + offset) * amplitude;
+                const y2 = h / 2 + Math.sin(i / frequency + offset + Math.PI) * amplitude;
+                
+                dnaCtx.beginPath();
+                dnaCtx.moveTo(i, y1);
+                dnaCtx.lineTo(i + 1, h / 2 + Math.sin((i + 1) / frequency + offset) * amplitude);
+                dnaCtx.stroke();
+
+                dnaCtx.beginPath();
+                dnaCtx.moveTo(i, y2);
+                dnaCtx.lineTo(i + 1, h / 2 + Math.sin((i + 1) / frequency + offset + Math.PI) * amplitude);
+                dnaCtx.stroke();
+                
+                if (i % 15 === 0) {
+                     dnaCtx.beginPath();
+                     dnaCtx.moveTo(i, y1);
+                     dnaCtx.lineTo(i, y2);
+                     dnaCtx.strokeStyle = 'rgba(0, 255, 204, 0.5)';
+                     dnaCtx.stroke();
+                     dnaCtx.strokeStyle = PRIMARY_COLOR;
+                }
+            }
+            dnaFrame++;
+        }
+
+        // --- Module 3: Radar ---
+        const radarCanvas = document.getElementById('radar-canvas');
+        const radarCtx = radarCanvas.getContext('2d');
+        let radarAngle = 0;
+        const dots = Array.from({ length: 20 }, () => ({
+            angle: Math.random() * 2 * Math.PI,
+            radius: Math.random() * (Math.min(radarCanvas.width, radarCanvas.height) / 2 * 0.9) + 10,
+            size: Math.random() * 2 + 1,
+            blink: Math.random() * 50 + 20
+        }));
+        
+        function drawRadar() {
+            const w = radarCanvas.width;
+            const h = radarCanvas.height;
+            const radius = Math.min(w, h) / 2 * 0.9;
+            const centerX = w / 2;
+            const centerY = h / 2;
+            
+            radarCtx.clearRect(0, 0, w, h);
+            
+            // Draw grid
+            radarCtx.strokeStyle = 'rgba(0, 255, 204, 0.2)';
+            radarCtx.lineWidth = 1;
+            for (let i = 1; i <= 4; i++) {
+                radarCtx.beginPath();
+                radarCtx.arc(centerX, centerY, radius * (i / 4), 0, 2 * Math.PI);
+                radarCtx.stroke();
+            }
+            radarCtx.beginPath();
+            radarCtx.moveTo(centerX, centerY - radius);
+            radarCtx.lineTo(centerX, centerY + radius);
+            radarCtx.moveTo(centerX - radius, centerY);
+            radarCtx.lineTo(centerX + radius, centerY);
+            radarCtx.stroke();
+
+            // Draw sweep
+            radarCtx.beginPath();
+            radarCtx.moveTo(centerX, centerY);
+            radarCtx.arc(centerX, centerY, radius, radarAngle, radarAngle + Math.PI * 0.25);
+            radarCtx.closePath();
+            const gradient = radarCtx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
+            gradient.addColorStop(0, 'rgba(0, 255, 204, 0.5)');
+            gradient.addColorStop(1, 'rgba(0, 255, 204, 0)');
+            radarCtx.fillStyle = gradient;
+            radarCtx.fill();
+            radarAngle += 0.02;
+
+            // Draw dots
+            dots.forEach(dot => {
+                if (Math.floor(Date.now() / 500) % 2 === 0 && dot.blink < 30) return;
+                const x = centerX + Math.cos(dot.angle) * dot.radius;
+                const y = centerY + Math.sin(dot.angle) * dot.radius;
+                radarCtx.fillStyle = PRIMARY_COLOR;
+                radarCtx.beginPath();
+                radarCtx.arc(x, y, dot.size, 0, 2 * Math.PI);
+                radarCtx.fill();
+            });
+        }
+        
+        // --- Module 4: Data Log ---
+        const logEl = document.getElementById('data-log');
+        function addLogEntry() {
+            const timestamp = new Date().toISOString().replace('T', ' ').slice(0, -1);
+            const hex = Array.from({length: 12}, () => Math.floor(Math.random() * 16).toString(16)).join('');
+            const messageTypes = ['INFO', 'WARN', 'CRIT', 'DATA'];
+            const type = messageTypes[Math.floor(Math.random() * messageTypes.length)];
+            const color = type === 'CRIT' ? 'text-red-500' : type === 'WARN' ? 'text-yellow-400' : 'text-cyan-400';
+            logEl.innerHTML += `<div><span class="text-gray-500">${timestamp}</span> <span class="${color}">[${type}]</span> ${hex}</div>`;
+            logEl.scrollTop = logEl.scrollHeight;
+            if (logEl.children.length > 100) {
+                 logEl.removeChild(logEl.children[0]);
+            }
+        }
+
+        // --- Module 5: Power Levels ---
+        const powerBars = document.querySelectorAll('.power-bar');
+        function updatePowerBars() {
+            powerBars.forEach(bar => {
+                const height = Math.random() * 100;
+                bar.style.height = `${height}%`;
+                if (height > 90) {
+                    bar.style.backgroundColor = '#ff4d4d';
+                    bar.style.boxShadow = '0 0 10px #ff4d4d';
+                } else if (height > 70) {
+                    bar.style.backgroundColor = '#ffff66';
+                     bar.style.boxShadow = '0 0 10px #ffff66';
+                } else {
+                    bar.style.backgroundColor = PRIMARY_COLOR;
+                    bar.style.boxShadow = `0 0 5px ${PRIMARY_COLOR}`;
+                }
+            });
+        }
+        
+        // --- Module 6: Waveform ---
+        const waveCanvas = document.getElementById('waveform-canvas');
+        const waveCtx = waveCanvas.getContext('2d');
+        let waveTime = 0;
+        function drawWaveform() {
+            waveCtx.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
+            const w = waveCanvas.width;
+            const h = waveCanvas.height;
+            waveCtx.strokeStyle = PRIMARY_COLOR;
+            waveCtx.lineWidth = 2;
+
+            waveCtx.beginPath();
+            waveCtx.moveTo(0, h / 2);
+            for (let x = 0; x < w; x++) {
+                const noise1 = (Math.sin(x * 0.05 + waveTime) + Math.sin(x * 0.2 + waveTime * 2)) * 0.5;
+                const noise2 = Math.random() * 0.2 - 0.1;
+                const y = h / 2 + noise1 * (h / 4) + noise2 * h;
+                waveCtx.lineTo(x, y);
+            }
+            waveCtx.stroke();
+            waveTime += 0.03;
+        }
+
+        // --- Main Loop ---
+        function animate() {
+            drawDna();
+            drawRadar();
+            drawWaveform();
+            requestAnimationFrame(animate);
+        }
+        
+        function resizeCanvases() {
+            const canvases = document.querySelectorAll('canvas');
+            canvases.forEach(canvas => {
+                const parent = canvas.parentElement;
+                // Subtract padding and title height
+                const availableHeight = parent.clientHeight - parent.querySelector('.module-title').offsetHeight - 24; 
+                canvas.style.height = `${availableHeight}px`;
+                canvas.width = parent.clientWidth * window.devicePixelRatio;
+                canvas.height = availableHeight * window.devicePixelRatio;
+                
+                 // Adjust styles for HiDPI displays
+                canvas.style.width = `${parent.clientWidth}px`;
+                canvas.style.height = `${availableHeight}px`;
+            });
+        }
+
+        window.addEventListener('resize', resizeCanvases);
+
+        // --- Init ---
+        resizeCanvases();
+        updateStatus();
+        updatePowerBars();
+        setInterval(updateStatus, 5000);
+        setInterval(addLogEntry, 200);
+        setInterval(updatePowerBars, 700);
+        animate();
+    </script>
+</body>
+</html>
