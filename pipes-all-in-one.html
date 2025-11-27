@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Pipes Screensaver</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        #container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+        }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <div id="container"></div>
+    <div id="ui">
+        <!-- Settings controls will go here -->
+    </div>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // --- Grid.js ---
+        class Grid {
+            constructor(size) {
+                this.size = size;
+                this.halfSize = size / 2;
+                this.cells = new Map(); // Key: "x,y,z", Value: Occupied (true/false)
+            }
+
+            getKey(x, y, z) {
+                return `${Math.round(x)},${Math.round(y)},${Math.round(z)}`;
+            }
+
+            isValid(x, y, z) {
+                return x >= -this.halfSize && x <= this.halfSize &&
+                    y >= -this.halfSize && y <= this.halfSize &&
+                    z >= -this.halfSize && z <= this.halfSize;
+            }
+
+            isOccupied(x, y, z) {
+                if (!this.isValid(x, y, z)) return true; // Out of bounds is considered "occupied"
+                return this.cells.has(this.getKey(x, y, z));
+            }
+
+            markOccupied(x, y, z) {
+                this.cells.set(this.getKey(x, y, z), true);
+            }
+
+            clear() {
+                this.cells.clear();
+            }
+        }
+
+        // --- Pipe.js ---
+        class Pipe {
+            constructor(scene, grid, startPosition, color, config) {
+                this.scene = scene;
+                this.grid = grid;
+                this.currentPosition = startPosition.clone().round(); // Ensure integer coordinates
+                this.color = color;
+                this.config = config || { jointType: 'mixed' };
+                this.direction = this.getRandomDirection();
+                this.isDead = false;
+
+                // Speed: Random value between 0.1 and 0.5 segments per frame (accumulated)
+                this.speed = 0.1 + Math.random() * 0.4;
+                this.growthAccumulator = 0;
+
+                // Mark start position as occupied
+                this.grid.markOccupied(this.currentPosition.x, this.currentPosition.y, this.currentPosition.z);
+
+                // Material
+                this.material = new THREE.MeshPhongMaterial({
+                    color: this.color,
+                    specular: 0x999999,
+                    shininess: 50,
+                });
+
+                // Geometry caches
+                this.pipeRadius = 0.3;
+                this.segmentLength = 1;
+                this.geometry = new THREE.CylinderGeometry(this.pipeRadius, this.pipeRadius, this.segmentLength, 16);
+                this.ballGeometry = new THREE.SphereGeometry(this.pipeRadius * 1.2, 16, 16);
+
+                // Add initial joint
+                this.addJoint(this.currentPosition);
+            }
+
+            getRandomDirection() {
+                const dirs = [
+                    new THREE.Vector3(1, 0, 0),
+                    new THREE.Vector3(-1, 0, 0),
+                    new THREE.Vector3(0, 1, 0),
+                    new THREE.Vector3(0, -1, 0),
+                    new THREE.Vector3(0, 0, 1),
+                    new THREE.Vector3(0, 0, -1)
+                ];
+                return dirs[Math.floor(Math.random() * dirs.length)];
+            }
+
+            update(globalSpeedMultiplier = 1) {
+                if (this.isDead) return;
+
+                this.growthAccumulator += this.speed * globalSpeedMultiplier;
+
+                if (this.growthAccumulator >= 1) {
+                    this.grow();
+                    this.growthAccumulator -= 1;
+                }
+            }
+
+            grow() {
+                // Try to move forward
+                let nextPos = this.currentPosition.clone().add(this.direction);
+
+                // Check collision
+                if (this.grid.isOccupied(nextPos.x, nextPos.y, nextPos.z)) {
+                    // Try to turn
+                    if (!this.turn()) {
+                        this.isDead = true; // Stuck
+                    }
+                    return;
+                }
+
+                // Move and draw segment
+                this.addSegment(this.currentPosition, nextPos);
+                this.currentPosition.copy(nextPos);
+                this.grid.markOccupied(this.currentPosition.x, this.currentPosition.y, this.currentPosition.z);
+
+                // Randomly turn sometimes
+                if (Math.random() < 0.2) {
+                    this.turn();
+                }
+            }
+
+            turn() {
+                // Find valid directions (orthogonal to current)
+                const candidates = [];
+                const axes = [
+                    new THREE.Vector3(1, 0, 0),
+                    new THREE.Vector3(-1, 0, 0),
+                    new THREE.Vector3(0, 1, 0),
+                    new THREE.Vector3(0, -1, 0),
+                    new THREE.Vector3(0, 0, 1),
+                    new THREE.Vector3(0, 0, -1)
+                ];
+
+                for (const axis of axes) {
+                    // Must be orthogonal (dot product 0)
+                    if (Math.abs(axis.dot(this.direction)) < 0.001) {
+                        const testPos = this.currentPosition.clone().add(axis);
+                        if (!this.grid.isOccupied(testPos.x, testPos.y, testPos.z)) {
+                            candidates.push(axis);
+                        }
+                    }
+                }
+
+                if (candidates.length === 0) return false;
+
+                // Pick random valid direction
+                this.direction = candidates[Math.floor(Math.random() * candidates.length)];
+
+                // Add joint at the turn
+                this.addJoint(this.currentPosition);
+
+                return true;
+            }
+
+            addSegment(from, to) {
+                const mesh = new THREE.Mesh(this.geometry, this.material);
+
+                // Position is midpoint
+                const mid = from.clone().add(to).multiplyScalar(0.5);
+                mesh.position.copy(mid);
+
+                // Orient cylinder
+                mesh.lookAt(to);
+                mesh.rotateX(Math.PI / 2);
+
+                this.scene.add(mesh);
+            }
+
+            addJoint(pos) {
+                let geometry = this.ballGeometry;
+
+                // Easter Egg Check
+                if (this.config.jointType === 'elbow') {
+                    geometry = this.ballGeometry;
+                }
+
+                const mesh = new THREE.Mesh(geometry, this.material);
+                mesh.position.copy(pos);
+                this.scene.add(mesh);
+            }
+        }
+
+        // --- main.js ---
+        class App {
+            constructor() {
+                this.container = document.getElementById('container');
+
+                // Scene Setup
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x000000);
+
+                // Camera Setup
+                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.camera.position.z = 20;
+
+                // Renderer Setup
+                this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                this.container.appendChild(this.renderer.domElement);
+
+                // Controls
+                this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+                this.controls.enableDamping = true;
+                this.controls.dampingFactor = 0.05;
+                this.controls.autoRotate = true; // Replace manual camera rotation with this
+                this.controls.autoRotateSpeed = 0.5;
+
+                // Lighting
+                const ambientLight = new THREE.AmbientLight(0x404040);
+                this.scene.add(ambientLight);
+
+                const directionalLight1 = new THREE.DirectionalLight(0xffffff, 1);
+                directionalLight1.position.set(10, 10, 10);
+                this.scene.add(directionalLight1);
+
+                // Second Directional Light (Opposite side)
+                const directionalLight2 = new THREE.DirectionalLight(0x8888ff, 0.8); // Slightly bluish for contrast
+                directionalLight2.position.set(-10, -10, -10);
+                this.scene.add(directionalLight2);
+
+                const pointLight = new THREE.PointLight(0xffffff, 1, 100);
+                pointLight.position.set(0, 0, 10);
+                this.scene.add(pointLight);
+
+                // Grid / Logic
+                this.grid = new Grid(20);
+                this.pipes = [];
+                this.maxPipes = 12;
+                this.frameCount = 0;
+
+                // Config
+                this.config = {
+                    jointType: 'mixed',
+                    speed: 3,
+                    rotationSpeed: 2.0
+                };
+
+                this.setupUI();
+
+                // Resize Handler
+                window.addEventListener('resize', this.onWindowResize.bind(this));
+
+                // Start Loop
+                this.animate();
+            }
+
+            setupUI() {
+                const ui = document.getElementById('ui');
+                ui.innerHTML = `
+                    <div style="background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px; font-size: 14px;">
+                        <div style="margin-bottom: 5px;">
+                            <label>Joint Type: 
+                                <select id="jointType" style="background: #333; color: white; border: 1px solid #555;">
+                                    <option value="mixed">Mixed</option>
+                                    <option value="ball">Ball</option>
+                                    <option value="elbow">Elbow (Ball)</option>
+                                </select>
+                            </label>
+                        </div>
+
+                        <div style="margin-bottom: 5px;">
+                            <label>Speed: <input type="range" id="speed" value="5" min="1" max="10" style="vertical-align: middle;"></label>
+                        </div>
+                        <div style="margin-bottom: 5px;">
+                            <label>Rotation: <input type="range" id="rotationSpeed" value="2" min="0" max="10" step="0.1" style="vertical-align: middle;"></label>
+                        </div>
+                        <button id="resetBtn" style="background: #444; color: white; border: 1px solid #666; padding: 2px 8px; cursor: pointer;">Reset</button>
+                    </div>
+                `;
+
+                document.getElementById('jointType').addEventListener('change', (e) => {
+                    this.config.jointType = e.target.value;
+                });
+
+                document.getElementById('speed').addEventListener('input', (e) => {
+                    this.config.speed = parseInt(e.target.value);
+                });
+                document.getElementById('rotationSpeed').addEventListener('input', (e) => {
+                    this.config.rotationSpeed = parseFloat(e.target.value);
+                    this.controls.autoRotateSpeed = this.config.rotationSpeed;
+                });
+                document.getElementById('resetBtn').addEventListener('click', () => {
+                    this.reset();
+                });
+            }
+
+            spawnPipe() {
+                if (this.pipes.length >= this.maxPipes) return;
+
+                let attempts = 0;
+                while (attempts < 50) {
+                    const x = Math.floor(Math.random() * this.grid.size) - this.grid.halfSize;
+                    const y = Math.floor(Math.random() * this.grid.size) - this.grid.halfSize;
+                    const z = Math.floor(Math.random() * this.grid.size) - this.grid.halfSize;
+
+
+                    if (!this.grid.isOccupied(x, y, z)) {
+                        const color = new THREE.Color().setHSL(Math.random(), 1, 0.5);
+                        const pipe = new Pipe(this.scene, this.grid, new THREE.Vector3(x, y, z), color, this.config);
+                        this.pipes.push(pipe);
+                        break;
+                    }
+                    attempts++;
+                }
+            }
+
+            reset() {
+                for (let i = this.scene.children.length - 1; i >= 0; i--) {
+                    const obj = this.scene.children[i];
+                    if (obj.type === 'Mesh') {
+                        this.scene.remove(obj);
+                        if (obj.geometry) obj.geometry.dispose();
+                    }
+                }
+                this.grid.clear();
+                this.pipes = [];
+            }
+
+            onWindowResize() {
+                this.camera.aspect = window.innerWidth / window.innerHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+
+            animate() {
+                requestAnimationFrame(this.animate.bind(this));
+
+                this.frameCount++;
+                this.controls.update(); // Update controls
+
+                // Spawn new pipes
+                if (this.frameCount % 10 === 0 && this.pipes.length < this.maxPipes) {
+                    this.spawnPipe();
+                }
+
+                // Update Pipes based on speed
+                const globalSpeedMultiplier = this.config.speed / 5;
+
+                let activePipes = 0;
+                this.pipes.forEach(pipe => {
+                    if (!pipe.isDead) {
+                        pipe.update(globalSpeedMultiplier);
+                        activePipes++;
+                    }
+                });
+
+                // Auto-reset if all pipes are dead
+                if (activePipes === 0 && this.pipes.length > 0) {
+                    if (!this.resetTimer) this.resetTimer = 0;
+                    this.resetTimer++;
+                    if (this.resetTimer > 60) {
+                        this.reset();
+                        this.resetTimer = 0;
+                    }
+                } else {
+                    this.resetTimer = 0;
+                }
+
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+
+        new App();
+    </script>
+</body>
+
+</html>
