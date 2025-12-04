@@ -1,38 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Evan's Diner Menu</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lato:wght@300;400;700&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Lato', sans-serif;
             background-color: #fdfbf7;
-            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23e6e0d4' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23e6e0d4' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
         }
-
-        h1,
-        h2,
-        h3,
-        h4,
-        .serif-font {
+        h1, h2, h3, h4, .serif-font {
             font-family: 'Playfair Display', serif;
         }
-
         .menu-item {
             transition: all 0.3s ease;
         }
-
         .menu-item:hover {
             transform: translateY(-2px);
         }
-
         .section-header {
             display: flex;
             align-items: center;
@@ -40,14 +29,12 @@
             margin-bottom: 3rem;
             margin-top: 2rem;
         }
-
         .section-header h2 {
             background-color: #fdfbf7;
             padding: 0 1.5rem;
             position: relative;
             z-index: 10;
         }
-
         .section-header::after {
             content: '';
             position: absolute;
@@ -57,13 +44,11 @@
             background-color: #e7e5e4;
             z-index: 0;
         }
-
         html {
             scroll-behavior: smooth;
         }
     </style>
 </head>
-
 <body class="text-stone-800 antialiased">
 
     <!-- Navigation -->
@@ -74,19 +59,29 @@
                     <i class="fas fa-utensils text-green-700 text-2xl mr-3"></i>
                     <span class="font-bold text-2xl serif-font tracking-wide">Evan's Diner</span>
                 </div>
+                <!-- Desktop Menu -->
                 <div class="hidden md:flex space-x-6">
-                    <a href="#breakfast"
-                        class="text-stone-600 hover:text-green-700 font-medium transition">Breakfast</a>
+                    <a href="#breakfast" class="text-stone-600 hover:text-green-700 font-medium transition">Breakfast</a>
                     <a href="#lunch" class="text-stone-600 hover:text-green-700 font-medium transition">Lunch</a>
                     <a href="#dinner" class="text-stone-600 hover:text-green-700 font-medium transition">Dinner</a>
                     <a href="#snacks" class="text-stone-600 hover:text-green-700 font-medium transition">Snacks</a>
                 </div>
-                <!-- Mobile menu button placeholder -->
+                <!-- Mobile menu button -->
                 <div class="md:hidden">
-                    <button class="text-stone-500 hover:text-stone-800">
+                    <button id="mobile-menu-btn" class="text-stone-500 hover:text-stone-800 focus:outline-none p-2">
                         <i class="fas fa-bars text-xl"></i>
                     </button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Mobile Menu Panel (Hidden by default) -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-stone-100 shadow-lg">
+            <div class="px-4 pt-2 pb-4 space-y-1">
+                <a href="#breakfast" class="block px-3 py-3 rounded-md text-base font-medium text-stone-600 hover:text-green-700 hover:bg-stone-50 transition border-b border-stone-50">Breakfast</a>
+                <a href="#lunch" class="block px-3 py-3 rounded-md text-base font-medium text-stone-600 hover:text-green-700 hover:bg-stone-50 transition border-b border-stone-50">Lunch</a>
+                <a href="#dinner" class="block px-3 py-3 rounded-md text-base font-medium text-stone-600 hover:text-green-700 hover:bg-stone-50 transition border-b border-stone-50">Dinner</a>
+                <a href="#snacks" class="block px-3 py-3 rounded-md text-base font-medium text-stone-600 hover:text-green-700 hover:bg-stone-50 transition">Snacks</a>
             </div>
         </div>
     </nav>
@@ -102,39 +97,28 @@
             <!-- Subsection: The Egg Bar -->
             <section class="mb-12 bg-white p-8 rounded-xl shadow-sm border border-stone-100">
                 <div class="text-center mb-8">
-                    <h3 class="text-2xl font-bold text-stone-700 border-b border-green-500 inline-block pb-1">The Egg
-                        Bar</h3>
+                    <h3 class="text-2xl font-bold text-stone-700 border-b border-green-500 inline-block pb-1">The Egg Bar</h3>
                 </div>
                 <div class="grid md:grid-cols-2 gap-x-12 gap-y-8">
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">1.</span>
-                            Mediterranean Scramble</h4>
-                        <p class="text-stone-600 text-sm mt-1">Scrambled eggs or liquid egg whites/egg substitute with
-                            feta, spinach, tomatoes, peppers, and a mini toasted whole grain bagel.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">1.</span> Mediterranean Scramble</h4>
+                        <p class="text-stone-600 text-sm mt-1">Scrambled eggs or liquid egg whites/egg substitute with feta, spinach, tomatoes, peppers, and a mini toasted whole grain bagel.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">11.</span> Garden
-                            Vegetable Plate</h4>
-                        <p class="text-stone-600 text-sm mt-1">Scrambled eggs with diced peppers, onions, tomatoes, a
-                            pinch of shredded cheese, salsa, and whole wheat toast.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">11.</span> Garden Vegetable Plate</h4>
+                        <p class="text-stone-600 text-sm mt-1">Scrambled eggs with diced peppers, onions, tomatoes, a pinch of shredded cheese, salsa, and whole wheat toast.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">9.</span> The Simple
-                            Start</h4>
-                        <p class="text-stone-600 text-sm mt-1">Hard boiled egg, whole wheat toast with 1 tsp butter or
-                            substitute, and a bowl of fresh berries.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">9.</span> The Simple Start</h4>
+                        <p class="text-stone-600 text-sm mt-1">Hard boiled egg, whole wheat toast with 1 tsp butter or substitute, and a bowl of fresh berries.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">13.</span> Caprese
-                            Omelet</h4>
-                        <p class="text-stone-600 text-sm mt-1">Omelet made with spinach, diced tomatoes, a pinch of
-                            mozzarella and a melon wedge.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">13.</span> Caprese Omelet</h4>
+                        <p class="text-stone-600 text-sm mt-1">Omelet made with spinach, diced tomatoes, a pinch of mozzarella and a melon wedge.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">16.</span> Vegetarian
-                            Full Plate</h4>
-                        <p class="text-stone-600 text-sm mt-1">Scrambled eggs, veggie sausage, whole grain toast,
-                            margarine, and juice.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">16.</span> Vegetarian Full Plate</h4>
+                        <p class="text-stone-600 text-sm mt-1">Scrambled eggs, veggie sausage, whole grain toast, margarine, and juice.</p>
                     </div>
                 </div>
             </section>
@@ -142,57 +126,40 @@
             <!-- Subsection: Handhelds -->
             <section class="mb-12 bg-white p-8 rounded-xl shadow-sm border border-stone-100">
                 <div class="text-center mb-8">
-                    <h3 class="text-2xl font-bold text-stone-700 border-b border-green-500 inline-block pb-1">Toast &
-                        Handhelds</h3>
+                    <h3 class="text-2xl font-bold text-stone-700 border-b border-green-500 inline-block pb-1">Toast & Handhelds</h3>
                 </div>
                 <div class="grid md:grid-cols-2 gap-x-12 gap-y-8">
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">2.</span> Green Zesty
-                            Wrap</h4>
-                        <p class="text-stone-600 text-sm mt-1">Spinach and eggs scrambled with salsa and diced avocado
-                            with a whole or sprouted grain tortilla.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">2.</span> Green Zesty Wrap</h4>
+                        <p class="text-stone-600 text-sm mt-1">Spinach and eggs scrambled with salsa and diced avocado with a whole or sprouted grain tortilla.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">8.</span> Sunrise
-                            Quesadilla</h4>
-                        <p class="text-stone-600 text-sm mt-1">Scrambled eggs or egg substitute in the middle of a
-                            whole-wheat tortilla topped with salsa and shredded cheese.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">8.</span> Sunrise Quesadilla</h4>
+                        <p class="text-stone-600 text-sm mt-1">Scrambled eggs or egg substitute in the middle of a whole-wheat tortilla topped with salsa and shredded cheese.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">10.</span> Veggie
-                            Sausage Muffin</h4>
-                        <p class="text-stone-600 text-sm mt-1">Veggie, egg, and sausage sandwich: vegetarian sausage
-                            patty on a whole wheat English muffin with a slice of cheese and fruit.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">10.</span> Veggie Sausage Muffin</h4>
+                        <p class="text-stone-600 text-sm mt-1">Veggie, egg, and sausage sandwich: vegetarian sausage patty on a whole wheat English muffin with a slice of cheese and fruit.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">15.</span> Avocado
-                            Everything Toast</h4>
-                        <p class="text-stone-600 text-sm mt-1">Mashed avocado, eggs and spinach on whole or sprouted
-                            grain bread with everything bagel seasoning.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">15.</span> Avocado Everything Toast</h4>
+                        <p class="text-stone-600 text-sm mt-1">Mashed avocado, eggs and spinach on whole or sprouted grain bread with everything bagel seasoning.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">21.</span> Lean
-                            Breakfast Sandwich</h4>
-                        <p class="text-stone-600 text-sm mt-1">Canadian bacon, fried egg, and cheddar cheese on a
-                            toasted whole grain sandwich thin.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">21.</span> Lean Breakfast Sandwich</h4>
+                        <p class="text-stone-600 text-sm mt-1">Canadian bacon, fried egg, and cheddar cheese on a toasted whole grain sandwich thin.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">24.</span> Protein
-                            Bagel</h4>
-                        <p class="text-stone-600 text-sm mt-1">Toasted whole-wheat bagel topped with cottage cheese and
-                            fruit.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">24.</span> Protein Bagel</h4>
+                        <p class="text-stone-600 text-sm mt-1">Toasted whole-wheat bagel topped with cottage cheese and fruit.</p>
+                    </div>
+                     <div class="menu-item">
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">25.</span> PB Snacker</h4>
+                        <p class="text-stone-600 text-sm mt-1">Natural peanut butter whole wheat crackers or toast and a banana.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">25.</span> PB Snacker
-                        </h4>
-                        <p class="text-stone-600 text-sm mt-1">Natural peanut butter whole wheat crackers or toast and a
-                            banana.</p>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">26.</span> Apple
-                            Dippers</h4>
-                        <p class="text-stone-600 text-sm mt-1">Natural peanut butter on an apple dipped in wheat germ
-                            and topped with raisins.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">26.</span> Apple Dippers</h4>
+                        <p class="text-stone-600 text-sm mt-1">Natural peanut butter on an apple dipped in wheat germ and topped with raisins.</p>
                     </div>
                 </div>
             </section>
@@ -200,99 +167,72 @@
             <!-- Subsection: Bowls & Griddle -->
             <section class="mb-12 bg-white p-8 rounded-xl shadow-sm border border-stone-100">
                 <div class="text-center mb-8">
-                    <h3 class="text-2xl font-bold text-stone-700 border-b border-green-500 inline-block pb-1">Bowls &
-                        Griddle</h3>
+                    <h3 class="text-2xl font-bold text-stone-700 border-b border-green-500 inline-block pb-1">Bowls & Griddle</h3>
                 </div>
                 <div class="grid md:grid-cols-2 gap-x-12 gap-y-8">
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">3.</span> Power
-                            Protein Oats</h4>
-                        <p class="text-stone-600 text-sm mt-1">Cooked oats made with milk or vanilla milk substitute,
-                            protein powder, cinnamon, cocoa powder, flaxseeds, raisins, and chopped almonds, pecans or
-                            walnuts.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">3.</span> Power Protein Oats</h4>
+                        <p class="text-stone-600 text-sm mt-1">Cooked oats made with milk or vanilla milk substitute, protein powder, cinnamon, cocoa powder, flaxseeds, raisins, and chopped almonds, pecans or walnuts.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">4.</span> Blackberry
-                            Greek Parfait</h4>
-                        <p class="text-stone-600 text-sm mt-1">Vanilla or plain Greek yogurt with ancient grains
-                            granola, sliced raw almonds and blackberries.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">4.</span> Blackberry Greek Parfait</h4>
+                        <p class="text-stone-600 text-sm mt-1">Vanilla or plain Greek yogurt with ancient grains granola, sliced raw almonds and blackberries.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">7.</span> Kefir Start
-                        </h4>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">7.</span> Kefir Start</h4>
                         <p class="text-stone-600 text-sm mt-1">Kefir with ancient grains granola.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">12.</span> Bran & Egg
-                            Combo</h4>
-                        <p class="text-stone-600 text-sm mt-1">Hot wheat or oat bran cereal prepared with milk or milk
-                            substitute and a hard boiled egg.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">12.</span> Bran & Egg Combo</h4>
+                        <p class="text-stone-600 text-sm mt-1">Hot wheat or oat bran cereal prepared with milk or milk substitute and a hard boiled egg.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">17.</span> Homemade
-                            Trail Mix</h4>
-                        <p class="text-stone-600 text-sm mt-1">Homemade trail mix: whole grain cereal squares, nuts, and
-                            dried fruit with a container of yogurt.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">17.</span> Homemade Trail Mix</h4>
+                        <p class="text-stone-600 text-sm mt-1">Homemade trail mix: whole grain cereal squares, nuts, and dried fruit with a container of yogurt.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">18.</span> Classic
-                            Cereal Bowl</h4>
-                        <p class="text-stone-600 text-sm mt-1">Whole grain cereal topped with bananas and skim milk or
-                            milk substitute.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">18.</span> Classic Cereal Bowl</h4>
+                        <p class="text-stone-600 text-sm mt-1">Whole grain cereal topped with bananas and skim milk or milk substitute.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">23.</span> Berry
-                            Cereal Bowl</h4>
-                        <p class="text-stone-600 text-sm mt-1">Whole grain cold cereal with skim milk and blueberries or
-                            strawberries.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">23.</span> Berry Cereal Bowl</h4>
+                        <p class="text-stone-600 text-sm mt-1">Whole grain cold cereal with skim milk and blueberries or strawberries.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">19.</span> Protein
-                            Stack</h4>
-                        <p class="text-stone-600 text-sm mt-1">Whole wheat waffle or pancake mix, liquid eggs added to
-                            batter, margarine, light syrup, veggie sausage, and orange juice.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">19.</span> Protein Stack</h4>
+                        <p class="text-stone-600 text-sm mt-1">Whole wheat waffle or pancake mix, liquid eggs added to batter, margarine, light syrup, veggie sausage, and orange juice.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">20.</span> Nutty
-                            Monkey Waffle</h4>
-                        <p class="text-stone-600 text-sm mt-1">100% Whole grain waffle topped with natural peanut
-                            butter, a sprinkle of wheat germ, a drizzle of honey, and sliced banana.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">20.</span> Nutty Monkey Waffle</h4>
+                        <p class="text-stone-600 text-sm mt-1">100% Whole grain waffle topped with natural peanut butter, a sprinkle of wheat germ, a drizzle of honey, and sliced banana.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">22.</span> Pumpkin
-                            Spice Protein Plate</h4>
-                        <p class="text-stone-600 text-sm mt-1">Whole grain pancake/waffle batter with vanilla protein
-                            powder, pumpkin puree, cinnamon, vanilla, syrup, margarine, melon, and milk.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">22.</span> Pumpkin Spice Protein Plate</h4>
+                        <p class="text-stone-600 text-sm mt-1">Whole grain pancake/waffle batter with vanilla protein powder, pumpkin puree, cinnamon, vanilla, syrup, margarine, melon, and milk.</p>
                     </div>
                 </div>
             </section>
-
-            <!-- Subsection: Shakes -->
-            <section class="mb-12 bg-green-50 p-8 rounded-xl shadow-sm border border-green-100">
+            
+             <!-- Subsection: Shakes -->
+             <section class="mb-12 bg-green-50 p-8 rounded-xl shadow-sm border border-green-100">
                 <div class="text-center mb-8">
-                    <h3 class="text-2xl font-bold text-stone-700 border-b border-green-500 inline-block pb-1">Breakfast
-                        Shakes</h3>
+                    <h3 class="text-2xl font-bold text-stone-700 border-b border-green-500 inline-block pb-1">Breakfast Shakes</h3>
                 </div>
                 <div class="grid md:grid-cols-3 gap-6 text-center">
                     <div>
-                        <h4 class="font-bold text-stone-800"><span class="text-green-700">5.</span> The Essential Shake
-                        </h4>
-                        <p class="text-sm text-stone-600 mt-2">Protein shake made with 2 scoops of vanilla protein
-                            powder, any frozen fruit, ice, and water.</p>
+                        <h4 class="font-bold text-stone-800"><span class="text-green-700">5.</span> The Essential Shake</h4>
+                        <p class="text-sm text-stone-600 mt-2">Protein shake made with 2 scoops of vanilla protein powder, any frozen fruit, ice, and water.</p>
                     </div>
                     <div>
                         <h4 class="font-bold text-stone-800"><span class="text-green-700">6.</span> Breakfast Blast</h4>
-                        <p class="text-sm text-stone-600 mt-2">Vanilla fortified instant breakfast pouch blended with
-                            half a frozen banana, frozen blueberries, flaxseed, wheat germ, and milk/substitute.</p>
+                        <p class="text-sm text-stone-600 mt-2">Vanilla fortified instant breakfast pouch blended with half a frozen banana, frozen blueberries, flaxseed, wheat germ, and milk/substitute.</p>
                     </div>
                     <div>
-                        <h4 class="font-bold text-stone-800"><span class="text-green-700">14.</span> Peanut Butter Power
-                        </h4>
-                        <p class="text-sm text-stone-600 mt-2">Protein shake: 2 scoops of protein powder, water, ice,
-                            peanut butter, and ½ of a banana.</p>
+                        <h4 class="font-bold text-stone-800"><span class="text-green-700">14.</span> Peanut Butter Power</h4>
+                        <p class="text-sm text-stone-600 mt-2">Protein shake: 2 scoops of protein powder, water, ice, peanut butter, and ½ of a banana.</p>
                     </div>
                 </div>
-            </section>
+             </section>
         </div>
 
 
@@ -301,55 +241,40 @@
             <div class="section-header">
                 <h2 class="text-4xl font-bold text-stone-800 uppercase tracking-widest">Lunch</h2>
             </div>
-
+            
             <!-- Subsection: Handhelds -->
             <section class="mb-12 bg-white p-8 rounded-xl shadow-sm border border-stone-100">
                 <div class="text-center mb-8">
-                    <h3 class="text-2xl font-bold text-stone-700 border-b border-green-500 inline-block pb-1">
-                        Sandwiches, Wraps & Burgers</h3>
+                    <h3 class="text-2xl font-bold text-stone-700 border-b border-green-500 inline-block pb-1">Sandwiches, Wraps & Burgers</h3>
                 </div>
                 <div class="grid md:grid-cols-2 lg:grid-cols-2 gap-x-12 gap-y-10">
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">1.</span> Almond
-                            Butter & Banana Sandwich</h4>
-                        <p class="text-stone-600 text-sm mt-1">Almond butter and banana sandwich on whole grain bread
-                            with sliced bananas.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">1.</span> Almond Butter & Banana Sandwich</h4>
+                        <p class="text-stone-600 text-sm mt-1">Almond butter and banana sandwich on whole grain bread with sliced bananas.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">3.</span> Tuna
-                            Sandwich</h4>
-                        <p class="text-stone-600 text-sm mt-1">Whole grain bread, albacore tuna mixed with light mayo,
-                            pickle relish, lettuce, tomato slices, and an orange.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">3.</span> Tuna Sandwich</h4>
+                        <p class="text-stone-600 text-sm mt-1">Whole grain bread, albacore tuna mixed with light mayo, pickle relish, lettuce, tomato slices, and an orange.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">9.</span> Asian
-                            Chicken Wraps</h4>
-                        <p class="text-stone-600 text-sm mt-1">Chicken salad, red cabbage, edamame, and carrots in a
-                            spinach tortilla with sesame dressing.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">9.</span> Asian Chicken Wraps</h4>
+                        <p class="text-stone-600 text-sm mt-1">Chicken salad, red cabbage, edamame, and carrots in a spinach tortilla with sesame dressing.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">13.</span> Veggie
-                            Burger</h4>
-                        <p class="text-stone-600 text-sm mt-1">On a whole grain roll with lettuce, tomato, slice cheese,
-                            pickles, mayo or avocado spread, and baked chips or fruit.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">13.</span> Veggie Burger</h4>
+                        <p class="text-stone-600 text-sm mt-1">On a whole grain roll with lettuce, tomato, slice cheese, pickles, mayo or avocado spread, and baked chips or fruit.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">20.</span> Toasted
-                            Peanut Butter Sandwich</h4>
-                        <p class="text-stone-600 text-sm mt-1">Toasted peanut butter sandwich on whole grain bread with
-                            banana and carrot sticks.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">20.</span> Toasted Peanut Butter Sandwich</h4>
+                        <p class="text-stone-600 text-sm mt-1">Toasted peanut butter sandwich on whole grain bread with banana and carrot sticks.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">24.</span> Turkey
-                            Burger</h4>
-                        <p class="text-stone-600 text-sm mt-1">Turkey burger on a whole grain sandwich round with red
-                            onion, tomato, lettuce, and avocado.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">24.</span> Turkey Burger</h4>
+                        <p class="text-stone-600 text-sm mt-1">Turkey burger on a whole grain sandwich round with red onion, tomato, lettuce, and avocado.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">25.</span> Bean
-                            Burrito</h4>
-                        <p class="text-stone-600 text-sm mt-1">Refried or black beans in a tortilla with shredded
-                            cheese, lettuce, tomato, avocado, and salsa.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">25.</span> Bean Burrito</h4>
+                        <p class="text-stone-600 text-sm mt-1">Refried or black beans in a tortilla with shredded cheese, lettuce, tomato, avocado, and salsa.</p>
                     </div>
                 </div>
             </section>
@@ -357,45 +282,32 @@
             <!-- Subsection: Salads -->
             <section class="mb-12 bg-white p-8 rounded-xl shadow-sm border border-stone-100">
                 <div class="text-center mb-8">
-                    <h3 class="text-2xl font-bold text-stone-700 border-b border-green-500 inline-block pb-1">Fresh
-                        Salads</h3>
+                    <h3 class="text-2xl font-bold text-stone-700 border-b border-green-500 inline-block pb-1">Fresh Salads</h3>
                 </div>
                 <div class="grid md:grid-cols-2 lg:grid-cols-2 gap-x-12 gap-y-10">
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">5.</span> Greek
-                            Chicken Salad</h4>
-                        <p class="text-stone-600 text-sm mt-1">Romaine, tomato, red onion, feta cheese, red basil
-                            vinegar, Kalamata olives, and a whole grain pita.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">5.</span> Greek Chicken Salad</h4>
+                        <p class="text-stone-600 text-sm mt-1">Romaine, tomato, red onion, feta cheese, red basil vinegar, Kalamata olives, and a whole grain pita.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">10.</span> Cowboy
-                            Caviar Salad</h4>
-                        <p class="text-stone-600 text-sm mt-1">Corn, black bean, red onion, cilantro, avocado, and lime
-                            juice over chopped lettuce or corn tortilla chips.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">10.</span> Cowboy Caviar Salad</h4>
+                        <p class="text-stone-600 text-sm mt-1">Corn, black bean, red onion, cilantro, avocado, and lime juice over chopped lettuce or corn tortilla chips.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">15.</span> Chopped
-                            Cobb Salad</h4>
-                        <p class="text-stone-600 text-sm mt-1">Deli meat, egg whites, shredded cheese, lettuce, veggies
-                            as desired, and salad dressing.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">15.</span> Chopped Cobb Salad</h4>
+                        <p class="text-stone-600 text-sm mt-1">Deli meat, egg whites, shredded cheese, lettuce, veggies as desired, and salad dressing.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">16.</span> Caesar
-                            Salad</h4>
-                        <p class="text-stone-600 text-sm mt-1">Romaine, grilled shrimp chicken, shredded parmesan
-                            cheese, croutons, and caesar dressing.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">16.</span> Caesar Salad</h4>
+                        <p class="text-stone-600 text-sm mt-1">Romaine, grilled shrimp chicken, shredded parmesan cheese, croutons, and caesar dressing.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">18.</span> Mixed Green
-                            Salad</h4>
-                        <p class="text-stone-600 text-sm mt-1">Mixed green salad with chicken, chopped egg, granny smith
-                            apples, walnuts, and feta cheese.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">18.</span> Mixed Green Salad</h4>
+                        <p class="text-stone-600 text-sm mt-1">Mixed green salad with chicken, chopped egg, granny smith apples, walnuts, and feta cheese.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">19.</span> Kale Salad
-                        </h4>
-                        <p class="text-stone-600 text-sm mt-1">Kale salad with salmon or chicken, red cabbage, almonds,
-                            apple, and lemon avocado dressing.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">19.</span> Kale Salad</h4>
+                        <p class="text-stone-600 text-sm mt-1">Kale salad with salmon or chicken, red cabbage, almonds, apple, and lemon avocado dressing.</p>
                     </div>
                 </div>
             </section>
@@ -403,90 +315,65 @@
             <!-- Subsection: Bowls & Hot Plates -->
             <section class="mb-12 bg-white p-8 rounded-xl shadow-sm border border-stone-100">
                 <div class="text-center mb-8">
-                    <h3 class="text-2xl font-bold text-stone-700 border-b border-green-500 inline-block pb-1">Bowls &
-                        Hot Plates</h3>
+                    <h3 class="text-2xl font-bold text-stone-700 border-b border-green-500 inline-block pb-1">Bowls & Hot Plates</h3>
                 </div>
                 <div class="grid md:grid-cols-2 lg:grid-cols-2 gap-x-12 gap-y-10">
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">2.</span> Chicken &
-                            Quinoa Bowl</h4>
-                        <p class="text-stone-600 text-sm mt-1">Chicken and quinoa bowl with sweet potato, brussels
-                            sprouts, and dry roasted almonds.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">2.</span> Chicken & Quinoa Bowl</h4>
+                        <p class="text-stone-600 text-sm mt-1">Chicken and quinoa bowl with sweet potato, brussels sprouts, and dry roasted almonds.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">4.</span> Bean or meat
-                            chili</h4>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">4.</span> Bean or meat chili</h4>
                         <p class="text-stone-600 text-sm mt-1">Hearty bean or meat chili.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">12.</span> Edamame
-                            Pasta</h4>
-                        <p class="text-stone-600 text-sm mt-1">Edamame pasta, tomatoes, halved cherry tomatoes, diced
-                            green peppers, feta cheese, garbanzo beans, parmesan cheese, and vinaigrette.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">12.</span> Edamame Pasta</h4>
+                        <p class="text-stone-600 text-sm mt-1">Edamame pasta, tomatoes, halved cherry tomatoes, diced green peppers, feta cheese, garbanzo beans, parmesan cheese, and vinaigrette.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">14.</span> Burrito
-                            Bowl</h4>
-                        <p class="text-stone-600 text-sm mt-1">Cubed meat or tofu with beans, brown rice, peppers,
-                            salsa, and guacamole.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">14.</span> Burrito Bowl</h4>
+                        <p class="text-stone-600 text-sm mt-1">Cubed meat or tofu with beans, brown rice, peppers, salsa, and guacamole.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">17.</span> Grilled
-                            Chicken & Veggies</h4>
-                        <p class="text-stone-600 text-sm mt-1">Grilled chicken with baked sweet potato and broccoli,
-                            cauliflower, carrots, or mixed vegetables.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">17.</span> Grilled Chicken & Veggies</h4>
+                        <p class="text-stone-600 text-sm mt-1">Grilled chicken with baked sweet potato and broccoli, cauliflower, carrots, or mixed vegetables.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">21.</span> Broth Based
-                            Soup</h4>
-                        <p class="text-stone-600 text-sm mt-1">Broth based soup with a mixed green salad, croutons, and
-                            a lite dressing.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">21.</span> Broth Based Soup</h4>
+                        <p class="text-stone-600 text-sm mt-1">Broth based soup with a mixed green salad, croutons, and a lite dressing.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">22.</span> Whole Wheat
-                            Rotini Pasta</h4>
-                        <p class="text-stone-600 text-sm mt-1">Tossed with garbanzo beans, olive oil or pesto, halved
-                            cherry tomatoes, and grated Parmesan or Romano cheese.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">22.</span> Whole Wheat Rotini Pasta</h4>
+                        <p class="text-stone-600 text-sm mt-1">Tossed with garbanzo beans, olive oil or pesto, halved cherry tomatoes, and grated Parmesan or Romano cheese.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">23.</span> Stir-fry
-                            Beef or Tofu</h4>
-                        <p class="text-stone-600 text-sm mt-1">Stir-fry beef strips or marinated tofu with snow peas,
-                            water chestnuts, carrots, red bell peppers, brown rice, and fruit.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">23.</span> Stir-fry Beef or Tofu</h4>
+                        <p class="text-stone-600 text-sm mt-1">Stir-fry beef strips or marinated tofu with snow peas, water chestnuts, carrots, red bell peppers, brown rice, and fruit.</p>
                     </div>
                 </div>
             </section>
 
-            <!-- Subsection: Flatbreads & Light Fare -->
-            <section class="mb-12 bg-white p-8 rounded-xl shadow-sm border border-stone-100">
+             <!-- Subsection: Flatbreads & Light Fare -->
+             <section class="mb-12 bg-white p-8 rounded-xl shadow-sm border border-stone-100">
                 <div class="text-center mb-8">
-                    <h3 class="text-2xl font-bold text-stone-700 border-b border-green-500 inline-block pb-1">Flatbreads
-                        & Light Fare</h3>
+                    <h3 class="text-2xl font-bold text-stone-700 border-b border-green-500 inline-block pb-1">Flatbreads & Light Fare</h3>
                 </div>
                 <div class="grid md:grid-cols-2 lg:grid-cols-2 gap-x-12 gap-y-10">
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">6.</span> Whole Grain
-                            English Muffin Pizza</h4>
-                        <p class="text-stone-600 text-sm mt-1">Tomato sauce, mozzarella, cheese, and veggie toppings.
-                        </p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">6.</span> Whole Grain English Muffin Pizza</h4>
+                        <p class="text-stone-600 text-sm mt-1">Tomato sauce, mozzarella, cheese, and veggie toppings.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">7.</span> Cottage
-                            Cheese Plate</h4>
-                        <p class="text-stone-600 text-sm mt-1">Cottage cheese with mixed fruit (melons, grapes,
-                            pineapple), pistachios, and whole grain crackers.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">7.</span> Cottage Cheese Plate</h4>
+                        <p class="text-stone-600 text-sm mt-1">Cottage cheese with mixed fruit (melons, grapes, pineapple), pistachios, and whole grain crackers.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">8.</span> Pesto &
-                            Veggie Pizza</h4>
-                        <p class="text-stone-600 text-sm mt-1">Whole grain pizza crust or sandwich rounds with pesto,
-                            artichoke hearts, olives, roasted peppers, and cheese.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">8.</span> Pesto & Veggie Pizza</h4>
+                        <p class="text-stone-600 text-sm mt-1">Whole grain pizza crust or sandwich rounds with pesto, artichoke hearts, olives, roasted peppers, and cheese.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">11.</span> Pita Pizza
-                        </h4>
-                        <p class="text-stone-600 text-sm mt-1">Combo of mushrooms, peppers, olives, onion, pineapple,
-                            lean ham, turkey pepperoni, and mozzarella/parmesan.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">11.</span> Pita Pizza</h4>
+                        <p class="text-stone-600 text-sm mt-1">Combo of mushrooms, peppers, olives, onion, pineapple, lean ham, turkey pepperoni, and mozzarella/parmesan.</p>
                     </div>
                 </div>
             </section>
@@ -502,77 +389,55 @@
             <!-- Subsection: Chef's Entrees -->
             <section class="mb-12 bg-white p-8 rounded-xl shadow-sm border border-stone-100">
                 <div class="text-center mb-8">
-                    <h3 class="text-2xl font-bold text-stone-700 border-b border-green-500 inline-block pb-1">Chef's
-                        Entrees</h3>
+                    <h3 class="text-2xl font-bold text-stone-700 border-b border-green-500 inline-block pb-1">Chef's Entrees</h3>
                 </div>
                 <div class="grid md:grid-cols-2 lg:grid-cols-2 gap-x-12 gap-y-10">
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">2.</span> Broiled
-                            Blackened Salmon</h4>
-                        <p class="text-stone-600 text-sm mt-1">Broiled blackened salmon, bulgur pilaf, asparagus spears,
-                            and a fruit parfait.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">2.</span> Broiled Blackened Salmon</h4>
+                        <p class="text-stone-600 text-sm mt-1">Broiled blackened salmon, bulgur pilaf, asparagus spears, and a fruit parfait.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">3.</span> Grilled
-                            Chicken Breast</h4>
-                        <p class="text-stone-600 text-sm mt-1">Grilled chicken breast, rosemary/garlic roasted red
-                            potato wedges, and fresh steamed broccoli.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">3.</span> Grilled Chicken Breast</h4>
+                        <p class="text-stone-600 text-sm mt-1">Grilled chicken breast, rosemary/garlic roasted red potato wedges, and fresh steamed broccoli.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">7.</span> Sliced Roast
-                            Turkey Tenderloin</h4>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">7.</span> Sliced Roast Turkey Tenderloin</h4>
                         <p class="text-stone-600 text-sm mt-1">With wild rice, and fresh cooked green beans.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">8.</span> Lemon Pepper
-                            Shrimp</h4>
-                        <p class="text-stone-600 text-sm mt-1">With edamame or whole grain fettuccini noodles and
-                            sautéed spinach.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">8.</span> Lemon Pepper Shrimp</h4>
+                        <p class="text-stone-600 text-sm mt-1">With edamame or whole grain fettuccini noodles and sautéed spinach.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">9.</span> Grilled
-                            Steak</h4>
-                        <p class="text-stone-600 text-sm mt-1">Grilled steak, oven baked sweet potato with cottage
-                            cheese, cauliflower, and broccoli blend.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">9.</span> Grilled Steak</h4>
+                        <p class="text-stone-600 text-sm mt-1">Grilled steak, oven baked sweet potato with cottage cheese, cauliflower, and broccoli blend.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">12.</span> Sausage and
-                            Pepper Stir Fry</h4>
-                        <p class="text-stone-600 text-sm mt-1">Sliced grilled or sautéed chicken/turkey sausage with
-                            sautéed peppers & onions with quinoa.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">12.</span> Sausage and Pepper Stir Fry</h4>
+                        <p class="text-stone-600 text-sm mt-1">Sliced grilled or sautéed chicken/turkey sausage with sautéed peppers & onions with quinoa.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">14.</span> Pork
-                            Tenderloin Chop</h4>
-                        <p class="text-stone-600 text-sm mt-1">Pork tenderloin chop + red potatoes and peas +
-                            applesauce.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">14.</span> Pork Tenderloin Chop</h4>
+                        <p class="text-stone-600 text-sm mt-1">Pork tenderloin chop + red potatoes and peas + applesauce.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">15.</span> Ground
-                            Turkey Tacos/Tostadas</h4>
-                        <p class="text-stone-600 text-sm mt-1">Whole grain/corn shells, lettuce, Jack or Cheddar,
-                            tomato, salsa, sour cream, sliced avocado.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">15.</span> Ground Turkey Tacos/Tostadas</h4>
+                        <p class="text-stone-600 text-sm mt-1">Whole grain/corn shells, lettuce, Jack or Cheddar, tomato, salsa, sour cream, sliced avocado.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">16.</span> Steak
-                            Kebabs</h4>
-                        <p class="text-stone-600 text-sm mt-1">Red, yellow or green peppers, new potatoes, onion,
-                            mushrooms + brown rice.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">16.</span> Steak Kebabs</h4>
+                        <p class="text-stone-600 text-sm mt-1">Red, yellow or green peppers, new potatoes, onion, mushrooms + brown rice.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">17.</span> Chicken
-                            Stir Fry</h4>
-                        <p class="text-stone-600 text-sm mt-1">Pea pods, carrots, water chestnuts, peppers, bamboo
-                            shoots, brown rice, and pineapple.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">17.</span> Chicken Stir Fry</h4>
+                        <p class="text-stone-600 text-sm mt-1">Pea pods, carrots, water chestnuts, peppers, bamboo shoots, brown rice, and pineapple.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">18.</span> Slow Cooker
-                            Beef Pot Roast</h4>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">18.</span> Slow Cooker Beef Pot Roast</h4>
                         <p class="text-stone-600 text-sm mt-1">With baby new potatoes, carrots, onions, and celery.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">19.</span> Fish Tacos
-                        </h4>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">19.</span> Fish Tacos</h4>
                         <p class="text-stone-600 text-sm mt-1">On corn tortillas, black beans, and mango lime salsa.</p>
                     </div>
                 </div>
@@ -581,71 +446,52 @@
             <!-- Subsection: Pasta & Comfort -->
             <section class="mb-12 bg-white p-8 rounded-xl shadow-sm border border-stone-100">
                 <div class="text-center mb-8">
-                    <h3 class="text-2xl font-bold text-stone-700 border-b border-green-500 inline-block pb-1">Pasta &
-                        Comfort</h3>
+                    <h3 class="text-2xl font-bold text-stone-700 border-b border-green-500 inline-block pb-1">Pasta & Comfort</h3>
                 </div>
                 <div class="grid md:grid-cols-2 lg:grid-cols-2 gap-x-12 gap-y-10">
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">4.</span> Whole Grain
-                            Pasta</h4>
-                        <p class="text-stone-600 text-sm mt-1">With ground meat or veggie crumbles, spaghetti sauce,
-                            shredded parmesan, and a mixed green salad.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">4.</span> Whole Grain Pasta</h4>
+                        <p class="text-stone-600 text-sm mt-1">With ground meat or veggie crumbles, spaghetti sauce, shredded parmesan, and a mixed green salad.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">6.</span> Breakfast
-                            for Dinner</h4>
-                        <p class="text-stone-600 text-sm mt-1">Protein whole grain pancakes with eggs and uncured turkey
-                            sausage links.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">6.</span> Breakfast for Dinner</h4>
+                        <p class="text-stone-600 text-sm mt-1">Protein whole grain pancakes with eggs and uncured turkey sausage links.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">13.</span> Shrimp and
-                            Edamame Pasta</h4>
-                        <p class="text-stone-600 text-sm mt-1">With pesto and pine nuts, spinach salad with strawberries
-                            and walnuts.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">13.</span> Shrimp and Edamame Pasta</h4>
+                        <p class="text-stone-600 text-sm mt-1">With pesto and pine nuts, spinach salad with strawberries and walnuts.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">20.</span> Veggie
-                            Lasagna</h4>
-                        <p class="text-stone-600 text-sm mt-1">With a garden salad, whole wheat garlic roll, and a
-                            cluster of red or black grapes.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">20.</span> Veggie Lasagna</h4>
+                        <p class="text-stone-600 text-sm mt-1">With a garden salad, whole wheat garlic roll, and a cluster of red or black grapes.</p>
                     </div>
                 </div>
             </section>
 
-            <!-- Subsection: Soups & Salads -->
-            <section class="mb-12 bg-white p-8 rounded-xl shadow-sm border border-stone-100">
+             <!-- Subsection: Soups & Salads -->
+             <section class="mb-12 bg-white p-8 rounded-xl shadow-sm border border-stone-100">
                 <div class="text-center mb-8">
-                    <h3 class="text-2xl font-bold text-stone-700 border-b border-green-500 inline-block pb-1">Dinner
-                        Salads & Soups</h3>
+                    <h3 class="text-2xl font-bold text-stone-700 border-b border-green-500 inline-block pb-1">Dinner Salads & Soups</h3>
                 </div>
                 <div class="grid md:grid-cols-2 lg:grid-cols-2 gap-x-12 gap-y-10">
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">1.</span> Asian
-                            Chicken Salad</h4>
-                        <p class="text-stone-600 text-sm mt-1">Romaine, peppers, carrots, cabbage, red onion, grilled
-                            chicken, mandarin oranges, spicy peanuts, sesame ginger dressing.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">1.</span> Asian Chicken Salad</h4>
+                        <p class="text-stone-600 text-sm mt-1">Romaine, peppers, carrots, cabbage, red onion, grilled chicken, mandarin oranges, spicy peanuts, sesame ginger dressing.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">5.</span> Black Bean
-                            Soup</h4>
-                        <p class="text-stone-600 text-sm mt-1">With whole wheat or corn tortilla, shredded cheddar, and
-                            a dollop of plain Greek yogurt.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">5.</span> Black Bean Soup</h4>
+                        <p class="text-stone-600 text-sm mt-1">With whole wheat or corn tortilla, shredded cheddar, and a dollop of plain Greek yogurt.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">10.</span> Taco Salad
-                        </h4>
-                        <p class="text-stone-600 text-sm mt-1">Ground meat/poultry, romaine, tomatoes, onions, peppers,
-                            cheese, beans, cilantro, salsa, avocado, and baked chips.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">10.</span> Taco Salad</h4>
+                        <p class="text-stone-600 text-sm mt-1">Ground meat/poultry, romaine, tomatoes, onions, peppers, cheese, beans, cilantro, salsa, avocado, and baked chips.</p>
                     </div>
                     <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">11.</span> Asian
-                            Spinach Salad</h4>
-                        <p class="text-stone-600 text-sm mt-1">Rotisserie chicken, spinach, low fat feta, red onion,
-                            walnuts, mandarin oranges, ginger soy dressing, and sesame seeds.</p>
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">11.</span> Asian Spinach Salad</h4>
+                        <p class="text-stone-600 text-sm mt-1">Rotisserie chicken, spinach, low fat feta, red onion, walnuts, mandarin oranges, ginger soy dressing, and sesame seeds.</p>
                     </div>
-                    <div class="menu-item">
-                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">21.</span> Slow Cooker
-                            Meatball Soup</h4>
+                     <div class="menu-item">
+                        <h4 class="text-lg font-bold text-stone-800"><span class="text-green-700">21.</span> Slow Cooker Meatball Soup</h4>
                         <p class="text-stone-600 text-sm mt-1">Kale, bean, and barley soup with roll and side salad.</p>
                     </div>
                 </div>
@@ -657,204 +503,80 @@
             <div class="section-header">
                 <h2 class="text-4xl font-bold text-stone-800 uppercase tracking-widest">Snacks</h2>
             </div>
-
+            
             <!-- Snack Group 1: Fresh & Fruity -->
             <section class="mb-12 bg-white p-8 rounded-xl shadow-sm border border-stone-100">
                 <div class="text-center mb-8">
-                    <h3 class="text-2xl font-bold text-stone-700 border-b border-green-500 inline-block pb-1">Fresh &
-                        Fruity</h3>
+                    <h3 class="text-2xl font-bold text-stone-700 border-b border-green-500 inline-block pb-1">Fresh & Fruity</h3>
                 </div>
                 <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">1.</span> Banana or
-                            apple w/ natural peanut butter</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">2.</span> Any melon
-                            cubes w/ cottage cheese</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">5.</span> Honeydew
-                            melon w/ Greek yogurt</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">6.</span> Red grape
-                            cluster w/ string cheese</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">9.</span> Apple,
-                            natural peanut butter, dried oats, raisins & honey</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">12.</span> Watermelon
-                            w/ pistachios & edamame</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">13.</span> Sliced
-                            pears w/ ricotta cheese</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">16.</span> Cantaloupe
-                            slices wrapped in prosciutto</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">19.</span> Cheddar
-                            cheese w/ a pear or red apple</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">39.</span> Dried
-                            cherries & green peas w/ cashews</h4>
-                    </div>
+                    <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">1.</span> Banana or apple w/ natural peanut butter</h4></div>
+                    <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">2.</span> Any melon cubes w/ cottage cheese</h4></div>
+                    <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">5.</span> Honeydew melon w/ Greek yogurt</h4></div>
+                    <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">6.</span> Red grape cluster w/ string cheese</h4></div>
+                    <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">9.</span> Apple, natural peanut butter, dried oats, raisins & honey</h4></div>
+                    <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">12.</span> Watermelon w/ pistachios & edamame</h4></div>
+                    <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">13.</span> Sliced pears w/ ricotta cheese</h4></div>
+                    <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">16.</span> Cantaloupe slices wrapped in prosciutto</h4></div>
+                    <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">19.</span> Cheddar cheese w/ a pear or red apple</h4></div>
+                    <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">39.</span> Dried cherries & green peas w/ cashews</h4></div>
                 </div>
             </section>
 
-            <!-- Snack Group 2: Dips, Veggies & Spreads -->
-            <section class="mb-12 bg-white p-8 rounded-xl shadow-sm border border-stone-100">
+             <!-- Snack Group 2: Dips, Veggies & Spreads -->
+             <section class="mb-12 bg-white p-8 rounded-xl shadow-sm border border-stone-100">
                 <div class="text-center mb-8">
-                    <h3 class="text-2xl font-bold text-stone-700 border-b border-green-500 inline-block pb-1">Dips,
-                        Veggies & Spreads</h3>
+                    <h3 class="text-2xl font-bold text-stone-700 border-b border-green-500 inline-block pb-1">Dips, Veggies & Spreads</h3>
                 </div>
                 <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">3.</span> Cucumber
-                            slices w/ veggie cream cheese on whole grain bread</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">10.</span> Red bell
-                            pepper strips w/ guacamole</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">11.</span> Kale chips
-                        </h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">14.</span> Greek
-                            yogurt dip w/ fresh veggies</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">17.</span> Carrots w/
-                            hummus & wheat crackers</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">18.</span> Celery w/
-                            natural peanut butter & raisins</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">23.</span> Whole grain
-                            crackers w/ hummus or nut butter</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">29.</span> Whole grain
-                            tortilla + black bean dip & cheese</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">30.</span> Whole grain
-                            pita + hummus</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">36.</span> Black bean
-                            dip & tortilla chips</h4>
-                    </div>
+                    <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">3.</span> Cucumber slices w/ veggie cream cheese on whole grain bread</h4></div>
+                    <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">10.</span> Red bell pepper strips w/ guacamole</h4></div>
+                    <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">11.</span> Kale chips</h4></div>
+                    <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">14.</span> Greek yogurt dip w/ fresh veggies</h4></div>
+                    <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">17.</span> Carrots w/ hummus & wheat crackers</h4></div>
+                    <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">18.</span> Celery w/ natural peanut butter & raisins</h4></div>
+                    <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">23.</span> Whole grain crackers w/ hummus or nut butter</h4></div>
+                    <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">29.</span> Whole grain tortilla + black bean dip & cheese</h4></div>
+                    <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">30.</span> Whole grain pita + hummus</h4></div>
+                    <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">36.</span> Black bean dip & tortilla chips</h4></div>
                 </div>
             </section>
 
             <!-- Snack Group 3: Grains & Quick Bites -->
             <section class="mb-12 bg-white p-8 rounded-xl shadow-sm border border-stone-100">
                 <div class="text-center mb-8">
-                    <h3 class="text-2xl font-bold text-stone-700 border-b border-green-500 inline-block pb-1">Grains &
-                        Quick Bites</h3>
+                    <h3 class="text-2xl font-bold text-stone-700 border-b border-green-500 inline-block pb-1">Grains & Quick Bites</h3>
                 </div>
                 <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">4.</span> Whole grain
-                            mini bagel w/ veggie cream cheese or flavored hummus</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">15.</span> Dark
-                            chocolate squares w/ walnut halves</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">20.</span> Coffee shop
-                            oatmeal & fruit w/ milk latte</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">25.</span> Whole grain
-                            cereal & milk or yogurt</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">26.</span> Bread/Bagel
-                            w/ peanut butter or deli meat</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">27.</span> Waffle,
-                            peanut butter, honey & wheat germ</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">31.</span> Popcorn +
-                            parmesan cheese</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">34.</span> Rice cakes
-                            w/ ricotta cheese & salsa</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">35.</span> Graham
-                            crackers & milk or peanut butter</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">38.</span> Whole grain
-                            fig bar</h4>
-                    </div>
+                     <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">4.</span> Whole grain mini bagel w/ veggie cream cheese or flavored hummus</h4></div>
+                     <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">15.</span> Dark chocolate squares w/ walnut halves</h4></div>
+                     <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">20.</span> Coffee shop oatmeal & fruit w/ milk latte</h4></div>
+                     <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">25.</span> Whole grain cereal & milk or yogurt</h4></div>
+                     <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">26.</span> Bread/Bagel w/ peanut butter or deli meat</h4></div>
+                     <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">27.</span> Waffle, peanut butter, honey & wheat germ</h4></div>
+                     <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">31.</span> Popcorn + parmesan cheese</h4></div>
+                     <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">34.</span> Rice cakes w/ ricotta cheese & salsa</h4></div>
+                     <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">35.</span> Graham crackers & milk or peanut butter</h4></div>
+                     <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">38.</span> Whole grain fig bar</h4></div>
                 </div>
             </section>
 
             <!-- Snack Group 4: Protein Power -->
             <section class="mb-12 bg-white p-8 rounded-xl shadow-sm border border-stone-100">
                 <div class="text-center mb-8">
-                    <h3 class="text-2xl font-bold text-stone-700 border-b border-green-500 inline-block pb-1">Protein
-                        Power</h3>
+                    <h3 class="text-2xl font-bold text-stone-700 border-b border-green-500 inline-block pb-1">Protein Power</h3>
                 </div>
                 <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">7.</span> Hard-boiled
-                            egg w/ bottled hot sauce</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">8.</span> Ricotta
-                            cheese w/ cocoa powder</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">21.</span>
-                            Refrigerated protein nut butter bar</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">22.</span> Bottled
-                            protein shake or chocolate milk</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">24.</span> Whole grain
-                            crackers/pita w/ egg salad</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">28.</span> ½ egg salad
-                            sandwich & avocado</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">32.</span> Snack sized
-                            Kefir or drinkable yogurt</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">33.</span> String
-                            cheese wrapped in deli meat & tortilla</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">37.</span> Instant
-                            dehydrated soup cup</h4>
-                    </div>
-                    <div class="menu-item">
-                        <h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">40.</span> Chicken
-                            strips, cheese, soft taco w/ salsa</h4>
-                    </div>
+                    <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">7.</span> Hard-boiled egg w/ bottled hot sauce</h4></div>
+                    <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">8.</span> Ricotta cheese w/ cocoa powder</h4></div>
+                    <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">21.</span> Refrigerated protein nut butter bar</h4></div>
+                    <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">22.</span> Bottled protein shake or chocolate milk</h4></div>
+                    <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">24.</span> Whole grain crackers/pita w/ egg salad</h4></div>
+                    <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">28.</span> ½ egg salad sandwich & avocado</h4></div>
+                    <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">32.</span> Snack sized Kefir or drinkable yogurt</h4></div>
+                    <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">33.</span> String cheese wrapped in deli meat & tortilla</h4></div>
+                    <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">37.</span> Instant dehydrated soup cup</h4></div>
+                    <div class="menu-item"><h4 class="font-bold text-stone-800 text-lg"><span class="text-green-700">40.</span> Chicken strips, cheese, soft taco w/ salsa</h4></div>
                 </div>
             </section>
 
@@ -882,6 +604,25 @@
         </div>
     </footer>
 
-</body>
+    <script>
+        // Toggle mobile menu
+        document.getElementById('mobile-menu-btn').addEventListener('click', function() {
+            var menu = document.getElementById('mobile-menu');
+            if (menu.classList.contains('hidden')) {
+                menu.classList.remove('hidden');
+            } else {
+                menu.classList.add('hidden');
+            }
+        });
 
+        // Close mobile menu when a link is clicked
+        var mobileLinks = document.querySelectorAll('#mobile-menu a');
+        mobileLinks.forEach(function(link) {
+            link.addEventListener('click', function() {
+                document.getElementById('mobile-menu').classList.add('hidden');
+            });
+        });
+    </script>
+
+</body>
 </html>
