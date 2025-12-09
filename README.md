@@ -22,3 +22,7 @@
 
 ## 3D Pipes
 [3D Pipes](https://ev-bro.github.io/gpt-html/pipes-all-in-one.html)  
+
+## Sorting
+
+[Sorting](https://ev-bro.github.io/gpt-html/sorting_algorithms.html)
