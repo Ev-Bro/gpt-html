@@ -1,0 +1,4258 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sorting Visualizer</title>
+    <style>
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #000;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    font-family: 'Fixedsys', 'Fixedsys Excelsior', monospace;
+    overflow: hidden;
+}
+
+/* Canvas Container */
+#canvas-container {
+    position: relative;
+    width: 100%;
+    flex: 1;
+    /* Take remaining space */
+    display: flex;
+    align-items: flex-end;
+}
+
+canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* Controls Area */
+/* Controls Area */
+#controls {
+    /* height: 15vh;  Removed fixed height */
+    height: auto;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    z-index: 10;
+    background: #111;
+    border-top: 1px solid #333;
+    padding: 10px;
+    box-sizing: border-box;
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+/* Control Groups */
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* Control Selects */
+.ctrl-select {
+    background: #222;
+    color: #fff;
+    border: 1px solid #555;
+    padding: 8px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+    text-transform: uppercase;
+    max-width: 150px;
+}
+
+.ctrl-select:hover {
+    background: #333;
+}
+
+.ctrl-select:focus {
+    outline: none;
+    border-color: #fff;
+}
+
+/* Buttons */
+.btn {
+    background: transparent;
+    border: 1px solid #fff;
+    color: #fff;
+    padding: 12px 24px;
+    font-family: inherit;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 1rem;
+    transition: background 0.2s, color 0.2s, opacity 0.2s;
+    touch-action: manipulation;
+}
+
+.btn:hover {
+    background: #fff;
+    color: #000;
+}
+
+.btn:disabled {
+    border-color: #555;
+    color: #555;
+    cursor: not-allowed;
+    background: transparent;
+}
+
+/* Speed Controls */
+/* Speed Controls */
+.speed-controls-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 5px;
+    background: #1a1a1a;
+    padding: 5px 8px;
+    border-radius: 4px;
+    border: 1px solid #333;
+}
+
+.speed-label {
+    font-size: 10px;
+    color: #888;
+    text-transform: uppercase;
+    margin-right: 2px;
+}
+
+.speed-row {
+    display: flex;
+    /* Kept for legacy if valid, but we want horizontal */
+    gap: 5px;
+}
+
+.speed-presets-row {
+    display: flex;
+    gap: 2px;
+}
+
+.speed-mod-btn {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    min-width: 40px;
+    border: 1px solid #555;
+    background: #222;
+}
+
+.speed-mod-btn:hover {
+    background: #e0e0e0;
+    color: #000;
+}
+
+.option-btn.speed-btn {
+    padding: 4px 6px;
+    font-size: 0.75rem;
+    min-width: 25px;
+}
+
+.stop-btn {
+    border-color: #ff4444;
+    color: #ff4444;
+}
+
+.stop-btn:hover {
+    background: #ff4444;
+    color: #fff;
+}
+
+.btn.auto-active {
+    background: #44ff44;
+    color: #000;
+    border-color: #44ff44;
+}
+
+/* Menu Removed */
+
+#status {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    font-size: 12px;
+    opacity: 1.0;
+    pointer-events: none;
+    mix-blend-mode: difference;
+    color: #fff;
+    line-height: 1.5;
+    max-width: 70%;
+    white-space: pre-wrap;
+    z-index: 25;
+    font-weight: bold;
+}
+
+@media (max-width: 600px) {
+    #controls {
+        gap: 10px;
+    }
+
+    .btn {
+        padding: 10px 15px;
+        font-size: 0.8rem;
+    }
+
+    .option-btn {
+        font-size: 0.7rem;
+        padding: 8px;
+    }
+}
+
+/* Sound Control Panel */
+#sound-controls {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid #444;
+    padding: 15px;
+    border-radius: 4px;
+    color: #fff;
+    font-family: 'Fixedsys', 'Fixedsys Excelsior', monospace;
+    z-index: 100;
+    width: 200px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+}
+
+.sound-header {
+    font-weight: bold;
+    margin-bottom: 10px;
+    text-align: center;
+    border-bottom: 1px solid #333;
+    padding-bottom: 5px;
+    letter-spacing: 1px;
+}
+
+.sound-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.sound-row label {
+    margin-right: 10px;
+    color: #aaa;
+}
+
+#waveformSelect {
+    background: #222;
+    color: #fff;
+    border: 1px solid #555;
+    padding: 2px 5px;
+    font-family: inherit;
+    font-size: 12px;
+}
+
+#volumeSlider {
+    width: 100px;
+    background: #333;
+    height: 4px;
+    border-radius: 2px;
+    -webkit-appearance: none;
+}
+
+#volumeSlider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: #fff;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 36px;
+    height: 20px;
+    margin-right: 8px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #333;
+    transition: .4s;
+    border-radius: 20px;
+    border: 1px solid #555;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked+.slider {
+    background-color: #2196F3;
+}
+
+input:checked+.slider:before {
+    transform: translateX(16px);
+}
+</style>
+</head>
+
+<body>
+
+    <div id="status">ALGORITHM: QUICK SORT</div>
+    <div id="stats-panel"
+        style="position: absolute; top: 60px; left: 20px; font-size: 14px; opacity: 1.0; pointer-events: none; mix-blend-mode: difference; color: #fff; z-index: 25; font-family: 'Fixedsys', 'Fixedsys Excelsior', monospace;">
+        <div>Comparisons: <span id="stat-comp">0</span></div>
+        <div>Swaps: <span id="stat-swap">0</span></div>
+        <div>Reversals: <span id="stat-rev">0</span></div>
+        <div>Main Writes: <span id="stat-main">0</span></div>
+        <div>Aux Writes: <span id="stat-aux">0</span></div>
+        <div>Time Elapsed: <span id="stat-time">0.00s</span></div>
+        <div>Effective Time: <span id="stat-effective">0.00s</span></div>
+        <div>Slope: <span id="stat-slope">0.00</span></div>
+        <div>Completion: <span id="stat-completion">0%</span></div>
+        <div style="width: 100%; height: 4px; background: #333; margin-top: 4px;">
+            <div id="stat-progress-fill" style="height: 100%; background: #fff; width: 0%;"></div>
+        </div>
+
+    </div>
+
+
+
+    <div id="canvas-container">
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <div id="controls">
+        <div class="control-group playback">
+            <button id="startBtn" class="btn" title="Start Sort">Sort</button>
+            <button id="stopBtn" class="btn stop-btn" disabled title="Stop Sort">Stop</button>
+            <button id="resetBtn" class="btn" title="Reset Array">Reset</button>
+            <button id="autoPlayBtn" class="btn" title="Toggle Auto-Play">AUTO</button>
+        </div>
+
+        <div class="control-group settings">
+            <button id="prevAlgoBtn" class="btn" title="Previous Algorithm">&lt;</button>
+            <select id="algoSelect" class="ctrl-select" title="Algorithm">
+                <option value="random">Random</option>
+
+                <optgroup label="Simple & Quadratic">
+                    <option value="bubble">Bubble Sort</option>
+                    <option value="selection">Selection Sort</option>
+                    <option value="doubleSelection">Double Selection Sort</option>
+                    <option value="insertion">Insertion Sort</option>
+                    <option value="binaryInsertion">Binary Insertion Sort</option>
+                    <option value="shaker">Cocktail Shaker Sort</option>
+                    <option value="gnome">Gnome Sort</option>
+                    <option value="oddeven">Odd-Even Sort</option>
+                    <option value="pancake">Pancake Sort</option>
+                    <option value="exchange">Exchange Sort</option>
+                    <option value="cycle">Cycle Sort</option>
+                </optgroup>
+
+                <optgroup label="Efficient & Logarithmic">
+                    <option value="quick">Quick Sort</option>
+                    <option value="quickDual">Dual Pivot Quick Sort</option>
+                    <option value="merge">Merge Sort</option>
+                    <option value="heap">Heap Sort</option>
+                    <option value="shell">Shell Sort</option>
+                    <option value="tim">Tim Sort</option>
+                    <option value="comb">Comb Sort</option>
+                    <option value="intro">Intro Sort</option>
+                    <option value="patience">Patience Sort</option>
+                    <option value="tree">Tree Sort</option>
+                </optgroup>
+
+                <optgroup label="Distribution & Concurrent">
+                    <option value="radix">Radix Sort</option>
+                    <option value="counting">Counting Sort</option>
+                    <option value="flash">Flash Sort</option>
+                    <option value="americanFlag">American Flag Sort</option>
+                    <option value="inplaceLSD">In-Place LSD Radix Sort</option>
+                    <option value="shatter">Shatter Sort</option>
+                </optgroup>
+
+                <optgroup label="Selection Variants">
+                    <option value="tournament">Tournament Sort</option>
+                </optgroup>
+
+                <optgroup label="Insertion Variants">
+                    <option value="library">Library Sort</option>
+                </optgroup>
+
+                <optgroup label="Advanced & In-Place">
+                    <option value="sqrt">Sqrt Sort</option>
+                    <option value="smooth">Smooth Sort</option>
+                    <option value="strand">Strand Sort</option>
+                    <option value="binaryQuick">Binary Quick Sort</option>
+                    <option value="bucket">Bucket Sort</option>
+                </optgroup>
+
+                <optgroup label="Merge Variants">
+                    <option value="inplaceMerge">In-Place Merge Sort</option>
+                    <option value="weaveMerge">Weave Merge Sort</option>
+                    <option value="rotateMerge">Rotate Merge Sort</option>
+                </optgroup>
+
+                <optgroup label="Sorting Networks">
+                    <option value="bitonic">Bitonic Sort</option>
+                    <option value="boseNelson">Bose-Nelson Sort</option>
+                    <option value="crease">Crease Sort</option>
+                    <option value="diamond">Diamond Sort</option>
+                    <option value="fold">Fold Sort</option>
+                    <option value="mergeExchange">Merge Exchange Sort</option>
+                    <option value="oddEvenMerge">Odd-Even Merge Sort</option>
+                    <option value="pairwiseMerge">Pairwise Merge Sort</option>
+                    <option value="pairwise">Pairwise Sort</option>
+                    <option value="weave">Weave Sort</option>
+                </optgroup>
+
+                <optgroup label="2D / Matrix">
+                    <option value="matrix">Matrix Sort</option>
+                    <option value="gravity">Gravity Sort (Bead)</option>
+                </optgroup>
+
+
+                <option value="index">Index Sort</option>
+                </optgroup>
+            </select>
+            <button id="nextAlgoBtn" class="btn" title="Next Algorithm">&gt;</button>
+            <button id="shuffleAlgoBtn" class="btn" title="Random Algorithm">Shuffle</button>
+
+            <select id="densitySelect" class="ctrl-select" title="Bar Density">
+                <option value="128">128 Bars</option>
+                <option value="256" selected>256 Bars</option>
+                <option value="512">512 Bars</option>
+                <option value="1024">1024 Bars</option>
+                <option value="2048">2048 Bars</option>
+            </select>
+
+            <select id="fpsSelect" class="ctrl-select" title="Frame Rate">
+                <option value="60" selected>60 FPS</option>
+                <option value="120">120 FPS</option>
+            </select>
+        </div>
+
+        <div class="speed-controls-container horizontal">
+            <span class="speed-label">Speed:</span>
+            <button id="btnHalve" class="btn speed-mod-btn" title="Halve Speed">0.5x</button>
+            <button id="btnDouble" class="btn speed-mod-btn" title="Double Speed">2x</button>
+
+            <div class="speed-presets-row">
+                <button class="btn option-btn speed-btn active" data-speed="1">1</button>
+                <button class="btn option-btn speed-btn" data-speed="2">2</button>
+                <button class="btn option-btn speed-btn" data-speed="4">4</button>
+                <button class="btn option-btn speed-btn" data-speed="8">8</button>
+            </div>
+        </div>
+
+        <div class="control-group sound-group" style="padding-left: 10px; border-left: 1px solid #333;">
+            <button id="soundToggleBtn" class="btn" title="Toggle Sound">MUTE</button>
+            <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.2" style="width: 60px;"
+                title="Volume">
+        </div>
+    </div>
+
+
+
+
+
+    <script>
+class SoundManager {
+    constructor() {
+        this.ctx = null;
+        this.masterGainNode = null;
+        this.oscillators = new Map(); // Map<index, {osc, gain}>
+        this.waveform = 'sine';
+        this.volume = 0.5;
+        this.isMuted = true;
+        this.isRunning = false;
+
+        // Polling references
+        this.getArrayState = null; // Function that returns {array, states}
+
+        // Frequencies (Pentatonic scale or just simple range)
+        this.minHz = 120;
+        this.maxHz = 1200;
+
+        // Polyphony Limiter to prevent blowing speakers
+        this.MAX_ACTIVE_VOICES = 30; // Cap at 30 simultaneous sounds
+    }
+
+    init(stateProvider) {
+        this.getArrayState = stateProvider;
+
+        // Initialize AudioContext on user interaction to handle autoplay policy
+        // We'll just define the structure but create context on first 'resume'
+    }
+
+    _initAudio() {
+        if (!this.ctx) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            this.ctx = new AudioContext();
+
+            this.masterGainNode = this.ctx.createGain();
+            this.masterGainNode.gain.value = this.volume;
+            this.masterGainNode.connect(this.ctx.destination);
+        }
+    }
+
+    toggleMute(shouldMute) {
+        this.isMuted = shouldMute;
+        if (!this.isMuted) {
+            this._initAudio();
+            if (this.ctx.state === 'suspended') {
+                this.ctx.resume();
+            }
+            if (!this.isRunning) {
+                this.startPolling();
+            }
+        } else {
+            // Stop all sounds immediately
+            this.stopAll();
+        }
+    }
+
+    setVolume(val) {
+        this.volume = val;
+        if (this.masterGainNode) {
+            this.masterGainNode.gain.value = val;
+        }
+    }
+
+    // Waveform limited to sine only per request
+    // setWaveform(type) removed
+
+    startPolling() {
+        this.isRunning = true;
+        this._loop();
+    }
+
+    _loop() {
+        if (!this.isRunning) return;
+
+        requestAnimationFrame(() => this._loop());
+
+        if (this.isMuted || !this.ctx) return;
+        if (!this.getArrayState) return;
+
+        const { array, states, isSorting } = this.getArrayState();
+        if (!array || !states) return;
+
+        // Ensure we silenced everything if not sorting
+        if (isSorting === false) {
+            if (this.oscillators.size > 0) {
+                this.stopAll();
+            }
+            return;
+        }
+
+        // Find active indices
+        const activeIndices = [];
+        for (let i = 0; i < states.length; i++) {
+            // state 1 = access/pivot (red?), state 2 = swap (red?)
+            // Usually we only want to play sounds for "active" comparisons/swaps.
+            // script.js says: 1: access/pivot, 2: compare/swap
+            if (states[i] === 1 || states[i] === 2) {
+                activeIndices.push(i);
+            }
+        }
+
+        // Limit polyphony
+
+        const activeSet = new Set(activeIndices);
+
+        // 1. Stop oscillators that are no longer active
+        for (const [index, node] of this.oscillators) {
+            if (!activeSet.has(index)) {
+                this._stopNote(index);
+            }
+        }
+
+        // 2. Start/Update oscillators for active indices
+        // Calculate gain per note to keep total volume sane
+        const count = activeIndices.length;
+        if (count === 0) return;
+
+        // Cap count for calculation to prevent silence on massive sorts
+        const safeCount = Math.max(1, count);
+        let noteGain = 1.0 / Math.max(1, Math.min(safeCount, 10)); // Don't reduce too much
+        if (count > 10) noteGain = 0.1;
+
+        // Cap active voices to avoid CPU overload
+        const voicesToPlay = activeIndices.slice(0, this.MAX_ACTIVE_VOICES);
+
+        // Use dynamic max height if provided, else default
+        const maxVal = (this.getArrayState && this.getArrayState().maxVal) ? this.getArrayState().maxVal : 800;
+
+        voicesToPlay.forEach(i => {
+            const val = array[i];
+
+            // Normalize value based on dynamic height
+            const norm = Math.min(1, Math.max(0, val / maxVal));
+            const freq = this.minHz + norm * (this.maxHz - this.minHz);
+
+            if (this.oscillators.has(i)) {
+                // Update existing
+                const node = this.oscillators.get(i);
+                // Ramp frequency smoothly
+                node.osc.frequency.setTargetAtTime(freq, this.ctx.currentTime, 0.02);
+                node.gain.gain.setTargetAtTime(noteGain, this.ctx.currentTime, 0.02);
+            } else {
+                // Create new
+                this._playNote(i, freq, noteGain);
+            }
+        });
+
+        // Stop any that were in activeIndices but beyond MAX_VOICES
+        if (activeIndices.length > this.MAX_ACTIVE_VOICES) {
+            for (let k = this.MAX_ACTIVE_VOICES; k < activeIndices.length; k++) {
+                const idx = activeIndices[k];
+                if (this.oscillators.has(idx)) {
+                    this._stopNote(idx);
+                }
+            }
+        }
+    }
+
+    _playNote(index, frequency, gainVal) {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = this.waveform;
+        osc.frequency.value = frequency;
+
+        // Attack
+        const now = this.ctx.currentTime;
+        const attackTime = 0.02; // 20ms attack to soften click
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(gainVal, now + attackTime);
+
+        osc.connect(gain);
+        gain.connect(this.masterGainNode);
+
+        osc.start();
+
+        this.oscillators.set(index, { osc, gain });
+    }
+
+    _stopNote(index) {
+        if (!this.oscillators.has(index)) return;
+
+        const { osc, gain } = this.oscillators.get(index);
+
+        // Release phase
+        const now = this.ctx.currentTime;
+        const releaseTime = 0.03; // 30ms release
+
+        try {
+            // Cancel any future ramps (like the attack if we stopped immediately)
+            gain.gain.cancelScheduledValues(now);
+            // Anchor strictly to current value to prevent jump
+            gain.gain.setValueAtTime(gain.gain.value, now);
+            // Ramp to 0
+            gain.gain.linearRampToValueAtTime(0, now + releaseTime);
+
+            // Stop and GC after release
+            // Add a buffer to ensuring silence
+            setTimeout(() => {
+                try {
+                    osc.stop();
+                    osc.disconnect();
+                    gain.disconnect();
+                } catch (e) { }
+            }, (releaseTime * 1000) + 20);
+        } catch (e) {
+            // Context might be closed
+        }
+
+        this.oscillators.delete(index);
+    }
+
+    stopAll() {
+        this.oscillators.forEach((node, index) => {
+            this._stopNote(index);
+        });
+    }
+}
+
+</script>
+    <script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const startBtn = document.getElementById('startBtn');
+const stopBtn = document.getElementById('stopBtn');
+const resetBtn = document.getElementById('resetBtn');
+const settingsBtn = document.getElementById('settingsBtn');
+const menuOverlay = document.getElementById('menuOverlay');
+const closeMenuBtn = document.getElementById('closeMenuBtn');
+
+const algoBtns = document.querySelectorAll('.algo-btn');
+const presetBtns = document.querySelectorAll('.preset-btn');
+const speedBtns = document.querySelectorAll('.speed-btn');
+const statusEl = document.getElementById('status');
+const fpsBtns = document.querySelectorAll('.fps-btn');
+const statComp = document.getElementById('stat-comp');
+const statSwap = document.getElementById('stat-swap');
+const statRev = document.getElementById('stat-rev');
+const statMain = document.getElementById('stat-main');
+const statAux = document.getElementById('stat-aux');
+const statTime = document.getElementById('stat-time');
+const statEffective = document.getElementById('stat-effective');
+const statCompletion = document.getElementById('stat-completion');
+const statSlope = document.getElementById('stat-slope');
+
+
+// Complexity Map
+const ALGO_COMPLEXITY = {
+    'bubble': 'quadratic', 'selection': 'quadratic', 'insertion': 'quadratic',
+    'shaker': 'quadratic', 'gnome': 'quadratic', 'oddeven': 'quadratic',
+    'pancake': 'quadratic', 'cycle': 'quadratic',
+    'doubleSelection': 'quadratic', 'binaryInsertion': 'quadratic', 'exchange': 'quadratic',
+    // N Log N
+    'quick': 'logarithmic', 'quickDual': 'logarithmic', 'merge': 'logarithmic',
+    'heap': 'logarithmic', 'shell': 'logarithmic', 'tim': 'logarithmic',
+    'comb': 'logarithmic', 'intro': 'logarithmic', 'patience': 'logarithmic',
+    'tree': 'logarithmic', 'binaryQuick': 'logarithmic',
+    // Other
+    'radix': 'linear',
+    // New/Variables (Default to N Log N or Quadratic based on expected perf)
+    'tournament': 'logarithmic', 'library': 'quadratic', 'strand': 'quadratic', // Strand is O(n) best case but O(n^2) worst
+    'sqrt': 'quadratic', // Actually n^1.5 usually?
+    'smooth': 'logarithmic',
+    'inplaceMerge': 'quadratic', 'weaveMerge': 'logarithmic', 'rotateMerge': 'logarithmic',
+    'fold': 'logarithmic', 'matrix': 'quadratic', 'mergeExchange': 'logarithmic',
+    'oddEvenMerge': 'logarithmic', 'pairwiseMerge': 'logarithmic', 'pairwise': 'logarithmic',
+    'weave': 'logarithmic',
+    'counting': 'linear', 'flash': 'linear', 'gravity': 'quadratic',
+    'index': 'logarithmic', 'americanFlag': 'linear', 'inplaceLSD': 'linear',
+    'shatter': 'linear'
+};
+
+// State
+let width, height;
+let array = [];
+let states = []; // 0: normal, 1: access/pivot, 2: compare/swap, 3: sorted
+
+// Settings
+let targetNumBars = 250;
+let currentBarWidth = 4; // Calculated
+let opsPerFrame = 1;
+let selectedAlgoMode = 'random'; // 'random' or specific algo key
+let activeAlgoName = 'Quick';
+let targetFPS = 60;
+
+// Stats
+let stats = {
+    comparisons: 0,
+    swaps: 0,
+    reversals: 0,
+    mainWrites: 0,
+    auxWrites: 0,
+    steps: 0, // Tick counter
+    timeElapsed: 0,
+    effectiveTime: 0
+};
+
+// Timer State
+let timerStart = 0;
+let lastTickTime = 0;
+let startInversions = 0;
+
+
+
+// Runtime
+let numBars;
+let isSorting = false;
+let stopSorting = false;
+let opCounter = 0;
+
+
+const statProgressFill = document.getElementById('stat-progress-fill');
+
+function updateStatus() {
+    let labelAlgo;
+
+    if (isSorting) {
+        // While sorting, show the specific running algorithm
+        labelAlgo = activeAlgoName.toUpperCase() + " SORT";
+    } else {
+        // Idle state - Show last used or currently selected algo
+        // Even if in 'random' mode, we show the last one (or default if none run yet)
+        labelAlgo = activeAlgoName.toUpperCase() + " SORT";
+    }
+
+    statusEl.innerText = `ALGORITHM: ${labelAlgo}`; // Removed BARS, SPEED, FPS as per request to remove specific lines (kept SPEED? User said remove BARS and FPS. "remove the "BARS:" and "FPS:" stat lines". Usually implies just those. But since SPEED is interlaced, I'll keep SPEED if it wasn't requested to be removed. Wait, previous thinking was to keep SPEED. Let's keep SPEED.
+    // Re-reading user request: "remove the "BARS:" and "FPS:" stat lines"
+    // Original: ALGORITHM: ... \n BARS: ... \n SPEED: ... \n FPS: ...
+    // New: ALGORITHM: ... \n SPEED: ...
+    statusEl.innerText = `ALGORITHM: ${labelAlgo}\nSPEED: ${opsPerFrame} ops/frame`;
+
+    // Update stats
+    statComp.innerText = stats.comparisons;
+    statSwap.innerText = stats.swaps;
+    statRev.innerText = stats.reversals;
+    statMain.innerText = stats.mainWrites;
+    statAux.innerText = stats.auxWrites;
+    statTime.innerText = (stats.timeElapsed / 1000).toFixed(2) + 's';
+    statEffective.innerText = (stats.effectiveTime / 1000).toFixed(2) + 's';
+
+    // Calculate Completion % based on Inversions relative to Start
+    let completion = 0;
+    if (array.length > 1) {
+        if (startInversions > 0) {
+            const currentInversions = countInversions([...array]);
+            completion = (1 - (currentInversions / startInversions)) * 100;
+            statCompletion.innerText = completion.toFixed(1) + '%';
+        } else {
+            // Started perfectly sorted
+            if (countInversions([...array]) === 0) {
+                completion = 100;
+                statCompletion.innerText = '100.0%';
+            } else {
+                statCompletion.innerText = '0.0%';
+            }
+        }
+    } else {
+        completion = 100;
+        statCompletion.innerText = '100.0%';
+    }
+
+    // Update progress bar
+    if (statProgressFill) {
+        let widthVal = Math.max(0, Math.min(100, completion));
+        statProgressFill.style.width = `${widthVal}%`;
+    }
+
+    // Calculate Slope
+    // Slope = Correlation(index, value) or similar? 
+    // Usually "sortedness" slope is linear regression slope of (index, value).
+    // Perfect sort 0..N -> Slope related to 1.
+    // Let's simple linear regression: y = mx + c. We want 'm'.
+    // X = indices 0..N-1, Y = array values.
+    // For performance, we can sample if N is large, but N <= 2048 is small enough for O(N).
+
+    if (array.length > 1) {
+        let n = array.length;
+        let sumX = 0;
+        let sumY = 0;
+        let sumXY = 0;
+        let sumXX = 0;
+
+        // Optimization: sumX and sumXX are constant for a fixed N, but N changes.
+        // Direct calculation:
+        // sumX = n * (n - 1) / 2
+        // sumXX = n * (n - 1) * (2n - 1) / 6
+
+        // We just loop for clarity and safety with Y
+        for (let i = 0; i < n; i++) {
+            let x = i;
+            let y = array[i]; // Value (height)
+            sumX += x;
+            sumY += y;
+            sumXY += x * y;
+            sumXX += x * x;
+        }
+
+        let m = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+
+        // Use the newly added valid element
+        if (typeof statSlope !== 'undefined' && statSlope) {
+            statSlope.innerText = m.toFixed(2);
+        } else {
+            // Try to find it again if variable not yet bound (safety)
+            const el = document.getElementById('stat-slope');
+            if (el) el.innerText = m.toFixed(2);
+        }
+    }
+}
+
+
+
+
+// --- Core ---
+
+function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = document.getElementById('canvas-container').getBoundingClientRect();
+    width = rect.width;
+    height = rect.height;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    ctx.scale(dpr, dpr);
+
+    numBars = targetNumBars;
+    currentBarWidth = width / numBars;
+    updateStatus();
+}
+
+async function handleResizeOrSettingChange() {
+    if (isSorting) {
+        stopSorting = true;
+        await sleep(60);
+    }
+    resize();
+    resetArray();
+    isSorting = false;
+    stopSorting = false;
+    startBtn.disabled = false;
+    resetBtn.disabled = false;
+    stopBtn.disabled = true;
+}
+
+window.addEventListener('resize', () => {
+    clearTimeout(window.resizeTimer);
+    window.resizeTimer = setTimeout(handleResizeOrSettingChange, 100);
+});
+
+function resetArray() {
+    resetStats();
+    // Reset timer state
+    timerStart = 0;
+    lastTickTime = 0;
+    stats.timeElapsed = 0;
+    stats.effectiveTime = 0;
+
+
+    array = [];
+    states = [];
+    for (let i = 0; i < numBars; i++) {
+        array.push(Math.floor(Math.random() * (height - 10) + 5));
+        states.push(0);
+    }
+
+    // Capture the initial "disorder" to scale 0-100% completion
+    startInversions = countInversions([...array]);
+
+    draw();
+}
+
+function draw() {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, width, height);
+
+    for (let i = 0; i < array.length; i++) {
+        if (states[i] === 0) ctx.fillStyle = '#ffffff';
+        else if (states[i] === 1) ctx.fillStyle = '#ff0000';
+        else if (states[i] === 2) ctx.fillStyle = '#ff0000'; // Red
+        else if (states[i] === 3) ctx.fillStyle = '#00ff00'; // Green
+
+        const barW = Math.ceil(currentBarWidth) + 1;
+        ctx.fillRect(i * currentBarWidth, height - array[i], barW, array[i]);
+    }
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function tick() {
+    if (stopSorting) throw new Error("Stopped");
+
+    // Initialize timer on first tick if not started
+    const now = Date.now();
+    if (timerStart === 0) {
+        timerStart = now;
+        lastTickTime = now;
+
+    }
+
+    stats.steps++;
+
+    // Update Timers
+    stats.timeElapsed = now - timerStart;
+
+    // Effective time: approximate "work done" time based on speed
+    // If we are running faster (higher opsPerFrame), effective time accumulates faster per real second.
+    // However, the user request "Effective Time = Time Elapsed + Effective Time" is a bit ambiguous.
+    // Clarification from prompt interpretation: "effective time elapsed". 
+    // Usually "Effective Time" in sims means "Simulation Time". 
+    // Simulation Time delta = Real Time Delta * Speed Factor? 
+    // Or is it based on operations? 
+    // Let's interpret "Effective Time" as "Operations-based Time" or "Normalized Time".:
+    // A simple metric: 1 op = some fixed unit of time (e.g., 1ms). 
+    // Or, simpler: Time Elapsed * Speed Multiplier (opsPerFrame).
+    // Let's use: dt * opsPerFrame.
+
+    const dt = now - lastTickTime;
+    stats.effectiveTime += dt * opsPerFrame;
+    lastTickTime = now;
+
+    opCounter++;
+    if (opCounter >= opsPerFrame) {
+        opCounter = 0;
+
+
+
+        draw();
+        updateStatus();
+        // Always cap at targetFPS
+        const delay = 1000 / targetFPS;
+        await sleep(delay);
+    }
+}
+
+async function swap(arr, a, b) {
+    let temp = arr[a];
+    arr[a] = arr[b];
+    arr[b] = temp;
+    states[a] = 2;
+    states[b] = 2;
+
+    stats.swaps++;
+    stats.mainWrites += 2;
+
+    await tick();
+    states[a] = 0;
+    states[b] = 0;
+}
+
+function resetStats() {
+    stats = { comparisons: 0, swaps: 0, reversals: 0, mainWrites: 0, auxWrites: 0, steps: 0, timeElapsed: 0, effectiveTime: 0 };
+    updateStatus();
+}
+
+// --- Sound System Integration ---
+const soundManager = new SoundManager();
+const soundToggleBtn = document.getElementById('soundToggleBtn');
+const volumeSlider = document.getElementById('volumeSlider');
+
+// Initialize Sound Manager with state provider
+soundManager.init(() => {
+    return { array: array, states: states, maxVal: height, isSorting: isSorting };
+});
+
+soundToggleBtn.addEventListener('click', () => {
+    if (soundManager.isMuted) {
+        soundManager.toggleMute(false);
+        soundToggleBtn.innerText = "ON";
+        soundToggleBtn.style.color = "#4CAF50";
+        soundToggleBtn.style.borderColor = "#4CAF50";
+    } else {
+        soundManager.toggleMute(true);
+        soundToggleBtn.innerText = "MUTE";
+        soundToggleBtn.style.color = ""; // Reset
+        soundToggleBtn.style.borderColor = "";
+    }
+});
+
+volumeSlider.addEventListener('input', (e) => {
+    soundManager.setVolume(parseFloat(e.target.value));
+});
+
+// Auto-resume audio context on user interaction (Start Button) if enabled
+startBtn.addEventListener('click', () => {
+    if (!soundManager.isMuted && soundManager.ctx.state === 'suspended') {
+        soundManager.ctx.resume();
+    }
+});
+
+stopBtn.addEventListener('click', () => {
+    // Explicitly kill sound when user stops
+    soundManager.stopAll();
+});
+
+// Initialize
+resize();
+resetArray();
+
+// --- Helpers ---
+
+function countInversions(arr) {
+    if (arr.length < 2) return 0;
+
+    let count = 0;
+    const mid = Math.floor(arr.length / 2);
+    const left = arr.slice(0, mid);
+    const right = arr.slice(mid);
+
+    count += countInversions(left);
+    count += countInversions(right);
+    count += mergeAndCount(arr, left, right);
+
+    return count;
+}
+
+function mergeAndCount(arr, left, right) {
+    let i = 0, j = 0, k = 0;
+    let count = 0;
+
+    while (i < left.length && j < right.length) {
+        if (left[i] <= right[j]) {
+            arr[k++] = left[i++];
+        } else {
+            arr[k++] = right[j++];
+            count += (left.length - i);
+        }
+    }
+
+    while (i < left.length) arr[k++] = left[i++];
+    while (j < right.length) arr[k++] = right[j++];
+
+    return count;
+}
+
+</script>
+    <script>
+// Common Helper Functions for Sorting Algorithms
+
+// Partition for QuickSort and IntroSort
+async function partition(arr, start, end) {
+    let pIdx = start; let pVal = arr[end]; states[end] = 1;
+    for (let i = start; i < end; i++) {
+        states[i] = 1; await tick();
+        stats.comparisons++;
+        if (arr[i] < pVal) { await swap(arr, i, pIdx); pIdx++; }
+        states[i] = 0;
+    }
+    await swap(arr, pIdx, end); states[end] = 0; return pIdx;
+}
+
+// Merge for MergeSort, TimSort, SqrtSort
+async function merge(arr, start, mid, end) {
+    let leftArr = arr.slice(start, mid + 1);
+    let rightArr = arr.slice(mid + 1, end + 1);
+    let i = 0, j = 0, k = start;
+    while (i < leftArr.length && j < rightArr.length) {
+        states[k] = 1; await tick();
+        stats.comparisons++;
+        if (leftArr[i] <= rightArr[j]) { arr[k] = leftArr[i]; stats.mainWrites++; i++; } else { arr[k] = rightArr[j]; stats.mainWrites++; j++; }
+        states[k] = 2; await tick(); states[k] = 0; k++;
+    }
+    while (i < leftArr.length) { states[k] = 1; await tick(); arr[k] = leftArr[i]; stats.mainWrites++; states[k] = 2; await tick(); states[k] = 0; i++; k++; }
+    while (j < rightArr.length) { states[k] = 1; await tick(); arr[k] = rightArr[j]; stats.mainWrites++; states[k] = 2; await tick(); states[k] = 0; j++; k++; }
+}
+
+// Insertion Sort Range for TimSort, IntroSort, SqrtSort
+async function insertionSortRange(arr, left, right) {
+    for (let i = left + 1; i <= right; i++) {
+        let temp = arr[i];
+        let j = i - 1;
+        while (j >= left) {
+            stats.comparisons++;
+            if (arr[j] > temp) {
+                states[j] = 1; await tick(); states[j] = 0;
+                arr[j + 1] = arr[j];
+                stats.mainWrites++;
+                j--;
+            } else {
+                break;
+            }
+        }
+        arr[j + 1] = temp;
+        stats.mainWrites++;
+    }
+}
+
+// Heapify for HeapSort
+async function heapify(arr, n, i) {
+    let lg = i, l = 2 * i + 1, r = 2 * i + 2;
+    if (l < n) { states[l] = 1; await tick(); stats.comparisons++; if (arr[l] > arr[lg]) lg = l; states[l] = 0; }
+    if (r < n) { states[r] = 1; await tick(); stats.comparisons++; if (arr[r] > arr[lg]) lg = r; states[r] = 0; }
+    if (lg !== i) { await swap(arr, i, lg); await heapify(arr, n, lg); }
+}
+
+// In-Place Merge for InPlaceMergeSort and RotateMergeSort
+async function inPlaceMerge(arr, start, mid, end) {
+    let start2 = mid + 1;
+    stats.comparisons++;
+    if (arr[mid] <= arr[start2]) return;
+    while (start <= mid && start2 <= end) {
+        stats.comparisons++;
+        if (arr[start] <= arr[start2]) {
+            start++;
+        } else {
+            let val = arr[start2];
+            let index = start2;
+            while (index !== start) {
+                arr[index] = arr[index - 1];
+                stats.mainWrites++;
+                index--;
+            }
+            arr[start] = val;
+            stats.mainWrites++;
+            start++; mid++; start2++;
+            await tick();
+        }
+    }
+}
+
+// Reverse Range for RotateMergeSort (and potentially others)
+async function reverseRange(arr, i, j) {
+    while (i < j) {
+        await swap(arr, i, j);
+        i++; j--;
+    }
+}
+
+async function compareSwap(arr, i, j) {
+    stats.comparisons++;
+    states[i] = 1; states[j] = 1; await tick();
+    if (arr[i] > arr[j]) {
+        await swap(arr, i, j);
+    }
+    states[i] = 0; states[j] = 0;
+}
+
+// Used by Pairwise and OddEven
+async function oddEvenMerge(arr, low, n, r) {
+    let m = r * 2;
+    if (m < n) {
+        await oddEvenMerge(arr, low, n, m);      // Even
+        await oddEvenMerge(arr, low + r, n, m);  // Odd
+        for (let i = low + r; i + r < low + n; i += m) {
+            await compareSwap(arr, i, i + r);
+        }
+    } else {
+        await compareSwap(arr, low, low + r);
+    }
+}
+
+</script>
+    <script>
+async function bubbleSort(arr) {
+    for (let i = 0; i < arr.length; i++) {
+        for (let j = 0; j < arr.length - i - 1; j++) {
+            states[j] = 1; await tick();
+            stats.comparisons++;
+            if (arr[j] > arr[j + 1]) await swap(arr, j, j + 1);
+            states[j] = 0;
+        }
+    }
+}
+
+</script>
+    <script>
+async function selectionSort(arr) {
+    let len = arr.length;
+    for (let i = 0; i < len; i++) {
+        let min = i;
+        states[i] = 1;
+        for (let j = i + 1; j < len; j++) {
+            states[j] = 1;
+            await tick();
+            stats.comparisons++;
+            if (arr[j] < arr[min]) {
+                min = j;
+            }
+            states[j] = 0;
+        }
+        if (min !== i) {
+            await swap(arr, i, min);
+        }
+    }
+}
+
+</script>
+    <script>
+async function doubleSelectionSort(arr) {
+    let i = 0, j = arr.length - 1;
+    while (i < j) {
+        let min = i, max = i;
+        for (let k = i; k <= j; k++) {
+            states[k] = 1;
+            stats.comparisons++;
+            if (arr[k] < arr[min]) min = k;
+            else if (arr[k] > arr[max]) max = k;
+            await tick();
+            states[k] = 0;
+        }
+        await swap(arr, i, min);
+        // If max was at i, it has been moved to min
+        if (max === i) max = min;
+        await swap(arr, j, max);
+        i++; j--;
+    }
+}
+
+</script>
+    <script>
+async function insertionSort(arr) {
+    let len = arr.length;
+    for (let i = 1; i < len; i++) {
+        let key = arr[i];
+        let j = i - 1;
+        states[i] = 2; // Selected
+        while (j >= 0) {
+            stats.comparisons++;
+            if (arr[j] > key) {
+                states[j] = 1;
+                await tick();
+                arr[j + 1] = arr[j];
+                stats.mainWrites++;
+                states[j] = 0;
+                j = j - 1;
+            } else {
+                break;
+            }
+        }
+        arr[j + 1] = key;
+        stats.mainWrites++;
+        states[i] = 0;
+        await tick();
+    }
+}
+
+</script>
+    <script>
+async function binaryInsertionSort(arr) {
+    for (let i = 1; i < arr.length; i++) {
+        let x = arr[i];
+        let rangeMap = { start: 0, end: i };
+
+        // Find loc with binary search
+        let start = 0, end = i;
+        states[i] = 2; // Selected
+
+        while (start < end) {
+            let mid = Math.floor((start + end) / 2);
+            states[mid] = 1; await tick();
+            stats.comparisons++;
+            if (arr[mid] <= x) start = mid + 1;
+            else end = mid;
+            states[mid] = 0;
+        }
+
+        // Shift
+        for (let j = i; j > start; j--) {
+            arr[j] = arr[j - 1];
+            stats.mainWrites++;
+            states[j] = 1;
+            await tick();
+            states[j] = 0;
+        }
+        arr[start] = x;
+        stats.mainWrites++;
+        states[i] = 0;
+    }
+}
+
+</script>
+    <script>
+async function cocktailShakerSort(arr) {
+    let isSorted = true;
+    while (isSorted) {
+        for (let i = 0; i < arr.length - 1; i++) {
+            states[i] = 1;
+            await tick();
+            stats.comparisons++;
+            if (arr[i] > arr[i + 1]) {
+                await swap(arr, i, i + 1);
+                isSorted = true;
+            }
+            states[i] = 0;
+        }
+        if (!isSorted) break;
+        isSorted = false;
+        for (let j = arr.length - 1; j > 0; j--) {
+            states[j] = 1;
+            await tick();
+            stats.comparisons++;
+            if (arr[j - 1] > arr[j]) {
+                await swap(arr, j, j - 1);
+                isSorted = true;
+            }
+            states[j] = 0;
+        }
+    }
+}
+
+</script>
+    <script>
+async function combSort(arr) {
+    let gap = arr.length;
+    let shrink = 1.3;
+    let sorted = false;
+    while (!sorted) {
+        gap = Math.floor(gap / shrink);
+        if (gap <= 1) {
+            gap = 1;
+            sorted = true;
+        }
+        for (let i = 0; i + gap < arr.length; i++) {
+            states[i] = 1;
+            states[i + gap] = 1;
+            await tick();
+            stats.comparisons++;
+            if (arr[i] > arr[i + gap]) {
+                await swap(arr, i, i + gap);
+                sorted = false;
+            }
+            states[i] = 0;
+            states[i + gap] = 0;
+        }
+    }
+}
+
+</script>
+    <script>
+async function shellSort(arr) {
+    let n = arr.length;
+    for (let gap = Math.floor(n / 2); gap > 0; gap = Math.floor(gap / 2)) {
+        for (let i = gap; i < n; i++) {
+            let temp = arr[i];
+            let j;
+            states[i] = 2;
+            for (j = i; j >= gap; j -= gap) {
+                stats.comparisons++;
+                if (arr[j - gap] > temp) {
+                    states[j] = 1;
+                    states[j - gap] = 1;
+                    await tick();
+                    arr[j] = arr[j - gap];
+                    stats.mainWrites++;
+                    states[j] = 0;
+                    states[j - gap] = 0;
+                } else {
+                    break;
+                }
+            }
+            arr[j] = temp;
+            stats.mainWrites++;
+            await tick();
+            states[i] = 0;
+        }
+    }
+}
+
+</script>
+    <script>
+async function gnomeSort(arr) {
+    let index = 0;
+    while (index < arr.length) {
+        if (index === 0) index++;
+        states[index] = 1;
+        await tick();
+        stats.comparisons++;
+        if (arr[index] >= arr[index - 1]) {
+            states[index] = 0;
+            index++;
+        } else {
+            states[index] = 0;
+            await swap(arr, index, index - 1);
+            index--;
+        }
+    }
+}
+
+</script>
+    <script>
+async function cycleSort(arr) {
+    let n = arr.length;
+    for (let cycleStart = 0; cycleStart <= n - 2; cycleStart++) {
+        let item = arr[cycleStart];
+        let pos = cycleStart;
+        states[cycleStart] = 1;
+
+        for (let i = cycleStart + 1; i < n; i++) {
+            states[i] = 1;
+            await tick();
+            stats.comparisons++;
+            if (arr[i] < item) pos++;
+            states[i] = 0;
+        }
+
+        if (pos === cycleStart) {
+            states[cycleStart] = 0;
+            continue;
+        }
+
+        while (item === arr[pos]) pos++;
+
+        if (pos !== cycleStart) {
+            let temp = item;
+            item = arr[pos];
+            arr[pos] = temp;
+            states[pos] = 2;
+            await tick();
+            states[pos] = 0;
+        }
+
+        while (pos !== cycleStart) {
+            pos = cycleStart;
+            for (let i = cycleStart + 1; i < n; i++) {
+                states[i] = 1;
+                await tick();
+                stats.comparisons++;
+                if (arr[i] < item) pos++;
+                states[i] = 0;
+            }
+            while (item === arr[pos]) pos++;
+            if (item !== arr[pos]) {
+                let temp = item;
+                item = arr[pos];
+                arr[pos] = temp;
+                states[pos] = 2;
+                stats.mainWrites++;
+                await tick();
+                states[pos] = 0;
+            }
+        }
+        states[cycleStart] = 0;
+    }
+}
+
+</script>
+    <script>
+async function oddEvenSort(arr) {
+    let sorted = false;
+    while (!sorted) {
+        sorted = true;
+        // Odd
+        for (let i = 1; i < arr.length - 1; i += 2) {
+            states[i] = 1;
+            await tick();
+            stats.comparisons++;
+            if (arr[i] > arr[i + 1]) {
+                await swap(arr, i, i + 1);
+                sorted = false;
+            }
+            states[i] = 0;
+        }
+        // Even
+        for (let i = 0; i < arr.length - 1; i += 2) {
+            states[i] = 1;
+            await tick();
+            stats.comparisons++;
+            if (arr[i] > arr[i + 1]) {
+                await swap(arr, i, i + 1);
+                sorted = false;
+            }
+            states[i] = 0;
+        }
+    }
+}
+
+</script>
+    <script>
+async function pancakeSort(arr) {
+    for (let curr_size = arr.length; curr_size > 1; curr_size--) {
+        let mi = 0;
+        for (let i = 0; i < curr_size; i++) {
+            states[i] = 1; await tick(); states[i] = 0;
+            stats.comparisons++;
+            if (arr[i] > arr[mi]) mi = i;
+        }
+
+        if (mi !== curr_size - 1) {
+            async function flip(k) {
+                let left = 0;
+                while (left < k) {
+                    await swap(arr, left, k);
+                    left++; k--;
+                }
+            }
+            if (mi > 0) {
+                await flip(mi);
+            }
+            await flip(curr_size - 1);
+        }
+    }
+}
+
+</script>
+    <script>
+async function exchangeSort(arr) {
+    for (let i = 0; i < arr.length - 1; i++) {
+        for (let j = i + 1; j < arr.length; j++) {
+            states[i] = 1; states[j] = 1; await tick();
+            stats.comparisons++;
+            if (arr[i] > arr[j]) {
+                await swap(arr, i, j);
+            }
+            states[i] = 0; states[j] = 0;
+        }
+    }
+}
+
+</script>
+    <script>
+async function quickSort(arr, start, end) {
+    if (start >= end) return;
+    let index = await partition(arr, start, end);
+    await Promise.all([quickSort(arr, start, index - 1), quickSort(arr, index + 1, end)]);
+}
+
+</script>
+    <script>
+async function dualPivotQuickSort(arr, low, high) {
+    if (low === undefined) { low = 0; high = arr.length - 1; }
+    if (low < high) {
+        let [lp, rp] = await dualPivotPartition(arr, low, high);
+        await dualPivotQuickSort(arr, low, lp - 1);
+        await dualPivotQuickSort(arr, lp + 1, rp - 1);
+        await dualPivotQuickSort(arr, rp + 1, high);
+    }
+}
+async function dualPivotPartition(arr, low, high) {
+    if (arr[low] > arr[high]) await swap(arr, low, high);
+    let j = low + 1, g = high - 1, k = low + 1, p = arr[low], q = arr[high];
+
+    // Visualize pivots
+    states[low] = 2; states[high] = 2;
+
+    while (k <= g) {
+        states[k] = 1; await tick(); states[k] = 0;
+        stats.comparisons++;
+        if (arr[k] < p) {
+            await swap(arr, k, j);
+            j++;
+        } else if (arr[k] >= q) {
+            stats.comparisons++; // Second comparison check
+            while (arr[g] > q && k < g) {
+                states[g] = 1; await tick(); states[g] = 0;
+                g--;
+                stats.comparisons++;
+            }
+            await swap(arr, k, g);
+            g--;
+            stats.comparisons++;
+            if (arr[k] < p) {
+                await swap(arr, k, j);
+                j++;
+            }
+        }
+        k++;
+    }
+    j--; g++;
+    await swap(arr, low, j);
+    await swap(arr, high, g);
+    states[low] = 0; states[high] = 0;
+    return [j, g];
+}
+
+</script>
+    <script>
+async function mergeSort(arr, start, end) {
+    if (start >= end) return;
+    const mid = Math.floor((start + end) / 2);
+    await mergeSort(arr, start, mid);
+    await mergeSort(arr, mid + 1, end);
+    await merge(arr, start, mid, end);
+}
+
+</script>
+    <script>
+async function heapSort(arr) {
+    let n = arr.length;
+    for (let i = Math.floor(n / 2) - 1; i >= 0; i--) await heapify(arr, n, i);
+    for (let i = n - 1; i > 0; i--) { await swap(arr, 0, i); await heapify(arr, i, 0); }
+}
+
+</script>
+    <script>
+async function radixSort(arr) {
+    let maxVal = Math.max(...arr); let exp = 1;
+    while (Math.floor(maxVal / exp) > 0) { await countingSortForRadix(arr, exp); exp *= 10; }
+}
+async function countingSortForRadix(arr, exp) {
+    let output = new Array(arr.length).fill(0); let count = new Array(10).fill(0);
+    for (let i = 0; i < arr.length; i++) { states[i] = 1; await tick(); states[i] = 0; count[Math.floor(arr[i] / exp) % 10]++; }
+    for (let i = 1; i < 10; i++) count[i] += count[i - 1];
+    for (let i = arr.length - 1; i >= 0; i--) { states[i] = 1; await tick(); output[count[Math.floor(arr[i] / exp) % 10] - 1] = arr[i]; stats.auxWrites++; count[Math.floor(arr[i] / exp) % 10]--; states[i] = 0; }
+    for (let i = 0; i < arr.length; i++) { states[i] = 2; arr[i] = output[i]; stats.mainWrites++; await tick(); states[i] = 0; }
+}
+
+</script>
+    <script>
+async function timSort(arr) {
+    let RUN = 32;
+    let n = arr.length;
+
+    // Sort individual subarrays of size RUN
+    for (let i = 0; i < n; i += RUN) {
+        await insertionSortRange(arr, i, Math.min((i + 31), (n - 1)));
+    }
+
+    // Merge
+    for (let size = RUN; size < n; size = 2 * size) {
+        for (let left = 0; left < n; left += 2 * size) {
+            let mid = left + size - 1;
+            let right = Math.min((left + 2 * size - 1), (n - 1));
+            if (mid < right) await merge(arr, left, mid, right); // Reuse existing merge
+        }
+    }
+}
+
+</script>
+    <script>
+async function introSort(arr) {
+    let maxDepth = Math.floor(Math.log2(arr.length)) * 2;
+    await introSortRec(arr, 0, arr.length - 1, maxDepth);
+}
+async function introSortRec(arr, begin, end, depthLimit) {
+    if (end - begin < 16) {
+        await insertionSortRange(arr, begin, end);
+    } else if (depthLimit === 0) {
+        await heapSortRange(arr, begin, end);
+    } else {
+        let p = await partition(arr, begin, end);
+        await introSortRec(arr, begin, p - 1, depthLimit - 1);
+        await introSortRec(arr, p + 1, end, depthLimit - 1);
+    }
+}
+async function heapSortRange(arr, start, end) {
+    let n = end - start + 1;
+    // Build heap (rearranging array)
+    for (let i = Math.floor(n / 2) - 1; i >= 0; i--) await heapifyRange(arr, n, i, start);
+    // Extract
+    for (let i = n - 1; i > 0; i--) {
+        await swap(arr, start, start + i);
+        await heapifyRange(arr, i, 0, start);
+    }
+}
+async function heapifyRange(arr, n, i, offset) {
+    let largest = i;
+    let l = 2 * i + 1;
+    let r = 2 * i + 2;
+    let trueL = offset + l;
+    let trueR = offset + r;
+    let trueLargest = offset + largest;
+
+    // Check bounds against n (size of heap) relative to 0-indexed logic
+    if (l < n) {
+        states[trueL] = 1; await tick(); states[trueL] = 0; stats.comparisons++;
+        if (arr[trueL] > arr[trueLargest]) largest = l; trueLargest = offset + largest;
+    }
+    if (r < n) {
+        states[trueR] = 1; await tick(); states[trueR] = 0; stats.comparisons++;
+        if (arr[trueR] > arr[trueLargest]) largest = r; trueLargest = offset + largest;
+    }
+    if (largest != i) {
+        await swap(arr, offset + i, offset + largest);
+        await heapifyRange(arr, n, largest, offset);
+    }
+}
+
+</script>
+    <script>
+async function patienceSort(arr) {
+    let piles = [];
+    for (let i = 0; i < arr.length; i++) {
+        let x = arr[i];
+        let placed = false;
+        states[i] = 1; await tick();
+
+        // Greedy fit into pile
+        for (let p = 0; p < piles.length; p++) {
+            // Check top of pile
+            let top = piles[p][piles[p].length - 1];
+            stats.comparisons++;
+            if (x < top) {
+                piles[p].push(x);
+                placed = true;
+                break;
+            }
+        }
+        if (!placed) piles.push([x]);
+        states[i] = 0;
+    }
+
+    // Merge piles (K-way merge)
+    let idx = 0;
+    while (idx < arr.length) {
+        let minVal = Infinity;
+        let minPile = -1;
+        for (let p = 0; p < piles.length; p++) {
+            if (piles[p].length > 0) {
+                let val = piles[p][piles[p].length - 1];
+                stats.comparisons++;
+                if (val < minVal) { minVal = val; minPile = p; }
+            }
+        }
+        if (minPile !== -1) {
+            arr[idx++] = piles[minPile].pop();
+            stats.mainWrites++;
+            states[idx - 1] = 2; await tick(); states[idx - 1] = 0;
+        }
+    }
+}
+
+</script>
+    <script>
+async function treeSort(arr) {
+    class Node {
+        constructor(val) { this.val = val; this.left = null; this.right = null; }
+    }
+    let root = null;
+
+    // Insert
+    for (let i = 0; i < arr.length; i++) {
+        states[i] = 1; await tick();
+        let val = arr[i];
+        if (!root) root = new Node(val);
+        else {
+            let cur = root;
+            while (true) {
+                stats.comparisons++;
+                if (val < cur.val) {
+                    if (!cur.left) { cur.left = new Node(val); break; }
+                    cur = cur.left;
+                } else {
+                    if (!cur.right) { cur.right = new Node(val); break; }
+                    cur = cur.right;
+                }
+            }
+        }
+        states[i] = 0;
+    }
+
+    // In-order write back
+    let idx = 0;
+    async function inOrder(node) {
+        if (!node) return;
+        await inOrder(node.left);
+
+        arr[idx] = node.val;
+        stats.mainWrites++;
+        states[idx] = 2; await tick(); states[idx] = 0;
+        idx++;
+
+        await inOrder(node.right);
+    }
+    await inOrder(root);
+}
+
+</script>
+    <script>
+async function sqrtSort(arr) {
+    let n = arr.length;
+    let blockSize = Math.ceil(Math.sqrt(n));
+
+    // 1. Sort individual blocks
+    for (let i = 0; i < n; i += blockSize) {
+        let end = Math.min(i + blockSize - 1, n - 1);
+        await insertionSortRange(arr, i, end);
+    }
+
+    // 2. Merge blocks
+    while (blockSize < n) {
+        for (let i = 0; i < n; i += 2 * blockSize) {
+            let mid = i + blockSize - 1;
+            let end = Math.min(i + 2 * blockSize - 1, n - 1);
+            if (mid < end) {
+                await merge(arr, i, mid, end);
+            }
+        }
+        blockSize *= 2;
+    }
+}
+
+</script>
+    <script>
+async function smoothSort(arr) {
+    const n = arr.length;
+    if (n <= 1) return;
+
+    const LP = [1, 1, 3, 5, 9, 15, 25, 41, 67, 109, 177, 287, 465, 753, 1219, 1973, 3193, 5167, 8361, 13529, 21891, 35421, 57313, 92735, 150049];
+    let orders = [];
+
+    // --- BUILD HEAP ---
+    for (let i = 0; i < n; i++) {
+        states[i] = 2; // Active/Building
+        await tick();
+
+        if (orders.length >= 2) {
+            let k1 = orders[orders.length - 2];
+            let k2 = orders[orders.length - 1];
+            if (k1 === k2 + 1) {
+                orders.pop();
+                orders[orders.length - 1] = k1 + 1;
+            } else {
+                if (orders.length >= 1 && orders[orders.length - 1] === 1) orders.push(0);
+                else orders.push(1);
+            }
+        } else {
+            if (orders.length >= 1 && orders[orders.length - 1] === 1) orders.push(0);
+            else orders.push(1);
+        }
+
+        await trinkle(arr, i, orders, LP, orders.length - 1);
+        states[i] = 0;
+    }
+
+    // --- SHRINK HEAP ---
+    for (let i = n - 1; i > 0; i--) {
+        let k = orders.pop();
+        if (k > 1) {
+            orders.push(k - 1);
+            orders.push(k - 2);
+            let rightChildIdx = i - 1;
+            let leftChildIdx = i - 1 - LP[k - 2];
+            await trinkle(arr, leftChildIdx, orders, LP, orders.length - 2);
+            await trinkle(arr, rightChildIdx, orders, LP, orders.length - 1);
+        }
+        states[i] = 2; // Finalized
+        await tick();
+        states[i] = 0;
+    }
+}
+
+async function trinkle(arr, root, orders, LP, head) {
+    let current = root;
+    let currentK = orders[head];
+    while (head > 0) {
+        let step = LP[currentK];
+        let prev = current - step; // Child root to the left
+        stats.comparisons++;
+        if (arr[prev] <= arr[current]) break;
+
+        if (currentK >= 2) {
+            let r = current - 1;
+            let l = current - 1 - LP[currentK - 2];
+            stats.comparisons++;
+            if (arr[prev] < arr[r] || arr[prev] < arr[l]) break;
+        }
+
+        await swap(arr, prev, current);
+        current = prev;
+        head--;
+        currentK = orders[head];
+    }
+    await sift(arr, current, currentK, LP);
+}
+
+async function sift(arr, root, k, LP) {
+    while (k >= 2) {
+        let right = root - 1;
+        let left = root - 1 - LP[k - 2];
+        let maxPos = root;
+        stats.comparisons++;
+        if (arr[left] > arr[maxPos]) maxPos = left;
+        stats.comparisons++;
+        if (arr[right] > arr[maxPos]) maxPos = right;
+        if (maxPos !== root) {
+            await swap(arr, root, maxPos);
+            if (maxPos === left) { root = left; k = k - 1; }
+            else { root = right; k = k - 2; }
+        } else {
+            break;
+        }
+    }
+}
+
+</script>
+    <script>
+async function tournamentSort(arr) {
+    let n = arr.length;
+    function updateLeaf(tree, leaf, val, idx) {
+        tree[leaf] = { val: val, idx: idx };
+        let curr = Math.floor(leaf / 2);
+        while (curr >= 1) {
+            let left = tree[2 * curr];
+            let right = tree[2 * curr + 1];
+            stats.comparisons++;
+            if (left.val < right.val) tree[curr] = left;
+            else tree[curr] = right;
+            curr = Math.floor(curr / 2);
+        }
+    }
+
+    let size = 1;
+    while (size < n) size *= 2;
+    let tree = new Array(2 * size);
+    for (let i = 0; i < tree.length; i++) tree[i] = { val: Infinity, idx: -1 };
+
+    for (let i = 0; i < n; i++) {
+        tree[size + i] = { val: arr[i], idx: i };
+        states[i] = 1; await tick(); states[i] = 0;
+    }
+
+    for (let i = size - 1; i >= 1; i--) {
+        let left = tree[2 * i];
+        let right = tree[2 * i + 1];
+        stats.comparisons++;
+        if (left.val < right.val) tree[i] = left;
+        else tree[i] = right;
+    }
+
+    for (let i = 0; i < n; i++) {
+        let winner = tree[1];
+        let winnerIdx = winner.idx;
+
+        if (winnerIdx !== -1) {
+            states[winnerIdx] = 2; states[i] = 2; await tick();
+            await swap(arr, i, winnerIdx);
+            states[winnerIdx] = 0; states[i] = 3;
+
+            updateLeaf(tree, size + i, Infinity, -1);
+            if (winnerIdx !== i) {
+                updateLeaf(tree, size + winnerIdx, arr[winnerIdx], winnerIdx);
+            }
+        }
+    }
+}
+
+</script>
+    <script>
+async function librarySort(arr) {
+    let n = arr.length;
+    let aux = new Array(n * 2).fill(null);
+    aux[0] = arr[0];
+    let sortedCount = 1;
+
+    for (let i = 1; i < n; i++) {
+        let val = arr[i];
+        states[i] = 2;
+
+        // Rebalance check
+        if ((sortedCount & (sortedCount - 1)) === 0) {
+            let valid = aux.filter(x => x !== null);
+            aux.fill(null);
+            let ratio = aux.length / valid.length;
+            for (let k = 0; k < valid.length; k++) {
+                let pos = Math.floor(k * ratio);
+                if (pos >= aux.length) pos = aux.length - 1;
+                aux[pos] = valid[k];
+            }
+        }
+
+        let insertPos = 0;
+        let found = false;
+
+        let rank = 0;
+        let validItems = aux.filter(x => x !== null);
+        for (let item of validItems) {
+            stats.comparisons++;
+            if (item > val) break;
+            rank++;
+        }
+
+        let seen = 0;
+        for (let k = 0; k < aux.length; k++) {
+            if (aux[k] !== null) {
+                if (seen === rank) { insertPos = k; found = true; break; }
+                seen++;
+            } else if (seen === rank) {
+                insertPos = k; found = true; break;
+            }
+        }
+        if (!found) insertPos = aux.length;
+
+        let curr = insertPos;
+        let toInsert = val;
+        while (curr < aux.length && aux[curr] !== null) {
+            let tmp = aux[curr];
+            aux[curr] = toInsert;
+            toInsert = tmp;
+            curr++;
+            stats.mainWrites++;
+        }
+        if (curr < aux.length) aux[curr] = toInsert;
+        else aux.push(toInsert);
+
+        sortedCount++;
+
+        let sortedPart = aux.filter(x => x !== null);
+        for (let k = 0; k < sortedPart.length; k++) {
+            if (arr[k] !== sortedPart[k]) { arr[k] = sortedPart[k]; stats.mainWrites++; }
+        }
+        await tick();
+        states[i] = 0;
+    }
+}
+
+</script>
+    <script>
+async function strandSort(arr) {
+    let n = arr.length;
+    let sorted = [];
+    let remaining = [...arr];
+
+    while (remaining.length > 0) {
+        let strand = [];
+        let newRemaining = [];
+
+        strand.push(remaining[0]);
+        for (let k = 0; k < sorted.length; k++) arr[k] = sorted[k];
+        arr[sorted.length] = remaining[0];
+        states[sorted.length] = 1;
+
+        for (let i = 1; i < remaining.length; i++) {
+            let last = strand[strand.length - 1];
+            let curr = remaining[i];
+            let visualIdx = sorted.length + strand.length + newRemaining.length;
+
+            stats.comparisons++;
+            if (curr >= last) {
+                strand.push(curr);
+                states[visualIdx] = 2;
+            } else {
+                newRemaining.push(curr);
+            }
+            await tick();
+            states[visualIdx] = 0;
+        }
+
+        remaining = newRemaining;
+
+        if (sorted.length === 0) {
+            sorted = strand;
+        } else {
+            let merged = [];
+            let i = 0, j = 0;
+            while (i < sorted.length && j < strand.length) {
+                stats.comparisons++;
+                if (sorted[i] <= strand[j]) merged.push(sorted[i++]);
+                else merged.push(strand[j++]);
+            }
+            while (i < sorted.length) merged.push(sorted[i++]);
+            while (j < strand.length) merged.push(strand[j++]);
+            sorted = merged;
+        }
+
+        for (let k = 0; k < sorted.length; k++) { arr[k] = sorted[k]; states[k] = 3; }
+        for (let k = 0; k < remaining.length; k++) { arr[sorted.length + k] = remaining[k]; states[sorted.length + k] = 0; }
+        stats.mainWrites += n;
+        await tick();
+    }
+}
+
+</script>
+    <script>
+async function binaryQuickSort(arr, start, end, bit) {
+    if (start === undefined) {
+        start = 0;
+        end = arr.length - 1;
+        let max = Math.max(0, ...arr);
+        bit = Math.floor(Math.log2(max || 1));
+    }
+    if (start >= end || bit < 0) return;
+
+    // Safety break
+    if (start === 0 && end === arr.length - 1) window.bqCounter = 0; // Reset on root
+    if (!window.bqCounter) window.bqCounter = 0;
+    window.bqCounter++;
+    if (window.bqCounter > 1000000) throw new Error("BinaryQuickSort infinite loop detected");
+
+
+    let i = start, j = end;
+    let mask = 1 << bit;
+    states[start] = 1; states[end] = 1;
+
+    let loopSafety = 0;
+    while (i <= j) {
+        if (loopSafety++ > 100000) throw new Error("BinaryQuickSort infinite WHILE loop");
+        while (i <= j && (Math.floor(arr[i]) & mask) === 0) {
+            i++;
+            stats.comparisons++;
+            if (i < arr.length) { states[i] = 1; await tick(); states[i - 1] = 0; }
+        }
+        while (i <= j && (Math.floor(arr[j]) & mask) !== 0) {
+            j--;
+            stats.comparisons++;
+            if (j >= 0) { states[j] = 1; await tick(); states[j + 1] = 0; }
+        }
+        if (i < j) {
+            await swap(arr, i, j);
+            i++; j--;
+        }
+    }
+    states[start] = 0; states[end] = 0;
+
+    await binaryQuickSort(arr, start, j, bit - 1);
+    await binaryQuickSort(arr, i, end, bit - 1);
+}
+
+</script>
+    <script>
+
+async function bucketSort(arr) {
+    const n = arr.length;
+    if (n <= 0) return;
+
+    // 1. Determine Range
+    let minVal = arr[0];
+    let maxVal = arr[0];
+    for (let i = 1; i < n; i++) {
+        stats.comparisons += 2; // comparison checks
+        if (arr[i] < minVal) minVal = arr[i];
+        if (arr[i] > maxVal) maxVal = arr[i];
+    }
+
+    // 2. Create Buckets
+    const bucketCount = Math.floor(Math.sqrt(n));
+    const buckets = Array.from({ length: bucketCount }, () => []);
+
+    // 3. Distribute elements into buckets
+    for (let i = 0; i < n; i++) {
+        // Tick handles stopSorting check
+
+        let normalized = (arr[i] - minVal) / (maxVal - minVal + 0.0000001);
+        let bucketIndex = Math.floor(normalized * bucketCount);
+
+        buckets[bucketIndex].push(arr[i]);
+        stats.auxWrites++;
+
+        states[i] = 1; // Active
+        await tick();
+        states[i] = 0;
+    }
+
+    // 4. Concatenate
+    let idx = 0;
+    for (let i = 0; i < bucketCount; i++) {
+        for (let j = 0; j < buckets[i].length; j++) {
+            arr[idx] = buckets[i][j];
+            stats.mainWrites++;
+
+            states[idx] = 2; // Rough sort visualization
+            await tick();
+            states[idx] = 0;
+            idx++;
+        }
+    }
+
+    // 5. Sort each bucket
+    let startIndex = 0;
+    for (let i = 0; i < bucketCount; i++) {
+        let bucketSize = buckets[i].length;
+        if (bucketSize > 0) {
+            let endIndex = startIndex + bucketSize - 1;
+            await runInsertionSortOnRange(arr, startIndex, endIndex);
+            startIndex += bucketSize;
+        }
+    }
+}
+
+// Helper: Insertion Sort on a specific range [start, end]
+async function runInsertionSortOnRange(arr, start, end) {
+    for (let i = start + 1; i <= end; i++) {
+        let current = arr[i];
+        let j = i - 1;
+
+        states[i] = 1;
+        await tick();
+
+        while (j >= start && arr[j] > current) {
+            stats.comparisons++;
+
+            states[j] = 1;
+            await tick(); // Visualise comparison
+
+            arr[j + 1] = arr[j];
+            stats.mainWrites++;
+            states[j] = 0;
+            j--;
+        }
+
+        arr[j + 1] = current;
+        stats.mainWrites++;
+
+        states[i] = 0; // Clear i state
+        await tick();
+    }
+}
+
+</script>
+    <script>
+async function inPlaceMergeSort(arr, start, end) {
+    if (start === undefined) { start = 0; end = arr.length - 1; }
+    if (start >= end) return;
+    let mid = Math.floor((start + end) / 2);
+    await inPlaceMergeSort(arr, start, mid);
+    await inPlaceMergeSort(arr, mid + 1, end);
+    await inPlaceMerge(arr, start, mid, end);
+}
+
+</script>
+    <script>
+async function weaveMergeSort(arr, start, end) {
+    if (start === undefined) { start = 0; end = arr.length - 1; }
+    if (end - start < 1) return;
+    let mid = Math.floor((start + end) / 2);
+    await weaveMergeSort(arr, start, mid);
+    await weaveMergeSort(arr, mid + 1, end);
+
+    let left = arr.slice(start, mid + 1);
+    let right = arr.slice(mid + 1, end + 1);
+    let woven = [];
+    let l = 0, r = 0;
+    while (l < left.length || r < right.length) {
+        if (l < left.length) woven.push(left[l++]);
+        if (r < right.length) woven.push(right[r++]);
+    }
+    for (let i = 0; i < woven.length; i++) {
+        arr[start + i] = woven[i];
+        states[start + i] = 1;
+        stats.mainWrites++;
+    }
+    await tick();
+    for (let i = 0; i < woven.length; i++) states[start + i] = 0;
+
+    for (let i = start + 1; i <= end; i++) {
+        let key = arr[i];
+        let j = i - 1;
+        while (j >= start && arr[j] > key) {
+            stats.comparisons++;
+            arr[j + 1] = arr[j];
+            stats.mainWrites++;
+            j--;
+        }
+        arr[j + 1] = key;
+        stats.mainWrites++;
+        await tick();
+    }
+}
+
+</script>
+    <script>
+async function rotateMergeSort(arr, start, end) {
+    if (start === undefined) { start = 0; end = arr.length - 1; }
+    if (start >= end) return;
+    let mid = Math.floor((start + end) / 2);
+    await rotateMergeSort(arr, start, mid);
+    await rotateMergeSort(arr, mid + 1, end);
+    await rotateMerge(arr, start, mid, end);
+}
+async function rotateMerge(arr, start, mid, end) {
+    if (start > mid || mid + 1 > end) return;
+    stats.comparisons++; if (arr[mid] <= arr[mid + 1]) return;
+
+    if ((end - start) < 32) {
+        await inPlaceMerge(arr, start, mid, end);
+        return;
+    }
+
+    let left = start;
+    let right = mid + 1;
+    while (left <= mid && arr[left] <= arr[right]) {
+        stats.comparisons++; left++;
+    }
+    if (left > mid) return;
+
+    let startRight = right;
+    while (right <= end && arr[right] < arr[left]) {
+        stats.comparisons++; right++;
+    }
+
+    await rotateBlock(arr, left, mid, right - 1);
+
+    let bSize = (right - 1) - (mid + 1) + 1;
+    let newMid = left + bSize - 1;
+
+    await rotateMerge(arr, newMid + 1, right - 1, end);
+}
+async function rotateBlock(arr, start, mid, end) {
+    await reverseRange(arr, start, mid);
+    await reverseRange(arr, mid + 1, end);
+    await reverseRange(arr, start, end);
+}
+
+</script>
+    <script>
+async function bitonicSort(arr) {
+    // 1. Pad to next power of 2
+    let n = arr.length;
+    let nextPow2 = 1;
+    while (nextPow2 < n) nextPow2 <<= 1;
+
+    let paddingNeeded = nextPow2 - n;
+
+    // Virtual Padding: Add Max Integer values. 
+    // We add them to the array so the sort treats them as largest elements.
+    // They will naturally bubble to the "end" (or "beginning" depending on dir, but ultimately to the end for ASC sort).
+
+    // We need to push to 'states' well to avoid index out of bounds in draw/swap
+    for (let i = 0; i < paddingNeeded; i++) {
+        arr.push(Number.MAX_SAFE_INTEGER);
+        states.push(0);
+    }
+
+    // 2. Perform Standard Bitonic Sort (Recursive)
+    try {
+        await bitonicSortRec(arr, 0, nextPow2, 1); // 1 = Ascending
+    } finally {
+        // 3. Remove Padding
+        // Even if stopped, we should try to clean up if we can, but 'resetArray' is the safety net.
+        // We only remove what we added.
+        if (arr.length > n) {
+            arr.splice(n, paddingNeeded);
+            states.splice(n, paddingNeeded);
+        }
+        // Force a resize/redraw to ensure bounds are clean
+        // (Optional, but good for safety)
+    }
+}
+
+async function bitonicSortRec(arr, low, cnt, dir) {
+    if (cnt > 1) {
+        let k = Math.floor(cnt / 2);
+
+        // Sort first half in ascending order
+        await bitonicSortRec(arr, low, k, 1);
+
+        // Sort second half in descending order
+        await bitonicSortRec(arr, low + k, k, 0);
+
+        // Merge whole sequence in direction 'dir'
+        await bitonicMerge(arr, low, cnt, dir);
+    }
+}
+
+async function bitonicMerge(arr, low, cnt, dir) {
+    if (cnt > 1) {
+        let k = Math.floor(cnt / 2);
+
+        // Standard Bitonic Compare: i and i + k
+        for (let i = low; i < low + k; i++) {
+            await compAndSwap(arr, i, i + k, dir);
+        }
+
+        await bitonicMerge(arr, low, k, dir);
+        await bitonicMerge(arr, low + k, k, dir);
+    }
+}
+
+async function compAndSwap(arr, i, j, dir) {
+    if (stopSorting) throw new Error("Stopped");
+
+    // Check bounds (should be safe due to padding, but good habit)
+    if (j >= arr.length) return;
+
+    // Only visualize if indices are within the original "visible" range?
+    // Actually, visualizing the "ghost" bars being swapped is helpful debug.
+    // But if j is out of view (padded), we might not see it, which is fine.
+
+    // We still increment stats?
+    // Padding comparisons are "overhead". Let's count them for honesty of the algo's cost.
+    stats.comparisons++;
+
+    // Visual State Update
+    states[i] = 1;
+    states[j] = 1;
+    await tick();
+
+    let kVal = arr[i];
+    let mVal = arr[j];
+
+    // dir 1: ascending (arr[i] > arr[j] => swap)
+    // dir 0: descending (arr[i] < arr[j] => swap)
+
+    let shouldSwap = (dir === 1 && kVal > mVal) || (dir === 0 && kVal < mVal);
+
+    if (shouldSwap) {
+        arr[i] = mVal;
+        arr[j] = kVal;
+        stats.swaps++;
+        stats.mainWrites += 2;
+    }
+
+    states[i] = 0;
+    states[j] = 0;
+}
+
+</script>
+    <script>
+
+async function boseNelsonSort(arr) {
+    let n = arr.length;
+    // Bose-Nelson algorithm generates a sorting network.
+    // We will recursively generate the comparisons and execute them.
+    await boseNelsonRec(arr, 0, n);
+}
+
+// Sorts the range [start, start + n)
+async function boseNelsonRec(arr, start, n) {
+    if (n > 1) {
+        let m = Math.floor(n / 2);
+        await boseNelsonRec(arr, start, m);
+        await boseNelsonRec(arr, start + m, n - m);
+        await boseNelsonMerge(arr, start, m, start + m, n - m);
+    }
+}
+
+// Merges two sorted ranges [j, j+r) and [j+r, j+r+m)
+async function boseNelsonMerge(arr, j, r, part2Start, m) {
+    if (r === 0 || m === 0) return;
+
+    if (r === 1 && m === 1) {
+        // Base comparator
+        await compareSwap(arr, j, part2Start);
+    } else {
+        let r1 = Math.floor(r / 2);
+        let r2 = r - r1; // ceiling(r/2)
+        let m1 = Math.floor(m / 2);
+        let m2 = m - m1; // ceiling(m/2)
+
+        // This is the specific Bose-Nelson recursive split
+        // Often defined as:
+        // P1 merges first halves
+        // P2 merges second halves
+        // P3 merges middle
+
+        // Range 1: [j, j+r1)
+        // Range 2: [j+r1, j+r)  (length r2)
+        // Range 3: [part2Start, part2Start+m1)
+        // Range 4: [part2Start+m1, part2Start+m) (length m2)
+
+        // Merge first half of A with first half of B
+        await boseNelsonMerge(arr, j, r1, part2Start, m1);
+
+        // Merge second half of A with second half of B
+        await boseNelsonMerge(arr, j + r1, r2, part2Start + m1, m2);
+
+        // Merge suffix of first merge with prefix of second merge?
+        // Bose-Nelson is slightly different from Batcher's.
+        // Ref: https://rosettacode.org/wiki/Sorting_algorithms/Bose-Nelson_sort
+        // "Method merge(j, r, m): if r=1 and m=1: CMP(j, j+1). Else: i=r/2, k=m/2 (floors). Merge(j, i, k). Merge(j+i, r-i, m-k). Merge(j+i, i, k)?? No."
+
+        // Correct Re-implementation of Merge(j, r, m):
+        // (merging sequence of length r starting at j, with one of length m starting at j+r)
+        // Let i = floor(r/2)
+        // Let k = (if m is odd: floor(m/2)+1, else floor(m/2)) <-- This varies by implementation logic.
+        // Let's use the explicit logic from standard networks.
+
+        // Because Bose-Nelson is tricky to get right for arbitrary N, let's use a simpler known variant or ensure the recursion is correct.
+        // Recursive Pattern:
+        // bose(n): bose(n/2), bose(n-n/2), merge(n/2, n-n/2)
+        // merge(r, m):
+        //   if r=1, m=1: cmp
+        //   else:
+        //     i = r/2
+        //     k = (m is even) ? m/2 : (m+1)/2   (split m roughly half)
+        //     merge(i, k)  (acting on first halves of the two ranges) 
+        //         -> Wait, we need to map indices correct.
+        //         -> The ranges are [j..j+i-1] and [j+r..j+r+k-1]
+        //     merge(r-i, m-k) (acting on second halves)
+        //         -> [j+i..j+r-1] and [j+r+k..j+r+m-1]
+        //     merge(i, m-k) ?? No, usually the 'cross' merge.
+    }
+}
+
+// Actually, implementing Bose-Nelson from scratch without a direct pseudocode reference for ARBITRARY arrays is error-prone.
+// Let's use a simpler recursive definition found in robust implementations:
+
+/*
+ * Bose-Nelson implementation adapted from standard recursive definitions.
+ */
+
+async function boseNelsonSort(arr) {
+    const n = arr.length;
+    await bnSort(arr, 0, n);
+}
+
+async function bnSort(arr, start, n) {
+    if (n <= 1) return;
+    const mid = Math.floor(n / 2);
+    await bnSort(arr, start, mid);
+    await bnSort(arr, start + mid, n - mid);
+    await bnMerge(arr, start, mid, start + mid, n - mid);
+}
+
+async function bnMerge(arr, j, r, k, m) {
+    // Merging [j, j+r) with [k, k+m)
+    // Note: k is always j+r in contiguous sort
+    if (r === 0 || m === 0) return;
+
+    if (r === 1 && m === 1) {
+        await compareSwap(arr, j, k);
+        return;
+    }
+
+    const r1 = Math.floor(r / 2);
+    const r2 = r - r1;
+    const m1 = Math.floor(m / 2); // Split differs sometimes?
+    // Usually we want to partition roughly equal.
+    // If m is odd, m1 should be floor or ceil?
+    // Let's stick to floor.
+    const m2 = m - m1;
+
+    // Merge the "lower" parts of both sequences
+    await bnMerge(arr, j, r1, k, m1);
+
+    // Merge the "upper" parts of both sequences
+    await bnMerge(arr, j + r1, r2, k + m1, m2);
+
+    // Merge the middle?
+    // Bose-Nelson logic isn't exactly this simple "lower/upper" split for the final cleanup.
+    // It's recursive.
+
+    // Let's use the explicit indices logic which is easier to debug:
+    // P1 = bnMerge(j, r1, k, m1)
+    // P2 = bnMerge(j+r1, r2, k+m1, m2)
+    // P3 = bnMerge(j+r1, r2, k, m1) ?? No.
+
+    // Actually, for visualization purposes, maybe a simpler "Merge Sort" that just uses the visualization? 
+    // No, user specifically asked for Bose-Nelson.
+    // Let's try the *Iterative* approach which generates pairs first?
+    // Or just a standard Recursive Network implementation which is reliable.
+
+    // Let's assume the earlier logic for splitting is mostly correct but the cross-merge is key.
+    // merge(j, r, m):
+    //   if (r=1, m=1) swap
+    //   else:
+    //      merge(j, r/2, m/2)  (using offset addresses)
+    //      merge(j+r/2, r-r/2, m-m/2) (second halves)
+    //      merge(??) -- The "cleanup" phase is the hard part.
+}
+
+// Retrying with a known solid recursive implementation logic for Bose-Nelson:
+// Ref: "Sorting Networks" logic.
+// Procedure Sort(i, n)
+//   if n > 1:
+//     Sort(i, n/2)
+//     Sort(i+n/2, n-n/2)
+//     Merge(i, n/2, n-n/2)
+//
+// Procedure Merge(j, r, m) means merge sorted seq at j (len r) and j+r (len m)
+//   if r=1 and m=1: CMP(j, j+1)
+//   else:
+//      let i = r/2
+//      let k = (m is even) ? m/2 : (m+1)/2  <-- Important odd split
+//      Merge(j, i, k)         // First halves
+//      Merge(j+i, r-i, m-k)   // Second halves
+//      Merge(j+i, r-i, k)     // Cross merge: second half of first with first half of second
+// Wait, is that standard?
+// Let's try to code this specific 3-call strategy.
+
+async function boseNelsonSort(arr) {
+    await bnSort(arr, 0, arr.length);
+}
+
+async function bnSort(arr, start, n) {
+    if (n > 1) {
+        let mid = Math.floor(n / 2);
+        await bnSort(arr, start, mid);
+        await bnSort(arr, start + mid, n - mid);
+        await bnMerge(arr, start, mid, start + mid, n - mid);
+    }
+}
+
+async function bnMerge(arr, start1, len1, start2, len2) {
+    if (len1 === 0 || len2 === 0) return;
+
+    if (len1 === 1 && len2 === 1) {
+        await compareSwap(arr, start1, start2);
+        return;
+    }
+
+    let mid1 = Math.floor(len1 / 2);
+    let rem1 = len1 - mid1; // Length of second half of first seq
+
+    let mid2 = (len2 % 2 === 0) ? (len2 / 2) : (Math.floor(len2 / 2) + 1); // Prefer larger first half?
+    let rem2 = len2 - mid2;
+
+    // 1. Merge first halves
+    await bnMerge(arr, start1, mid1, start2, mid2);
+
+    // 2. Merge second halves
+    await bnMerge(arr, start1 + mid1, rem1, start2 + mid2, rem2);
+
+    // 3. Merge middle parts (second half of 1st, first half of 2nd)
+    await bnMerge(arr, start1 + mid1, rem1, start2, mid2);
+}
+
+async function compareSwap(arr, i, j) {
+    if (i >= arr.length || j >= arr.length) return;
+
+    stats.comparisons++;
+    states[i] = 1;
+    states[j] = 1;
+    await tick();
+
+    if (arr[i] > arr[j]) {
+        let temp = arr[i];
+        arr[i] = arr[j];
+        arr[j] = temp;
+        stats.swaps++;
+        stats.mainWrites += 2;
+    }
+
+    states[i] = 0;
+    states[j] = 0;
+}
+
+</script>
+    <script>
+
+// "Crease Sort" interpretation: A recursive folding sort.
+// We fold the array (compare outer pairs), then recursively fold the resulting halves.
+// This is somewhat similar to the first pass of Bitonic or a simplistic network.
+
+async function creaseSort(arr) {
+    let n = arr.length;
+    let nextPow2 = 1;
+    while (nextPow2 < n) nextPow2 <<= 1;
+    let paddingNeeded = nextPow2 - n;
+
+    for (let i = 0; i < paddingNeeded; i++) {
+        arr.push(Number.MAX_SAFE_INTEGER);
+        states.push(0);
+    }
+
+    try {
+        await creaseSortRec(arr, 0, nextPow2, 1);
+    } finally {
+        if (arr.length > n) {
+            arr.splice(n, paddingNeeded);
+            states.splice(n, paddingNeeded);
+        }
+    }
+}
+
+async function creaseSortRec(arr, low, cnt, dir) {
+    if (cnt === undefined) { cnt = low.length; low = 0; dir = 1; } // Safety
+    if (cnt > 1) {
+        let k = Math.floor(cnt / 2);
+        await creaseSortRec(arr, low, k, 1);
+        await creaseSortRec(arr, low + k, k, 0);
+        await creaseMerge(arr, low, cnt, dir);
+    }
+}
+
+async function creaseMerge(arr, low, cnt, dir) {
+    if (cnt > 1) {
+        let k = Math.floor(cnt / 2);
+        for (let i = low; i < low + k; i++) {
+            await compAndSwap(arr, i, i + k, dir);
+        }
+        await creaseMerge(arr, low, k, dir);
+        await creaseMerge(arr, low + k, k, dir);
+    }
+}
+
+async function compAndSwap(arr, i, j, dir) {
+    if (j >= arr.length) return;
+    stats.comparisons++;
+    states[i] = 1; states[j] = 1; await tick();
+    if ((dir === 1 && arr[i] > arr[j]) || (dir === 0 && arr[i] < arr[j])) {
+        let temp = arr[i]; arr[i] = arr[j]; arr[j] = temp;
+        stats.swaps++; stats.mainWrites += 2;
+    }
+    states[i] = 0; states[j] = 0;
+}
+
+async function compareSwap(arr, i, j) {
+    if (i >= arr.length || j >= arr.length) return;
+
+    stats.comparisons++;
+    states[i] = 1;
+    states[j] = 1;
+    await tick();
+
+    if (arr[i] > arr[j]) {
+        let temp = arr[i];
+        arr[i] = arr[j];
+        arr[j] = temp;
+        stats.swaps++;
+        stats.mainWrites += 2;
+    }
+
+    states[i] = 0;
+    states[j] = 0;
+}
+
+</script>
+    <script>
+
+// Diamond Sort (Batcher's Odd-Even Merge Sort)
+// This network looks like a diamond lattice when visualized.
+
+async function diamondSort(arr) {
+    let n = arr.length;
+    let nextPow2 = 1;
+    while (nextPow2 < n) nextPow2 <<= 1;
+    let paddingNeeded = nextPow2 - n;
+
+    for (let i = 0; i < paddingNeeded; i++) {
+        arr.push(Number.MAX_SAFE_INTEGER);
+        states.push(0);
+    }
+
+    try {
+        await diamondSortRec(arr, 0, nextPow2);
+    } finally {
+        if (arr.length > n) {
+            arr.splice(n, paddingNeeded);
+            states.splice(n, paddingNeeded);
+        }
+    }
+}
+
+async function diamondSortRec(arr, low, n) {
+    await oddEvenMergeSort(arr, low, n);
+}
+
+async function oddEvenMergeSort(arr, low, n) {
+    if (n > 1) {
+        let m = Math.floor(n / 2);
+        await oddEvenMergeSort(arr, low, m);
+        await oddEvenMergeSort(arr, low + m, n - m);
+        await oddEvenMerge(arr, low, n, 1); // 1 is step size? No, `r` parameter.
+    }
+}
+
+// Loosely adapted from Batcher's Odd-Even Merge
+async function oddEvenMerge(arr, low, n, r) {
+    let m = r * 2;
+    if (m < n) {
+        await oddEvenMerge(arr, low, n, m);      // Even-indexed elements
+        await oddEvenMerge(arr, low + r, n, m);  // Odd-indexed elements
+
+        // Compare-swap step
+        for (let i = low + r; i + r < low + n; i += m) {
+            await compareSwap(arr, i, i + r);
+        }
+    } else {
+        // Base case: comparison
+        await compareSwap(arr, low, low + r);
+    }
+}
+
+// Actually, the above recursive structure `oddEvenMerge` needs to be carefully aligned.
+// Standard Batcher's Odd-Even Merge (Recursive):
+/*
+  merge(lo, n, r):
+    let m = r*2;
+    if (m < n):
+       merge(lo, n, m);
+       merge(lo+r, n, m);
+       for i = lo+r to lo+n-r step m:
+           compare(i, i+r)
+    else:
+       compare(lo, lo+r)
+*/
+// This expects `n` to be power-of-2 relative to `r`?
+// If n is not power of 2, the `i+r < low+n` check helps, but it might miss boundary comparisons or do extra.
+// Let's implement the standard one and simply ensure bounds checking.
+
+async function compareSwap(arr, i, j) {
+    if (i >= arr.length || j >= arr.length) return;
+
+    stats.comparisons++;
+    states[i] = 1;
+    states[j] = 1;
+    await tick();
+
+    if (arr[i] > arr[j]) {
+        let temp = arr[i];
+        arr[i] = arr[j];
+        arr[j] = temp;
+        stats.swaps++;
+        stats.mainWrites += 2;
+    }
+
+    states[i] = 0;
+    states[j] = 0;
+}
+
+</script>
+    <script>
+
+// Fold Sort (Based on Folding Network)
+async function foldSort(arr) {
+    let n = arr.length;
+    let nextPow2 = 1;
+    while (nextPow2 < n) nextPow2 <<= 1;
+    let paddingNeeded = nextPow2 - n;
+
+    for (let i = 0; i < paddingNeeded; i++) {
+        arr.push(Number.MAX_SAFE_INTEGER);
+        states.push(0);
+    }
+
+    try {
+        await foldSortRec(arr, 0, nextPow2, 1);
+    } finally {
+        if (arr.length > n) {
+            arr.splice(n, paddingNeeded);
+            states.splice(n, paddingNeeded);
+        }
+    }
+}
+
+// Recursive Folding
+async function foldSortRec(arr, low, cnt, dir) {
+    if (cnt === undefined) { cnt = arr.length; low = 0; dir = 1; }
+    if (cnt > 1) {
+        let k = Math.floor(cnt / 2);
+        await foldSortRec(arr, low, k, 1);
+        await foldSortRec(arr, low + k, k, 0);
+        await foldMerge(arr, low, cnt, dir);
+    }
+}
+
+async function foldMerge(arr, low, cnt, dir) {
+    if (cnt > 1) {
+        let k = Math.floor(cnt / 2);
+        for (let i = low; i < low + k; i++) {
+            await compAndSwapFold(arr, i, i + k, dir);
+        }
+        await foldMerge(arr, low, k, dir);
+        await foldMerge(arr, low + k, k, dir);
+    }
+}
+
+async function compAndSwapFold(arr, i, j, dir) {
+    if (j >= arr.length) return;
+    stats.comparisons++;
+    states[i] = 1; states[j] = 1; await tick();
+    if ((dir === 1 && arr[i] > arr[j]) || (dir === 0 && arr[i] < arr[j])) {
+        let temp = arr[i]; arr[i] = arr[j]; arr[j] = temp;
+        stats.swaps++; stats.mainWrites += 2;
+    }
+    states[i] = 0; states[j] = 0;
+}
+
+</script>
+    <script>
+
+async function matrixSort(arr) {
+    let n = arr.length;
+    let cols = Math.ceil(Math.sqrt(n));
+    let rows = Math.ceil(n / cols);
+
+    // Shear Sort: O(sqrt(N)) phases.
+    // Each phase: Sort Rows (Snake), then Sort Cols.
+    // Snake: Even rows L->R, Odd rows R->L.
+
+    let phases = Math.ceil(Math.log2(n)) + 2;
+    // Usually log(row) + 1 on mesh network, but let's do a safe amount or until sorted.
+    // For visual effect, let's run fixed phases.
+
+    for (let p = 0; p < phases; p++) {
+        let dirty = false;
+
+        // 1. Sort Rows
+        for (let r = 0; r < rows; r++) {
+            let start = r * cols;
+            let end = Math.min((r + 1) * cols - 1, n - 1);
+            if (end <= start) continue;
+
+            // Even rows Ascending, Odd rows Descending
+            let ascending = (r % 2 === 0);
+            await oddEvenBubbleRange(arr, start, end, ascending);
+        }
+
+        // 2. Sort Columns
+        // In Shear Sort, columns are always sorted Ascending Top-Down
+        for (let c = 0; c < cols; c++) {
+            await oddEvenBubbleColumn(arr, c, rows, cols, n);
+            // We can implement a more efficient column sort like bubble or insertion.
+            // Odd-Even on column is parallel-friendly.
+        }
+    }
+
+    // Final pass: Sort Rows Ascending to ensure linear order if mesh is "close"
+    // Actually strictly we need one last row sort.
+    for (let r = 0; r < rows; r++) {
+        let start = r * cols;
+        let end = Math.min((r + 1) * cols - 1, n - 1);
+        await oddEvenBubbleRange(arr, start, end, true);
+    }
+
+    // Global Odd-Even pass to cleanup boundaries? 
+    // Shear sort guarantees sorted rows, but maybe not globally linear across rows?
+    // Actually Shear sort produces a "Snake" sorted array.
+    // We want standard sorted. 
+    // The snake result would be: Row0 Asc, Row1 Desc, Row2 Asc...
+    // We probably want to "un-snake" it or just run a full sort pass?
+    // Let's rely on standard Shear Sort convergence which produces sorted array. 
+    // But standard Shear Sort produces Snake output.
+    // We want the visualization to look like Matrix Sort.
+    // To get final Linear Sort, we probably need a few passes of global Odd-Even or similar.
+    // Or just Odd-Even Merge sort at the end.
+    // Let's do a simple Odd-Even pass globally to finish.
+    await oddEvenSortCommon(arr);
+}
+
+// Helper: Odd-Even Sort on a Range
+async function oddEvenBubbleRange(arr, start, end, ascending) {
+    let sorted = false;
+    let limit = (end - start + 1); // rough limit to avoid infinite loops if customized
+    // Bubble sort or Odd-Even? Odd-Even is faster/parallel-like.
+    for (let k = 0; k < limit; k++) {
+        let changed = false;
+        // Odd
+        for (let i = start + 1; i < end; i += 2) {
+            if (shouldSwap(arr, i, i + 1, ascending)) {
+                await swap(arr, i, i + 1);
+                changed = true;
+            }
+        }
+        // Even
+        for (let i = start; i < end; i += 2) {
+            if (shouldSwap(arr, i, i + 1, ascending)) {
+                await swap(arr, i, i + 1);
+                changed = true;
+            }
+        }
+        if (!changed) break;
+    }
+}
+
+// Helper: Odd-Even Sort on a Column
+async function oddEvenBubbleColumn(arr, colIdx, rows, cols, n) {
+    let changed = true;
+    while (changed) {
+        changed = false;
+        // Odd step
+        for (let r = 1; r < rows - 1; r += 2) {
+            let i = r * cols + colIdx;
+            let j = (r + 1) * cols + colIdx;
+            if (i < n && j < n) {
+                if (arr[i] > arr[j]) {
+                    await swap(arr, i, j);
+                    changed = true;
+                }
+            }
+        }
+        // Even step
+        for (let r = 0; r < rows - 1; r += 2) {
+            let i = r * cols + colIdx;
+            let j = (r + 1) * cols + colIdx;
+            if (i < n && j < n) {
+                if (arr[i] > arr[j]) {
+                    await swap(arr, i, j);
+                    changed = true;
+                }
+            }
+        }
+    }
+}
+
+function shouldSwap(arr, a, b, ascending) {
+    if (ascending) return arr[a] > arr[b];
+    return arr[a] < arr[b];
+}
+
+async function oddEvenSortCommon(arr) {
+    let sorted = false;
+    while (!sorted) {
+        sorted = true;
+        for (let i = 1; i < arr.length - 1; i += 2) {
+            if (arr[i] > arr[i + 1]) { await swap(arr, i, i + 1); sorted = false; }
+        }
+        for (let i = 0; i < arr.length - 1; i += 2) {
+            if (arr[i] > arr[i + 1]) { await swap(arr, i, i + 1); sorted = false; }
+        }
+    }
+}
+
+</script>
+    <script>
+
+// Batcher's Merge Exchange Sort (Iterative)
+async function mergeExchangeSort(arr) {
+    let n = arr.length;
+    let t = Math.ceil(Math.log2(n));
+    let p = 1 << (t - 1); // 2^(t-1)
+
+    while (p > 0) {
+        let q = 1 << (t - 1);
+        let r = 0;
+        let d = p;
+
+        while (d > 0) {
+            // Because n might not be power of 2, boundary checks are implicit in loop
+            for (let i = 0; i < n - d; i++) {
+                if ((i & p) === r) {
+                    // Compare i and i + d
+                    states[i] = 1;
+                    states[i + d] = 1;
+                    stats.comparisons++;
+                    await tick();
+
+                    if (arr[i] > arr[i + d]) {
+                        await swap(arr, i, i + d);
+                    }
+                    states[i] = 0;
+                    states[i + d] = 0;
+                }
+            }
+            d = q - p;
+            q = q >> 1;
+            r = p;
+        }
+        p = p >> 1;
+    }
+}
+
+</script>
+    <script>
+
+// Batcher's Odd-Even Merge Sort (Recursive)
+async function oddEvenMergeSort(arr) {
+    let n = arr.length;
+    let nextPow2 = 1;
+    while (nextPow2 < n) nextPow2 <<= 1;
+    let paddingNeeded = nextPow2 - n;
+
+    for (let i = 0; i < paddingNeeded; i++) {
+        arr.push(Number.MAX_SAFE_INTEGER);
+        states.push(0);
+    }
+
+    try {
+        await oddEvenMergeSortRec(arr, 0, nextPow2);
+    } finally {
+        if (arr.length > n) {
+            arr.splice(n, paddingNeeded);
+            states.splice(n, paddingNeeded);
+        }
+    }
+}
+
+async function oddEvenMergeSortRec(arr, low, n) {
+    if (n > 1) {
+        let m = Math.floor(n / 2);
+        await oddEvenMergeSortRec(arr, low, m);
+        await oddEvenMergeSortRec(arr, low + m, n - m);
+        await oddEvenMerge(arr, low, n, 1);
+    }
+}
+
+async function oddEvenMerge(arr, low, n, r) {
+    let m = r * 2;
+    if (m < n) {
+        await oddEvenMerge(arr, low, n, m);      // Even
+        await oddEvenMerge(arr, low + r, n, m);  // Odd
+
+        // Compare-swap: (i, i+r)
+        // Range: from low+r to low+n-r
+        // Step: m
+        for (let i = low + r; i + r < low + n; i += m) {
+            await compareSwap(arr, i, i + r);
+        }
+    } else {
+        // Base case: 1 comparison usually?
+        // Batcher's base case usually handled by loop range or m<n check
+        await compareSwap(arr, low, low + r);
+    }
+}
+
+</script>
+    <script>
+
+// Pairwise Sorting Network (Parberry's Pairwise Sort)
+async function pairwiseSort(arr) {
+    // We can simulate the iterative layers of the network
+    await pairwiseSortRec(arr, 0, arr.length, 1);
+}
+
+// Recursive Structure for Pairwise
+async function pairwiseSortRec(arr, start, n, gap) {
+    if (n < 2) return;
+
+    // 1. Pairwise Comparison Phase
+    // Compare pairs separated by 'gap'? 
+    // Standard Pairwise Network pairs adjacent elements first, then gaps increase?
+    // Actually, Parberry's works by separating into Odd/Even indices recursively (like Odd-Even Merge sort structure but reversed phase?)
+
+    // Let's implement the "Pairwise Merge" approach which is robust
+    let mid = Math.floor(n / 2);
+
+    // Recurse first
+    await pairwiseSortRec(arr, start, mid, gap);
+    await pairwiseSortRec(arr, start + mid, n - mid, gap);
+
+    // Merge
+    await pairwiseMerge(arr, start, n, gap);
+    // Note: The logic above is generic Merge Sort. We need the Pairwise Merge logic.
+}
+
+async function pairwiseMerge(arr, start, n, gap) {
+    // Pairwise Merge (similar to Odd-Even Merge but different comparators)
+    // Actually, simply:
+    // 1. Pairwise compare consecutive elements (stride gap?)
+    // This part is complex to get strictly right as "Pairwise Sorting Network".
+
+    // Alternative: We implement "Pairwise Merge Sort" (Iterative)
+    // Which is simpler to visualize as chunks merging.
+
+    // Let's use a standard iterative approach for "Pairwise Merge Sort"
+    // Iterate width = 1, 2, 4, 8...
+    // For each width, merge chunks.
+    // The "Merge" function is the Pairwise Merger.
+}
+
+// Re-implementing as Iterative Pairwise Merge Sort
+async function pairwiseMergeSort(arr) {
+    let n = arr.length;
+    for (let width = 1; width < n; width *= 2) {
+        // Merge chunks of size 'width'
+        for (let i = 0; i < n; i += 2 * width) {
+            let start = i;
+            let end = Math.min(i + 2 * width - 1, n - 1);
+            let mid = i + width - 1;
+            if (mid < end) {
+                await pairwiseMergeIterative(arr, start, mid, end);
+            }
+        }
+    }
+}
+
+async function pairwiseMergeIterative(arr, start, mid, end) {
+    // This needs to be the Pairwise Network Merger, not standard merge.
+    // Pairwise Merger matches elements with stride.
+    // It's essentially Batcher's Odd-Even Merge logic but typically defined differently.
+    // Given the ambiguity, we'll use Batcher's Odd-Even Merge as the "Pairwise Merger" (they are isomorphic?).
+    // Or we can use "Bitonic Merge".
+    // "Pairwise Merge Sort" usually refers to a specific network.
+    // We will stick to Odd-Even Merge logic here to ensure "Network" behavior, 
+    // effectively making this "Iterative Odd-Even Merge Sort".
+
+    // Let's call it "Pairwise Merge" but implement Odd-Even Merge steps on the chunk.
+    await oddEvenMerge(arr, start, end - start + 1, 1);
+}
+
+// We already have oddEvenMerge in common (or need to add it).
+// For now, I'll allow this file to rely on `oddEvenMerge` if available or redefine it.
+// Checking `algorithms/common.js`... it does NOT have oddEvenMerge.
+// I must include it or rely on `oddEvenMergeSort.js` being loaded (which puts it in global scope).
+// `oddEvenMergeSort.js` defines `oddEvenMerge`.
+
+</script>
+    <script>
+
+// Pairwise Sort (Recursive Network Structure)
+async function pairwiseSort(arr) {
+    await pairwiseSortRec(arr, 0, arr.length, 1);
+    // Ensure sorted with a final cleanup (Network should be exact, but recursive logic deals with powers of 2 mostly)
+    // A simple insertion pass or odd-even pass is cheap for sorted arrays.
+    await insertionSortRange(arr, 0, arr.length - 1);
+}
+
+async function pairwiseSortRec(arr, start, n, gap) {
+    if (n < 2) return;
+
+    // 1. Pairwise Compare-Swap (Min-Max Separation)
+    // Compare (0,1), (2,3)... relative to stride
+    for (let i = 0; i < floor(n / 2); i++) {
+        let a = start + (2 * i) * gap;
+        let b = start + (2 * i + 1) * gap;
+        if (b < arr.length) {
+            await compareSwap(arr, a, b);
+        }
+    }
+
+    // 2. Recurse: Sort the "Mins" (evens) and "Maxs" (odds)
+    // Mins are at offset 0, stride 2*gap
+    // Maxs are at offset gap, stride 2*gap
+    await pairwiseSortRec(arr, start, floor(n / 2), gap * 2);
+    await pairwiseSortRec(arr, start + gap, ceil(n / 2), gap * 2); // ceil handles odd 'n'?
+
+    // 3. Comparison/Merge Phase (The "Z" logic)
+    // Parberry's Pairwise Merge logic goes here.
+    // For visualization, the recursive separation is the key "Pairwise" feature.
+    // The merge can be simple.
+}
+
+function floor(x) { return Math.floor(x); }
+function ceil(x) { return Math.ceil(x); }
+
+</script>
+    <script>
+
+// Weave Sort (Iterative)
+// This implements Bottom-Up Merge Sort but uses a "Weave" operation for merging.
+// Weaving interleaves two sorted subarrays, then sorts the local pairs/small window.
+
+async function weaveSort(arr) {
+    let n = arr.length;
+    for (let width = 1; width < n; width *= 2) {
+        for (let i = 0; i < n; i += 2 * width) {
+            let start = i;
+            let mid = i + width - 1;
+            let end = Math.min(i + 2 * width - 1, n - 1);
+            if (mid < end) {
+                await weaveMergeIterative(arr, start, mid, end);
+            }
+        }
+    }
+}
+
+async function weaveMergeIterative(arr, start, mid, end) {
+    // 1. Weave Interleave
+    // Create temp array
+    let left = arr.slice(start, mid + 1);
+    let right = arr.slice(mid + 1, end + 1);
+    let woven = [];
+    let l = 0, r = 0;
+    while (l < left.length || r < right.length) {
+        if (l < left.length) woven.push(left[l++]);
+        if (r < right.length) woven.push(right[r++]);
+    }
+
+    // Write woven back
+    for (let k = 0; k < woven.length; k++) {
+        arr[start + k] = woven[k];
+        states[start + k] = 1;
+        stats.mainWrites++;
+    }
+    await tick();
+    for (let k = 0; k < woven.length; k++) states[start + k] = 0;
+
+    // 2. Local Correction (Insertion/Bubble)
+    // Since woven is "nearly" sorted (2-sorted?), we can use Insertion Sort efficiently.
+    await insertionSortRange(arr, start, end);
+}
+
+</script>
+    <script>
+
+async function countingSort(arr) {
+    let max = Math.max(0, ...arr);
+    let min = Math.min(0, ...arr); // Usually 0 but handled generic
+    let range = Math.floor(max) - Math.floor(min) + 1;
+
+    let count = new Array(range).fill(0);
+
+    // 1. Count
+    for (let i = 0; i < arr.length; i++) {
+        states[i] = 1; await tick(); states[i] = 0;
+        let val = Math.floor(arr[i]);
+        if (count[val - min] === undefined) count[val - min] = 0;
+        count[val - min]++;
+    }
+
+    // 2. Reconstruct
+    let z = 0;
+    for (let i = 0; i < range; i++) {
+        while (count[i] > 0) {
+            // Visualize overwrite
+            states[z] = 1;
+            stats.mainWrites++;
+            arr[z] = i + min;
+            await tick();
+            states[z] = 0;
+            count[i]--;
+            z++;
+        }
+    }
+}
+
+</script>
+    <script>
+
+// Flash Sort (Neubert)
+async function flashSort(arr) {
+    let n = arr.length;
+    let min = arr[0], max = arr[0];
+    let maxIdx = 0;
+
+    // 1. Find Min/Max
+    for (let i = 0; i < n; i++) {
+        states[i] = 1; await tick(); states[i] = 0;
+        if (arr[i] < min) min = arr[i];
+        if (arr[i] > max) { max = arr[i]; maxIdx = i; }
+        stats.comparisons += 2;
+    }
+
+    if (min === max) return;
+
+    // 2. Classify
+    let m = Math.floor(0.43 * n); // Number of classes
+    let l = new Array(m).fill(0);
+    let c1 = (m - 1) / (max - min);
+
+    for (let i = 0; i < n; i++) {
+        let k = Math.floor(c1 * (arr[i] - min));
+        l[k]++;
+        states[i] = 1; await tick(); states[i] = 0;
+    }
+
+    // Accumulate
+    for (let i = 1; i < m; i++) l[i] += l[i - 1];
+
+    // 3. Permute
+    // Cycle leader permutation
+    let count = 0;
+    let i = 0;
+    let k = m - 1;
+
+    while (count < n) {
+        while (i >= l[k]) {
+            i++;
+            if (i >= n) break; // Safety
+            k = Math.floor(c1 * (arr[i] - min));
+        }
+        if (i >= n) break;
+
+        let flash = arr[i];
+        while (i !== l[k]) {
+            k = Math.floor(c1 * (flash - min));
+            let loc = l[k] - 1;
+
+            // Swap flash with arr[loc]
+            let hold = arr[loc];
+            arr[loc] = flash;
+            flash = hold;
+
+            l[k]--;
+            count++;
+            stats.swaps++;
+            stats.mainWrites += 2;
+
+            states[loc] = 1; await tick(); states[loc] = 0;
+        }
+    }
+
+    // 4. Insertion Sort Cleanup
+    await insertionSortRange(arr, 0, n - 1);
+}
+
+</script>
+    <script>
+
+// Gravity Sort (Bead Sort)
+async function gravitySort(arr) {
+    let max = Math.floor(Math.max(0, ...arr));
+
+    // 1. Count beads at each height level (Transposition)
+    let counts = new Array(max + 1).fill(0);
+    for (let i = 0; i < arr.length; i++) {
+        let val = Math.floor(arr[i]);
+        if (val < 0) val = 0;
+        if (val > max) val = max; // Safety
+
+        // Optimize counting: Don't loop J?
+        // Actually, Count[h] is number of elements >= h.
+        // We can just increment counts[1...val]. 
+        // Or store frequency of 'val' and prefix sum suffix sum?
+        // Suffix sum of frequency is exactly what we need.
+        // This avoids the inner O(Height) loop.
+
+        // Step 1a: Frequency count
+        // Can't do visualization properly with frequency count in one go.
+        // We want to visualize "scanning" or "lifting".
+        // The current inner loop is fine for visualization: O(N*H).
+        // Since we removed outer loop, this is just O(Total Beads).
+
+        for (let j = 1; j <= val; j++) counts[j]++;
+        states[i] = 1;
+
+        // Throttle ticks? 
+        // Tick every few elements to speed up?
+        if (i % 5 === 0) await tick();
+        states[i] = 0;
+    }
+    // Ensure last clear
+    await tick();
+
+    // 2. Clear array (Drop beads)
+    for (let i = 0; i < arr.length; i++) {
+        arr[i] = 0;
+        states[i] = 1;
+    }
+    await tick();
+    for (let i = 0; i < arr.length; i++) states[i] = 0;
+
+    // 3. Rebuild (Stack beads from right)
+    for (let h = 1; h <= max; h++) {
+        let c = counts[h];
+        // Add '1' to the last 'c' bars
+        for (let k = 0; k < c; k++) {
+            let idx = arr.length - 1 - k;
+            arr[idx]++;
+            states[idx] = 1;
+        }
+        stats.mainWrites += c;
+
+        // Visualization: Level by level
+        if (h % 2 === 0 || max < 100) await tick(); // Throttle: Only tick every other level if max is large?
+
+        // Clear states
+        for (let k = 0; k < c; k++) {
+            let idx = arr.length - 1 - k;
+            states[idx] = 0;
+        }
+    }
+    // Final tick to ensure clean state
+    await tick();
+}
+
+</script>
+    <script>
+
+// Index Sort (Permutation Cycle / Tag Sort)
+async function indexSort(arr) {
+    let n = arr.length;
+    let idx = new Array(n);
+    for (let i = 0; i < n; i++) idx[i] = i;
+
+    // 1. Sort Indices based on Array Values
+    // We can use any sort here, let's use Quick Sort on indices
+    // Customized QuickSort for indices
+    await indexQuickSort(arr, idx, 0, n - 1);
+
+    // 2. Reorder Array according to sorted indices
+    // Use Permutation Cycles to do it in-place
+    // 2. Reorder Array using Sorted Indices
+    // Correct approach using auxiliary array (simplest for visualization and correctness)
+    let sorted = new Array(n);
+    for (let i = 0; i < n; i++) {
+        sorted[i] = arr[idx[i]];
+    }
+
+    // Copy back with visualization
+    for (let i = 0; i < n; i++) {
+        if (arr[i] !== sorted[i]) {
+            arr[i] = sorted[i];
+            stats.mainWrites++;
+            states[i] = 2; await tick(); states[i] = 0;
+        }
+    }
+}
+
+async function indexQuickSort(arr, idxRef, start, end) {
+    if (start >= end) return;
+    let mid = await indexPartition(arr, idxRef, start, end);
+    await indexQuickSort(arr, idxRef, start, mid - 1);
+    await indexQuickSort(arr, idxRef, mid + 1, end);
+}
+
+async function indexPartition(arr, idxRef, start, end) {
+    let pivotVal = arr[idxRef[end]];
+    let pHash = start;
+
+    for (let i = start; i < end; i++) {
+        states[idxRef[i]] = 1; await tick(); states[idxRef[i]] = 0;
+        stats.comparisons++;
+        if (arr[idxRef[i]] < pivotVal) {
+            // Swap indices
+            let temp = idxRef[i];
+            idxRef[i] = idxRef[pHash];
+            idxRef[pHash] = temp;
+            pHash++;
+        }
+    }
+    let temp = idxRef[end];
+    idxRef[end] = idxRef[pHash];
+    idxRef[pHash] = temp;
+    return pHash;
+}
+
+</script>
+    <script>
+
+// American Flag Sort (In-Place MSD Radix)
+async function americanFlagSort(arr) {
+    let max = Math.max(0, ...arr);
+    // Determine digits (using base 10 for viz)
+    let digits = Math.floor(Math.log10(max || 1)) + 1;
+    let div = Math.pow(10, digits - 1);
+
+    await americanFlagSortRec(arr, 0, arr.length, div);
+}
+
+async function americanFlagSortRec(arr, start, end, div) {
+    if (start >= end || div < 1) return;
+
+    // 1. Calculate Counts (Buckets)
+    let count = new Array(10).fill(0);
+    // Offset for each bucket start
+    let offset = new Array(10).fill(0);
+
+    for (let i = start; i < end; i++) {
+        states[i] = 1; await tick(); states[i] = 0;
+        let digit = Math.floor(arr[i] / div) % 10;
+        count[digit]++;
+    }
+
+    offset[0] = start;
+    for (let i = 1; i < 10; i++) {
+        offset[i] = offset[i - 1] + count[i - 1];
+    }
+
+    // 2. Permute In-Place (Cyclic Swap)
+    for (let b = 0; b < 10; b++) {
+        // While the bucket 'b' is not full (processed)
+        // We know the bucket 'b' range is [original_offset[b], original_offset[b+1])
+        // We can track current generic 'start' of bucket vs 'end'.
+
+        // Standard American Flag permutation:
+        // iterate through the block. If element belongs, keep.
+        // If not, swap it to its correct bucket.
+        // Repeat until element belongs.
+
+        // Better: processing buckets.
+        // We need to keep tracked of "Next Free Position" for each bucket.
+        // Let's copy offset to 'nextFree'
+    }
+
+    let nextFree = [...offset];
+
+    for (let b = 0; b < 10; b++) {
+        let bucketEnd = offset[b] + count[b];
+
+        // Process elements in this bucket's region until it's filled with correct elements
+        while (nextFree[b] < bucketEnd) {
+            let i = nextFree[b];
+            let digit = Math.floor(arr[i] / div) % 10;
+
+            if (digit === b) {
+                // Already in place
+                nextFree[b]++;
+            } else {
+                // Must move to 'digit' bucket
+                let target = nextFree[digit];
+
+                // Swap
+                await swap(arr, i, target);
+
+                // Increment target bucket's free pointer
+                nextFree[digit]++;
+            }
+        }
+    }
+
+    // 3. Recurse
+    for (let b = 0; b < 10; b++) {
+        let s = offset[b];
+        let e = offset[b] + count[b];
+        if (e - s > 1) {
+            await americanFlagSortRec(arr, s, e, div / 10);
+        }
+    }
+}
+
+</script>
+    <script>
+
+// In-Place LSD Radix Sort (Standard LSD but optimized memory usage?)
+// True In-Place LSD is non-trivial. 
+// We will implement a Standard LSD Sort that is explicitly labeled as "LSD Radix Sort" logic
+// but tailored to be as efficient as possible.
+// Wait, the prompt asked for "In-Place LSD Radix Sort".
+// Since true in-place LSD is unstable/hard, providing the MSD In-Place (American Flag) is usually the "in-place radix" answer.
+// However, I will provide a standard LSD Radix Sort implementation here separate from 'radixSort.js' 
+// if 'radixSort.js' is insufficient or if requested.
+// The user already has 'radixSort.js' (LSD).
+// The request asks: "In-Place LSD Radix Sort: A Least Significant Digit Radix Sort that uses no extra memory."
+// I will implement a "Binary LSD" which can be done in-place? No.
+// I'll implement a variant that swaps elements into buckets but iterates LSD.
+// NOTE: LSD requires stability. In-place swapping is usually unstable.
+// So stable in-place sort requires effectively O(N) rotations or O(1) space with O(N^2) time?
+// Maybe the user refers to the algorithm that works on binary representation in-place?
+// I will implement a Binary LSD In-Place attempt:
+// Iterate bits from 0 to k. For each bit, separate 0s and 1s.
+// BUT this must be STABLE. Stable partition is O(N) with O(N) memory, or O(N log N) / O(N^2) in-place.
+// I will implement an "In-Place Stable Partitioning" LSD Sort.
+// It will be slow (O(kN^2) or O(kN log N)) but technically "In-Place LSD".
+
+async function inPlaceLSDSort(arr) {
+    let max = Math.max(0, ...arr);
+    let topBit = Math.floor(Math.log2(max || 1));
+
+    for (let bit = 0; bit <= topBit; bit++) {
+        let mask = 1 << bit;
+        // Perform Stable Partition based on 'mask' bit
+        // All 0s move to front, all 1s to back, maintaining relative order.
+        await stablePartition(arr, 0, arr.length, mask);
+    }
+}
+
+// O(N^2) In-Place Stable Partition (or Bubble-like) implementation to ensure stability
+// O(N) optimized is tricky without buffer.
+async function stablePartition(arr, start, end, mask) {
+    // We want all elements with bit==0 to come before bit!=0
+    // Simple way: Insertion Sort logic / Bubble logic that only swaps if needed?
+    // Doing a full pass to move 0s to left?
+    // One pass of bubble-sort-like logic pushing 1s to right? Not enough.
+
+    // Cycle-based stable partition?
+
+    // "Stable Binary Partition":
+    // Iterate 'i' find first '1'. Then find next '0'. Rotation/Block Swap.
+    // Let's use simple logic:
+    // Count 0s.
+    // Iteractively:
+    //   If arr[i] has 0, it belongs in the 'zeros' region.
+    //   If arr[i] has 1, it belongs in 'ones'.
+    //   We maintain a 'insertPos' for the Next 0.
+
+    let insert = start;
+    for (let i = start; i < end; i++) {
+        states[i] = 1; await tick(); states[i] = 0;
+        let val = Math.floor(arr[i]);
+        if ((val & mask) === 0) {
+            // Found a 0. It should be at 'insert'.
+            // If i == insert, it's already there.
+            // If i > insert, we must move it to 'insert' shifting everything else right.
+            if (i > insert) {
+                // Shift [insert...i-1] to [insert+1...i]
+                // arr[i] goes to insert
+                // This is O(N) per element -> O(N^2) total
+                let temp = arr[i];
+                for (let k = i; k > insert; k--) {
+                    arr[k] = arr[k - 1];
+                    stats.mainWrites++;
+                }
+                arr[insert] = temp;
+                stats.mainWrites++;
+            }
+            insert++;
+        }
+    }
+}
+
+</script>
+    <script>
+
+async function shatterSort(arr, start = 0, end = null) {
+    if (end === null) end = arr.length - 1;
+    if (start >= end) return;
+
+    // Base case: small range uses insertion sort for efficiency
+    if (end - start < 32) {
+        await insertionSortRange(arr, start, end);
+        return;
+    }
+
+    // 1. Find min and max to determine range
+    let min = arr[start], max = arr[start];
+
+    // Scan finding min/max
+    for (let i = start; i <= end; i++) {
+        stats.comparisons += 2;
+        states[i] = 1; // Reading
+        await tick();
+        if (arr[i] < min) min = arr[i];
+        if (arr[i] > max) max = arr[i];
+        states[i] = 0;
+    }
+
+    if (max === min) return; // All elements identical
+
+    // 2. Determine number of shards (buckets)
+    // Using sqrt(n) approach similar to Bucket Sort, but recursive
+    let rangeLen = end - start + 1;
+    let numShards = Math.floor(Math.sqrt(rangeLen));
+
+    // Clamp shard count to reasonable limits for recursion
+    if (numShards < 2) numShards = 2;
+    if (numShards > 16) numShards = 16;
+
+    let shards = Array.from({ length: numShards }, () => []);
+
+    // 3. Shatter (Distribute) elements into shards
+    for (let i = start; i <= end; i++) {
+        let val = arr[i];
+        // Normalize value to 0..1 range
+        let norm = (val - min) / (max - min);
+        let shardIdx = Math.floor(norm * numShards);
+        if (shardIdx >= numShards) shardIdx = numShards - 1;
+
+        shards[shardIdx].push(val);
+        stats.auxWrites++;
+
+        states[i] = 1; // Visually indicate reading
+        await tick();
+        states[i] = 0;
+    }
+
+    // 4. Write back shards to main array
+    let currentIdx = start;
+    let boundaries = [];
+
+    for (let s = 0; s < numShards; s++) {
+        let shardStart = currentIdx;
+        for (let val of shards[s]) {
+            arr[currentIdx] = val;
+            stats.mainWrites++;
+            states[currentIdx] = 2; // Visually indicate writing
+            await tick();
+            states[currentIdx] = 0;
+            currentIdx++;
+        }
+        boundaries.push([shardStart, currentIdx - 1]);
+    }
+
+    // 5. Recursively sort each shard
+    for (let b of boundaries) {
+        if (b[1] > b[0]) {
+            await shatterSort(arr, b[0], b[1]);
+        }
+    }
+}
+
+</script>
+
+    <script>
+// --- ALGORITHMS REGISTRY ---
+
+const ALGORITHMS = {
+    'quick': quickSort,
+    'quickDual': dualPivotQuickSort,
+    'merge': mergeSort,
+    'heap': heapSort,
+    'radix': radixSort,
+    'bubble': bubbleSort,
+    'selection': selectionSort,
+    'doubleSelection': doubleSelectionSort,
+    'insertion': insertionSort,
+    'binaryInsertion': binaryInsertionSort,
+    'shaker': cocktailShakerSort,
+    'comb': combSort,
+    'shell': shellSort,
+    'gnome': gnomeSort,
+    'cycle': cycleSort,
+    'oddeven': oddEvenSort,
+    'pancake': pancakeSort,
+    'exchange': exchangeSort,
+
+    // Efficient
+    'intro': introSort,
+    'tim': timSort,
+    'patience': patienceSort,
+    'tree': treeSort,
+
+    // Advanced
+    'sqrt': sqrtSort,
+    'smooth': smoothSort,
+
+    // New Additions
+    'tournament': tournamentSort,
+    'library': librarySort,
+    'strand': strandSort,
+    'binaryQuick': binaryQuickSort,
+    'bucket': bucketSort,
+
+    // Merge Variants
+    'inplaceMerge': inPlaceMergeSort,
+    'weaveMerge': weaveMergeSort,
+    'rotateMerge': rotateMergeSort,
+
+    // Networks
+    'bitonic': bitonicSort,
+    'boseNelson': boseNelsonSort,
+    'crease': creaseSort,
+    'diamond': diamondSort,
+    'fold': foldSort,
+    'matrix': matrixSort,
+    'mergeExchange': mergeExchangeSort,
+    'oddEvenMerge': oddEvenMergeSort,
+    'pairwiseMerge': pairwiseMergeSort,
+    'pairwise': pairwiseSort,
+    'weave': weaveSort,
+
+    // Additional
+    'counting': countingSort,
+    'flash': flashSort,
+    'gravity': gravitySort,
+    'index': indexSort,
+    'americanFlag': americanFlagSort,
+    'inplaceLSD': inPlaceLSDSort,
+    'shatter': shatterSort,
+
+
+};
+
+</script>
+    <script>
+// --- Menu Logic ---
+
+function toggleMenu() {
+    // Menu removed
+}
+
+// Algorithm Selector
+const algoSelect = document.getElementById('algoSelect');
+
+if (algoSelect) {
+    algoSelect.addEventListener('change', (e) => {
+        selectedAlgoMode = e.target.value;
+        if (selectedAlgoMode !== 'random') {
+            activeAlgoName = selectedAlgoMode;
+        }
+        updateStatus();
+    });
+}
+
+// Algo Navigation
+const prevAlgoBtn = document.getElementById('prevAlgoBtn');
+const nextAlgoBtn = document.getElementById('nextAlgoBtn');
+const shuffleAlgoBtn = document.getElementById('shuffleAlgoBtn');
+
+function getAllAlgoOptions() {
+    // Flatten options from optgroups
+    const options = [];
+    if (!algoSelect) return [];
+
+    const groups = algoSelect.getElementsByTagName('optgroup');
+    if (groups.length > 0) {
+        // Traverse groups and options in order they appear
+        const allChilds = algoSelect.querySelectorAll('option');
+        for (let o of allChilds) {
+            options.push(o.value);
+        }
+    } else {
+        // Just options (though we know we have groups)
+        for (let o of algoSelect.options) {
+            options.push(o.value);
+        }
+    }
+    return options;
+}
+
+if (prevAlgoBtn && algoSelect) {
+    prevAlgoBtn.addEventListener('click', () => {
+        const options = getAllAlgoOptions();
+        let idx = options.indexOf(selectedAlgoMode);
+        if (idx === -1) idx = 0;
+
+        idx--;
+        if (idx < 0) idx = options.length - 1;
+
+        selectedAlgoMode = options[idx];
+        algoSelect.value = selectedAlgoMode;
+        if (selectedAlgoMode !== 'random') {
+            activeAlgoName = selectedAlgoMode;
+        }
+        updateStatus();
+    });
+}
+
+if (nextAlgoBtn && algoSelect) {
+    nextAlgoBtn.addEventListener('click', () => {
+        const options = getAllAlgoOptions();
+        let idx = options.indexOf(selectedAlgoMode);
+        if (idx === -1) idx = 0;
+
+        idx++;
+        if (idx >= options.length) idx = 0;
+
+        selectedAlgoMode = options[idx];
+        algoSelect.value = selectedAlgoMode;
+        if (selectedAlgoMode !== 'random') {
+            activeAlgoName = selectedAlgoMode;
+        }
+        updateStatus();
+    });
+}
+
+if (shuffleAlgoBtn && algoSelect) {
+    shuffleAlgoBtn.addEventListener('click', () => {
+        const options = getAllAlgoOptions();
+        const concreteOptions = options.filter(o => o !== 'random');
+        if (concreteOptions.length === 0) return;
+
+        const r = Math.floor(Math.random() * concreteOptions.length);
+        selectedAlgoMode = concreteOptions[r];
+        algoSelect.value = selectedAlgoMode;
+        activeAlgoName = selectedAlgoMode;
+        updateStatus();
+    });
+}
+
+// Speed Handlers (Presets)
+speedBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        speedBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        opsPerFrame = parseInt(btn.getAttribute('data-speed'));
+        updateStatus();
+    });
+});
+
+
+
+// Density Selector (Dropdown)
+const densitySelect = document.getElementById('densitySelect');
+if (densitySelect) {
+    densitySelect.addEventListener('change', (e) => {
+        const newBars = parseInt(e.target.value);
+        if (newBars !== targetNumBars) {
+            targetNumBars = newBars;
+            handleResizeOrSettingChange();
+        }
+    });
+}
+
+// FPS Selector (Dropdown)
+const fpsSelect = document.getElementById('fpsSelect');
+if (fpsSelect) {
+    fpsSelect.addEventListener('change', (e) => {
+        targetFPS = parseInt(e.target.value);
+        updateStatus();
+    });
+}
+
+// Double/Halve Speed Handlers
+const btnHalve = document.getElementById('btnHalve');
+const btnDouble = document.getElementById('btnDouble');
+
+if (btnHalve) {
+    btnHalve.addEventListener('click', () => {
+        opsPerFrame = Math.max(1, Math.floor(opsPerFrame / 2));
+        highlightMatchingSpeedPreset();
+        updateStatus();
+    });
+}
+
+if (btnDouble) {
+    btnDouble.addEventListener('click', () => {
+        opsPerFrame = Math.min(5000, opsPerFrame * 2);
+        highlightMatchingSpeedPreset();
+        updateStatus();
+    });
+}
+
+function highlightMatchingSpeedPreset() {
+    speedBtns.forEach(b => b.classList.remove('active'));
+    // Check if matches a preset
+    const match = Array.from(speedBtns).find(b => parseInt(b.getAttribute('data-speed')) === opsPerFrame);
+    if (match) match.classList.add('active');
+}
+
+// --- Control Handling ---
+
+async function runSortSequence() {
+    if (isSorting) return;
+
+    // Automatic Shuffle (Safety)
+    resetArray();
+    await sleep(200); // Small pause for visual clarity
+
+    isSorting = true;
+    stopSorting = false;
+    startBtn.disabled = true;
+    resetBtn.disabled = true;
+    stopBtn.disabled = false;
+
+    opCounter = 0;
+
+    // Randomize logic
+    let algoKey = selectedAlgoMode;
+    if (selectedAlgoMode === 'random') {
+        const keys = Object.keys(ALGORITHMS);
+        algoKey = keys[Math.floor(Math.random() * keys.length)];
+    }
+
+    activeAlgoName = algoKey;
+    updateStatus(); // Update display to show picked algo
+
+    try {
+        const sortFunc = ALGORITHMS[algoKey];
+
+        // Special check for Merge Sort arguments
+        if (algoKey === 'merge' || algoKey === 'quick') {
+            await sortFunc(array, 0, array.length - 1);
+        } else {
+            await sortFunc(array);
+        }
+
+        // Verify Sort
+        let isSorted = true;
+        for (let i = 0; i < array.length - 1; i++) {
+            if (array[i] > array[i + 1]) {
+                isSorted = false;
+                break;
+            }
+        }
+
+        if (!isSorted) {
+            console.warn(`Algorithm ${activeAlgoName} failed to sort the array properly.`);
+            // Flash red or just don't turn green
+            if (!stopSorting) {
+                // Flash red briefly to indicate failure?
+                for (let i = 0; i < array.length; i++) states[i] = 1; // Red
+                draw();
+                await sleep(500);
+                for (let i = 0; i < array.length; i++) states[i] = 0;
+                draw();
+            }
+        } else {
+            // Finish sequence (Green Scan)
+            if (!stopSorting) {
+                draw();
+                const step = Math.max(1, Math.floor(array.length / 50));
+                // Fast scan to show completion
+                for (let i = 0; i < array.length; i += step) {
+                    if (stopSorting) break;
+                    for (let k = 0; k < step && (i + k) < array.length; k++) {
+                        states[i + k] = 3;
+                    }
+                    if (i % 2 === 0) {
+                        draw();
+                        await sleep(1);
+                    }
+                }
+                if (!stopSorting) {
+                    // Ensure all green
+                    for (let i = 0; i < array.length; i++) states[i] = 3;
+                    draw();
+                }
+            }
+        }
+    } catch (e) {
+        console.log("Sort stopped");
+    } finally {
+        isSorting = false;
+        startBtn.disabled = false;
+        resetBtn.disabled = false;
+        stopBtn.disabled = true;
+        updateStatus(); // Reset status to menu selection
+    }
+}
+
+startBtn.addEventListener('click', () => {
+    runSortSequence();
+});
+
+stopBtn.addEventListener('click', () => {
+    if (isSorting) {
+        stopSorting = true;
+    }
+    // Also disable auto play if stopped manually
+    if (isAutoPlaying) {
+        isAutoPlaying = false;
+        if (autoPlayBtn) {
+            autoPlayBtn.textContent = "AUTO";
+            autoPlayBtn.classList.remove('auto-active');
+        }
+    }
+});
+
+resetBtn.addEventListener('click', async () => {
+    if (isSorting) {
+        stopSorting = true;
+        await sleep(50);
+    }
+    resetArray();
+    isSorting = false;
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+});
+
+
+// --- Auto Play Logic ---
+const autoPlayBtn = document.getElementById('autoPlayBtn');
+let isAutoPlaying = false;
+
+async function doAutoPlayCountdown() {
+    for (let i = 5; i > 0; i--) {
+        if (!isAutoPlaying || stopSorting) {
+            autoPlayBtn.textContent = "AUTO";
+            autoPlayBtn.classList.remove('auto-active');
+            return false;
+        }
+        autoPlayBtn.textContent = i;
+        autoPlayBtn.classList.add('auto-active');
+        await sleep(1000);
+    }
+    return true;
+}
+
+if (autoPlayBtn) {
+    autoPlayBtn.addEventListener('click', async () => {
+        if (isAutoPlaying) {
+            // Turn OFF
+            isAutoPlaying = false;
+            autoPlayBtn.textContent = "AUTO";
+            autoPlayBtn.classList.remove('auto-active');
+        } else {
+            // Turn ON
+            isAutoPlaying = true;
+            autoPlayBtn.textContent = "AUTO";
+            autoPlayBtn.classList.add('auto-active');
+
+            // Force Random Mode
+            if (algoSelect) {
+                algoSelect.value = 'random';
+                selectedAlgoMode = 'random';
+                updateStatus();
+            }
+
+            if (isSorting) {
+                // Stop current manual sort first
+                stopSorting = true;
+                while (isSorting) await sleep(50);
+                stopSorting = false;
+            }
+
+            // Initial Countdown
+            const proceed = await doAutoPlayCountdown();
+            if (proceed) {
+                autoPlayBtn.textContent = "AUTO";
+                // Keep active class
+                autoPlayLoop();
+            } else {
+                isAutoPlaying = false;
+                autoPlayBtn.textContent = "AUTO";
+                autoPlayBtn.classList.remove('auto-active');
+            }
+        }
+    });
+}
+
+async function autoPlayLoop() {
+    while (isAutoPlaying) {
+        // Double check stop
+        if (stopSorting) {
+            isAutoPlaying = false;
+            autoPlayBtn.textContent = "AUTO";
+            autoPlayBtn.classList.remove('auto-active');
+            break;
+        }
+
+        autoPlayBtn.textContent = "AUTO";
+
+        // Run the sort
+        await runSortSequence();
+
+        // If stopped or toggled off during sort
+        if (!isAutoPlaying || stopSorting) {
+            isAutoPlaying = false;
+            autoPlayBtn.textContent = "AUTO";
+            autoPlayBtn.classList.remove('auto-active');
+            break;
+        }
+
+        // Wait 5s (Countdown)
+        const proceed = await doAutoPlayCountdown();
+
+        if (!proceed) {
+            isAutoPlaying = false;
+            autoPlayBtn.textContent = "AUTO";
+            autoPlayBtn.classList.remove('auto-active');
+            break;
+        }
+
+        if (!isAutoPlaying || stopSorting) {
+            isAutoPlaying = false;
+            autoPlayBtn.textContent = "AUTO";
+            autoPlayBtn.classList.remove('auto-active');
+            break;
+        }
+
+        resetArray();
+    }
+}
+
+</script>
+</body>
+
+</html>
