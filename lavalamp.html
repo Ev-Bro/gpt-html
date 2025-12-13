@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metaballs (GPU)</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #050510;
+            color: #eee;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 280px;
+            background: rgba(10, 15, 30, 0.85);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 10;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        h2 {
+            margin: 0 0 15px 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: #4ade80;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 10px;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            appearance: none;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #4ade80;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid #fff;
+            box-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            font-size: 13px;
+            color: #ddd;
+            cursor: pointer;
+        }
+
+        input[type="checkbox"] {
+            accent-color: #4ade80;
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        #stats {
+            margin-top: 10px;
+            font-size: 11px;
+            color: #666;
+            text-align: center;
+        }
+
+        .hint {
+            color: #888;
+            font-size: 11px;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        #ui-minimized {
+            display: none;
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 44px;
+            height: 44px;
+            background: rgba(10, 15, 30, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            cursor: pointer;
+            justify-content: center;
+            align-items: center;
+            color: #4ade80;
+            font-size: 24px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+            transition: transform 0.2s;
+        }
+
+        #ui-minimized:hover {
+            transform: scale(1.05);
+            background: rgba(20, 30, 50, 0.9);
+        }
+
+        #btn-minimize {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #888;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: color 0.2s, background 0.2s;
+        }
+
+        #btn-minimize:hover {
+            color: #eee;
+            background: rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+
+    <canvas id="canvas"></canvas>
+
+    <!-- Minimized Icon -->
+    <div id="ui-minimized">
+        ☰
+    </div>
+
+    <div id="ui">
+        <div id="btn-minimize">–</div>
+        <h2>Metaballs (GPU)</h2>
+
+        <!-- Resolution is less relevant in shader (always per pixel), 
+             maybe use it for pixelation effect or remove it. 
+             Let's repurpose it for "Pixelate" to keep UI consistent or just hide it.
+             I'll keep it as "Pixelation" -->
+
+
+        <div class="control-group">
+            <label>Blob Count <span id="val-count">20</span></label>
+            <input type="range" id="count-slider" min="2" max="100" value="20">
+        </div>
+
+        <div class="control-group">
+            <label>Blob Threshold <span id="val-thresh">0.5</span></label>
+            <input type="range" id="thresh-slider" min="0.1" max="3.0" step="0.1" value="0.5">
+        </div>
+
+        <div class="control-group">
+            <button id="btn-init"
+                style="width: 100%; padding: 8px; background: rgba(74, 222, 128, 0.1); color: #4ade80; border: 1px solid #4ade80; border-radius: 4px; cursor: pointer; font-weight: 600; text-transform: uppercase; font-size: 11px; transition: all 0.2s;">
+                Initialize Blobs
+            </button>
+        </div>
+
+        <div class="control-group">
+            <label>Simulation Speed <span id="val-speed">1.0</span></label>
+            <input type="range" id="speed-slider" min="0.1" max="5.0" step="0.1" value="1.0">
+        </div>
+
+        <div class="control-group">
+            <label>Speed Variation <span id="val-var">2.0</span></label>
+            <input type="range" id="variation-slider" min="0" max="5.0" step="0.1" value="2.0">
+            <div class="hint">Left = Unison, Right = Chaotic</div>
+        </div>
+
+        <div class="control-group">
+            <div class="checkbox-group">
+                <input type="checkbox" id="chk-lava">
+                <label style="margin:0; width:auto; text-transform:none; font-size:13px; color:#ddd;">Lava Lamp
+                    Mode</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="chk-3d">
+                <label style="margin:0; width:auto; text-transform:none; font-size:13px; color:#ddd;">3D Effect</label>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>Color Style</label>
+            <div style="display: flex; gap: 5px;">
+                <select id="style-select"
+                    style="flex: 1; padding: 5px; background: #333; color: #eee; border: 1px solid #4ade80; border-radius: 4px; outline: none; cursor: pointer;">
+                    <!-- Populated by JS -->
+                </select>
+                <button id="btn-create"
+                    style="padding: 0 10px; background: #333; color: #4ade80; border: 1px solid #4ade80; border-radius: 4px; cursor: pointer; font-weight: bold;">+</button>
+            </div>
+        </div>
+
+        <div id="stats">FPS: 60</div>
+    </div>
+
+    <!-- Preset Editor Modal -->
+    <div id="preset-editor"
+        style="display: none; position: absolute; top: 20px; right: 320px; width: 250px; background: rgba(10, 15, 30, 0.95); backdrop-filter: blur(10px); padding: 20px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); z-index: 20;">
+        <h2>New Preset</h2>
+
+        <div class="control-group">
+            <label>Name</label>
+            <input type="text" id="edit-name"
+                style="width: 100%; padding: 5px; background: #222; border: 1px solid #444; color: #fff; border-radius: 4px;"
+                value="My Preset">
+        </div>
+
+        <div class="control-group">
+            <label>Mode</label>
+            <select id="edit-mode"
+                style="width: 100%; padding: 5px; background: #222; border: 1px solid #444; color: #fff; border-radius: 4px;">
+                <option value="0">Outline</option>
+                <option value="1">Solid Fill</option>
+                <option value="2">Gradient (Vertical)</option>
+                <option value="3">Gradient (Horizontal)</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label>Colors</label>
+            <div id="color-list" style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px;">
+                <!-- Color Inputs -->
+            </div>
+            <button id="btn-add-color"
+                style="width: 100%; padding: 5px; background: #333; border: 1px dashed #666; color: #aaa; cursor: pointer; font-size: 11px;">+
+                Add Color</button>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button id="btn-save-preset"
+                style="flex: 1; padding: 8px; background: #4ade80; color: #000; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Save</button>
+            <button id="btn-cancel-preset"
+                style="flex: 1; padding: 8px; background: #333; color: #fff; border: 1px solid #555; border-radius: 4px; cursor: pointer;">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Shaders -->
+    <script id="vs" type="x-shader/x-vertex">
+        attribute vec2 position;
+        void main() {
+            gl_Position = vec4(position, 0.0, 1.0);
+        }
+    </script>
+
+    <script id="fs" type="x-shader/x-fragment">
+        precision mediump float;
+
+        uniform vec2 u_resolution;
+        uniform float u_time;
+        // Accessing array of structs can be tricky in older WebGL/GLSL, sticking to flat arrays
+        // x, y, r (radius or influence)
+        uniform vec3 u_balls[50]; 
+        uniform int u_ballCount;
+        uniform vec2 u_mouse;
+        
+        uniform float u_threshold; // e.g. 1.0
+        uniform float u_pixelSize; // for pixelation
+
+        // Logic to get field strength
+        float getField(vec2 p) {
+            float sum = 0.0;
+            for (int i = 0; i < 100; i++) {
+                if (i >= u_ballCount) break;
+                vec3 b = u_balls[i];
+                vec2 delta = p - b.xy;
+                float d2 = dot(delta, delta);
+                // Metaball function: R^2 / D^2
+                // Avoid divide by zero
+                sum += (b.z * b.z) / (d2 + 0.001);
+            }
+            // Add Mouse
+            if (u_mouse.x > 0.0) {
+                 vec2 delta = p - u_mouse;
+                 float d2 = dot(delta, delta);
+                 sum += (50.0 * 50.0) / (d2 + 0.001);
+            }
+            return sum;
+        }
+
+        // Generic Styles
+        uniform vec3 u_palette[8];
+        uniform int u_paletteSize;
+        uniform int u_renderMode; // 0=Outline, 1=Solid, 2=GradY, 3=GradX
+        uniform int u_show3d;     // 1 = 3D enabled
+
+        vec3 getNormal(vec2 p) {
+            float eps = 2.0;
+            float v = getField(p);
+            float vx = getField(p + vec2(eps, 0.0));
+            float vy = getField(p + vec2(0.0, eps));
+            // Gradient points "uphill" (towards center of blob)
+            vec2 grad = vec2(vx - v, vy - v);
+            // Normal assumes the blob is a hill, so N points up from screen
+            // But we want the "surface" normal at the threshold.
+            // A simple fake normal is mostly Z, with XY determined by gradient
+            return normalize(vec3(-grad.x * 20.0, -grad.y * 20.0, 1.0));
+        }
+
+        vec3 getColor(int index) {
+            if (index == 0) return u_palette[0];
+            if (index == 1) return u_palette[1];
+            if (index == 2) return u_palette[2];
+            if (index == 3) return u_palette[3];
+            if (index == 4) return u_palette[4];
+            if (index == 5) return u_palette[5];
+            if (index == 6) return u_palette[6];
+            if (index == 7) return u_palette[7];
+            return vec3(0.0);
+        }
+
+        vec3 getGradient(float t) {
+            // Simple linear interpolation through palette
+            // t is 0..1
+            float scaled = t * float(u_paletteSize - 1);
+            int idx = int(scaled);
+            float fr = fract(scaled);
+            
+            vec3 c1 = getColor(idx);
+            vec3 c2 = getColor(idx + 1);
+
+            return mix(c1, c2, fr);
+        }
+
+        void main() {
+            // Pixel coordinates
+            vec2 st = gl_FragCoord.xy;
+            
+            // Pixelation
+            if (u_pixelSize > 1.0) {
+                st = floor(st / u_pixelSize) * u_pixelSize;
+            }
+
+            // Invert y because gl_FragCoord is bottom-left
+            st.y = u_resolution.y - st.y;
+
+            float val = getField(st);
+            
+            // Base Color
+            vec3 color = vec3(0.02, 0.02, 0.06); // bg
+            
+            // Outline
+            if (u_renderMode == 0) {
+                float thickness = 0.05 * u_threshold; 
+                float edge = smoothstep(u_threshold - thickness, u_threshold, val) - smoothstep(u_threshold, u_threshold + thickness, val);
+                
+                vec3 mainColor = u_palette[0];
+                color = mix(color, mainColor, edge);
+                
+                // Glow
+                if (val < u_threshold) {
+                     float glow = smoothstep(0.0, u_threshold, val) * 0.2;
+                     color += mainColor * glow;
+                }
+            } 
+            // Fill / Gradient
+            else if (val > u_threshold) {
+                vec3 baseFill = vec3(0.0);
+                if (u_renderMode == 1) {
+                    // Solid Fill
+                    baseFill = u_palette[0];
+                } 
+                else {
+                    // Gradient
+                    float t = 0.0;
+                    if (u_renderMode == 2) t = st.y / u_resolution.y; // Y
+                    else if (u_renderMode == 3) t = st.x / u_resolution.x; // X
+                    
+                    baseFill = getGradient(clamp(t, 0.0, 1.0));
+                }
+                color = baseFill;
+
+                // 3D Lighting
+                if (u_show3d == 1) {
+                     vec3 N = getNormal(st);
+                     vec3 L = normalize(vec3(0.5, 1.0, 2.0)); // Light dir
+                     vec3 V = vec3(0.0, 0.0, 1.0); // View dir
+
+                     // Specular (Phong)
+                     vec3 R = reflect(-L, N);
+                     float spec = pow(max(dot(R, V), 0.0), 32.0);
+                     
+                     // Diffuse
+                     float diff = max(dot(N, L), 0.0) * 0.5 + 0.5;
+
+                     // Rim
+                     float rim = 1.0 - max(dot(N, V), 0.0);
+                     rim = pow(rim, 3.0);
+
+                     // Compose
+                     color = color * diff + vec3(1.0) * spec * 0.6 + color * rim * 0.5;
+                }
+            }
+
+            gl_FragColor = vec4(color, 1.0);
+        }
+    </script>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const gl = canvas.getContext('webgl');
+        const fpsDisplay = document.getElementById('stats');
+
+        if (!gl) {
+            alert("WebGL not supported");
+        }
+
+        // --- Shader Setup ---
+        function createShader(gl, type, source) {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                console.error(gl.getShaderInfoLog(shader));
+                gl.deleteShader(shader);
+                return null;
+            }
+            return shader;
+        }
+
+        const vsSource = document.getElementById('vs').text;
+        const fsSource = document.getElementById('fs').text;
+        const vs = createShader(gl, gl.VERTEX_SHADER, vsSource);
+        const fs = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
+        const program = gl.createProgram();
+        gl.attachShader(program, vs);
+        gl.attachShader(program, fs);
+        gl.linkProgram(program);
+
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+            console.error(gl.getProgramInfoLog(program));
+        }
+
+        gl.useProgram(program);
+
+        // --- Buffers ---
+        // Full screen quad
+        const positions = new Float32Array([
+            -1, -1,
+            1, -1,
+            -1, 1,
+            -1, 1,
+            1, -1,
+            1, 1,
+        ]);
+        const buffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+
+        const positionLocation = gl.getAttribLocation(program, "position");
+        gl.enableVertexAttribArray(positionLocation);
+        gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+        // --- Uniforms ---
+        const uResolution = gl.getUniformLocation(program, "u_resolution");
+        const uBalls = gl.getUniformLocation(program, "u_balls");
+        const uBallCount = gl.getUniformLocation(program, "u_ballCount");
+        const uMouse = gl.getUniformLocation(program, "u_mouse");
+        const uThreshold = gl.getUniformLocation(program, "u_threshold");
+        const uPixelSize = gl.getUniformLocation(program, "u_pixelSize");
+        // New Uniforms
+        const uPalette = gl.getUniformLocation(program, "u_palette"); // vec3 array
+        const uPaletteSize = gl.getUniformLocation(program, "u_paletteSize");
+        const uRenderMode = gl.getUniformLocation(program, "u_renderMode");
+        const uShow3d = gl.getUniformLocation(program, "u_show3d");
+
+        // --- PRESETS & CONFIG ---
+        const DEFAULT_PRESETS = {
+            "default": { name: "Neon Green", mode: 0, colors: ["#4ade80"] },
+            "blue": { name: "Cyber Blue", mode: 1, colors: ["#00f7ff"] },
+            "purple": { name: "Plasma Purple", mode: 1, colors: ["#d946ef"] },
+            "fire": { name: "Fire Gradient", mode: 2, colors: ["#facc15", "#f97316", "#ef4444"] },
+            "ocean": { name: "Ocean Gradient", mode: 2, colors: ["#06b6d4", "#3b82f6"] },
+            "rainbow": { name: "Rainbow", mode: 3, colors: ["#ef4444", "#f97316", "#eab308", "#22c55e", "#3b82f6", "#a855f7"] },
+        };
+
+        let userPresets = {};
+        let currentPresetId = "default";
+
+        // --- State ---
+        let width, height;
+        let balls = [];
+        let numBalls = 20;
+        let threshold = 0.5;
+        let speedModifier = 1.0;
+        let speedVariation = 2.0;
+        let pixelSize = 1.0;
+        let lavaMode = false;
+        let show3d = false;
+
+        const mouse = { x: -1000, y: -1000 };
+
+        // --- Helper: Hex to RGB ---
+        function hexToRgb(hex) {
+            // #RRGGBB
+            const r = parseInt(hex.slice(1, 3), 16) / 255;
+            const g = parseInt(hex.slice(3, 5), 16) / 255;
+            const b = parseInt(hex.slice(5, 7), 16) / 255;
+            return [r, g, b];
+        }
+
+        // --- Persistence ---
+        function loadPersistence() {
+            // Load User Presets
+            const stored = localStorage.getItem('metaballs_presets');
+            if (stored) {
+                try {
+                    userPresets = JSON.parse(stored);
+                } catch (e) { console.error("Failed to load presets", e); }
+            }
+
+            // Load Last Config
+            const config = localStorage.getItem('metaballs_config');
+            if (config) {
+                try {
+                    const c = JSON.parse(config);
+                    if (c.numBalls) numBalls = c.numBalls;
+                    if (c.threshold) threshold = c.threshold;
+                    if (c.speed) speedModifier = c.speed;
+                    if (c.variation) speedVariation = c.variation;
+                    if (c.preset) currentPresetId = c.preset;
+                    if (c.lava) lavaMode = c.lava;
+                    if (c.d3) show3d = c.d3;
+                } catch (e) { }
+            }
+            updateUIValues();
+        }
+
+        function saveConfig() {
+            const config = {
+                numBalls,
+                threshold,
+                speed: speedModifier,
+                variation: speedVariation,
+                preset: currentPresetId,
+                lava: lavaMode,
+                d3: show3d
+            };
+            localStorage.setItem('metaballs_config', JSON.stringify(config));
+        }
+
+        function saveUserPresets() {
+            localStorage.setItem('metaballs_presets', JSON.stringify(userPresets));
+        }
+
+        function updateUIValues() {
+            document.getElementById('count-slider').value = numBalls;
+            document.getElementById('val-count').innerText = numBalls;
+
+            document.getElementById('thresh-slider').value = threshold;
+            document.getElementById('val-thresh').innerText = threshold;
+
+            document.getElementById('speed-slider').value = speedModifier;
+            document.getElementById('val-speed').innerText = speedModifier;
+
+            document.getElementById('variation-slider').value = speedVariation;
+            document.getElementById('val-var').innerText = speedVariation;
+
+            document.getElementById('chk-lava').checked = lavaMode;
+            document.getElementById('chk-3d').checked = show3d;
+
+            populatePresetsDropdown();
+        }
+
+        function populatePresetsDropdown() {
+            const sel = document.getElementById('style-select');
+            sel.innerHTML = '';
+
+            // Defaults
+            const grp1 = document.createElement('optgroup');
+            grp1.label = "Defaults";
+            for (let k in DEFAULT_PRESETS) {
+                const opt = document.createElement('option');
+                opt.value = k;
+                opt.innerText = DEFAULT_PRESETS[k].name;
+                if (k === currentPresetId) opt.selected = true;
+                grp1.appendChild(opt);
+            }
+            sel.appendChild(grp1);
+
+            // User
+            if (Object.keys(userPresets).length > 0) {
+                const grp2 = document.createElement('optgroup');
+                grp2.label = "My Presets";
+                for (let k in userPresets) {
+                    const opt = document.createElement('option');
+                    opt.value = k;
+                    opt.innerText = userPresets[k].name;
+                    if (k === currentPresetId) opt.selected = true;
+                    grp2.appendChild(opt);
+                }
+                sel.appendChild(grp2);
+            }
+        }
+
+        // --- Ball Logic ---
+        class Ball {
+            constructor() {
+                this.r = Math.random() * 20 + 30; // Radius
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+
+                this.dirX = Math.random() < 0.5 ? 1 : -1;
+                this.dirY = Math.random() < 0.5 ? 1 : -1;
+
+                this.seedX = Math.random();
+                this.seedY = Math.random();
+
+                // Lava physics state
+                this.temp = Math.random(); // 0..1, 1=Hot(rise), 0=Cold(sink)
+            }
+
+            update() {
+                let baseSpeed = 1.5;
+                let spX = baseSpeed + (this.seedX - 0.5) * speedVariation;
+                let spY = baseSpeed + (this.seedY - 0.5) * speedVariation;
+
+                this.x += spX * this.dirX * speedModifier;
+                this.y += spY * this.dirY * speedModifier;
+
+                if (this.x < 0) { this.x = 0; this.dirX *= -1; }
+                else if (this.x > width) { this.x = width; this.dirX *= -1; }
+
+                if (this.y < 0) { this.y = 0; this.dirY *= -1; }
+                else if (this.y > height) { this.y = height; this.dirY *= -1; }
+            }
+
+            updateLava() {
+                // Buoyancy based physics
+
+                // Realism: Only heat/cool when VERY close to source (top/bottom)
+                // This forces them to travel the full distance.
+                const topZone = height * 0.05;
+                const bottomZone = height * 0.05;
+
+                // Slower transfer rate = "stickiness" or dwell time at the ends
+                // They have to sit there to change density enough to move.
+                const transferRate = 0.005 * speedModifier;
+
+                if (this.y > height - bottomZone) {
+                    this.temp += transferRate; // Heat up
+                } else if (this.y < topZone) {
+                    this.temp -= transferRate; // Cool down
+                } else {
+                    // Middle zone - avoid stagnation
+                    // Gently push temp towards extremes to ensure it commits to a direction
+                    // But do it very slowly so they drift
+                    if (this.temp > 0.5) this.temp += 0.0005 * speedModifier;
+                    else this.temp -= 0.0005 * speedModifier;
+                }
+                this.temp = Math.max(0, Math.min(1, this.temp));
+
+                // Movement
+                // Hot -> Up (-y), Cold -> Down (+y)
+                let termVel = 2.0;
+                let vy = (0.5 - this.temp) * termVel;
+
+                // Add some chaotic wander
+                this.x += (Math.random() - 0.5) * speedModifier;
+                this.y += vy * speedModifier;
+
+                // Walls
+                if (this.x < 0) this.x = width;
+                if (this.x > width) this.x = 0;
+
+                // Floor/Ceiling constraints
+                if (this.y > height) this.y = height;
+                if (this.y < 0) this.y = 0;
+            }
+        }
+
+        function initBalls() {
+            balls = [];
+            for (let i = 0; i < numBalls; i++) {
+                balls.push(new Ball());
+            }
+        }
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            gl.viewport(0, 0, width, height);
+            gl.uniform2f(uResolution, width, height);
+            if (balls.length === 0) initBalls();
+        }
+        window.addEventListener('resize', resize);
+
+        // --- Init ---
+        // Need to wait for window to have size before resize() works fully for balls, but resize calls initBalls
+        resize();
+        loadPersistence();
+        if (balls.length != numBalls) initBalls(); // Ensure correct count from load
+
+        // --- Render Loop ---
+        let lastTime = 0;
+        const ballData = new Float32Array(50 * 3);
+
+        function loop(timestamp) {
+            const dt = timestamp - lastTime;
+            lastTime = timestamp;
+            if (dt > 0 && Math.random() < 0.05) fpsDisplay.textContent = `FPS: ${Math.round(1000 / dt)}`;
+
+            // Update Physics
+            for (let i = 0; i < balls.length; i++) {
+                if (lavaMode) {
+                    balls[i].updateLava();
+                } else {
+                    balls[i].update();
+                }
+
+                ballData[i * 3 + 0] = balls[i].x;
+                ballData[i * 3 + 1] = balls[i].y;
+                ballData[i * 3 + 2] = balls[i].r;
+            }
+
+            // Sync Uniforms
+            gl.uniform3fv(uBalls, ballData);
+            gl.uniform1i(uBallCount, balls.length);
+            gl.uniform2f(uMouse, mouse.x, mouse.y);
+            gl.uniform1f(uThreshold, threshold);
+            gl.uniform1f(uPixelSize, pixelSize);
+
+            // STYLE UNIFORMS
+            let p = userPresets[currentPresetId] || DEFAULT_PRESETS[currentPresetId] || DEFAULT_PRESETS['default'];
+            gl.uniform1i(uRenderMode, p.mode);
+            gl.uniform1i(uPaletteSize, p.colors.length);
+            gl.uniform1i(uShow3d, show3d ? 1 : 0);
+
+            // Flatten colors [r,g,b, r,g,b ...]
+            let flatColors = [];
+            for (let c of p.colors) {
+                flatColors.push(...hexToRgb(c));
+            }
+            // Pad to 8 colors (24 floats)
+            while (flatColors.length < 8 * 3) flatColors.push(0, 0, 0);
+
+            gl.uniform3fv(uPalette, new Float32Array(flatColors));
+
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+            requestAnimationFrame(loop);
+
+            // Auto Save Config occasionally or on change? 
+            // Better to save on event.
+        }
+
+        // --- Interactions ---
+        window.addEventListener('mousemove', e => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+
+        document.getElementById('count-slider').addEventListener('input', e => {
+            const val = parseInt(e.target.value);
+            numBalls = val > 50 ? 50 : val;
+            document.getElementById('val-count').innerText = numBalls;
+            while (balls.length < numBalls) balls.push(new Ball());
+            while (balls.length > numBalls) balls.pop();
+            saveConfig();
+        });
+
+        document.getElementById('thresh-slider').addEventListener('input', e => {
+            threshold = parseFloat(e.target.value);
+            document.getElementById('val-thresh').innerText = threshold;
+            saveConfig();
+        });
+
+        document.getElementById('btn-init').addEventListener('click', () => {
+            initBalls();
+        });
+
+        document.getElementById('speed-slider').addEventListener('input', e => {
+            speedModifier = parseFloat(e.target.value);
+            document.getElementById('val-speed').innerText = speedModifier;
+            saveConfig();
+        });
+
+        document.getElementById('variation-slider').addEventListener('input', e => {
+            speedVariation = parseFloat(e.target.value);
+            document.getElementById('val-var').innerText = speedVariation;
+            saveConfig();
+        });
+
+        document.getElementById('chk-lava').addEventListener('change', e => {
+            lavaMode = e.target.checked;
+            saveConfig();
+        });
+
+        document.getElementById('chk-3d').addEventListener('change', e => {
+            show3d = e.target.checked;
+            saveConfig();
+        });
+
+        document.getElementById('style-select').addEventListener('change', e => {
+            currentPresetId = e.target.value;
+            saveConfig();
+        });
+
+        // --- PRESET EDITOR LOGIC ---
+        const editor = document.getElementById('preset-editor');
+        const btnCreate = document.getElementById('btn-create');
+        const btnCancel = document.getElementById('btn-cancel-preset');
+        const btnSave = document.getElementById('btn-save-preset');
+        const colorList = document.getElementById('color-list');
+        const btnAddColor = document.getElementById('btn-add-color');
+
+        btnCreate.addEventListener('click', () => {
+            editor.style.display = 'block';
+            // Init with current
+            const p = userPresets[currentPresetId] || DEFAULT_PRESETS[currentPresetId] || DEFAULT_PRESETS['default'];
+            document.getElementById('edit-name').value = "Copy of " + p.name;
+            document.getElementById('edit-mode').value = p.mode;
+            renderColorInputs(p.colors);
+        });
+
+        btnCancel.addEventListener('click', () => {
+            editor.style.display = 'none';
+        });
+
+        function renderColorInputs(colors) {
+            colorList.innerHTML = '';
+            colors.forEach(c => addColorInput(c));
+        }
+
+        function addColorInput(val) {
+            const div = document.createElement('div');
+            div.style.display = 'flex';
+            div.style.gap = '5px';
+
+            const inp = document.createElement('input');
+            inp.type = 'color';
+            inp.value = val;
+            inp.style.width = '100%';
+            inp.style.border = 'none';
+            inp.style.height = '30px';
+            inp.style.cursor = 'pointer';
+
+            const btnDel = document.createElement('button');
+            btnDel.innerText = 'x';
+            btnDel.style.background = '#e22';
+            btnDel.style.color = 'white';
+            btnDel.style.border = 'none';
+            btnDel.style.cursor = 'pointer';
+            btnDel.onclick = () => div.remove();
+
+            div.appendChild(inp);
+            div.appendChild(btnDel);
+            colorList.appendChild(div);
+        }
+
+        btnAddColor.addEventListener('click', () => {
+            if (colorList.children.length < 8) addColorInput('#ffffff');
+        });
+
+        btnSave.addEventListener('click', () => {
+            const name = document.getElementById('edit-name').value;
+            const mode = parseInt(document.getElementById('edit-mode').value);
+            const inputs = colorList.querySelectorAll('input[type="color"]');
+            const colors = Array.from(inputs).map(i => i.value);
+
+            const id = 'user-' + Date.now();
+            userPresets[id] = { name, mode, colors };
+
+            saveUserPresets();
+
+            currentPresetId = id;
+            saveConfig(); // Save selection
+
+            populatePresetsDropdown();
+            editor.style.display = 'none';
+        });
+
+        // Minimize Logic
+        const ui = document.getElementById('ui');
+        const uiMin = document.getElementById('ui-minimized');
+        const btnMin = document.getElementById('btn-minimize');
+
+        btnMin.addEventListener('click', () => {
+            ui.style.display = 'none';
+            uiMin.style.display = 'flex';
+        });
+
+        uiMin.addEventListener('click', () => {
+            ui.style.display = 'block';
+            uiMin.style.display = 'none';
+        });
+
+        // Go
+        initBalls();
+        loop(0);
+
+    </script>
+</body>
+
+</html>
