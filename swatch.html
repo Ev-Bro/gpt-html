@@ -665,8 +665,22 @@ print(f"Added ColorRamp with {len(colors)} stops to '{mat.name}'")
                 <p class="text-[11px] text-neutral-600">custom</p>
                 <button id="clearCustomBtn" class="text-[10px] text-neutral-600 hover:text-white transition-colors">clear</button>
                 <button id="sortCustomBtn" class="text-[10px] text-neutral-600 hover:text-white transition-colors">sort</button>
+                <button id="undoCustomBtn" class="text-[10px] text-neutral-600 hover:text-white transition-colors">undo</button>
+                <button id="redoCustomBtn" class="text-[10px] text-neutral-600 hover:text-white transition-colors">redo</button>
                 <button id="customBlenderBtn" class="text-[10px] text-neutral-600 hover:text-white transition-colors" title="Copy Blender ColorRamp script">blender.py</button>
             `;
+            header.querySelector('#undoCustomBtn').onclick = () => {
+                if (undoStack.length === 0) return;
+                redoStack.push([...customColors]);
+                customColors = undoStack.pop();
+                renderCustomSection();
+            };
+            header.querySelector('#redoCustomBtn').onclick = () => {
+                if (redoStack.length === 0) return;
+                undoStack.push([...customColors]);
+                customColors = redoStack.pop();
+                renderCustomSection();
+            };
             header.querySelector('#clearCustomBtn').onclick = () => { saveCustomSnapshot(); customColors = []; renderCustomSection(); };
             header.querySelector('#sortCustomBtn').onclick = () => {
                 if (customColors.length < 2) return;
