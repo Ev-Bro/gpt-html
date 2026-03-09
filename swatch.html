@@ -10,7 +10,7 @@
         href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎨</text></svg>">
     <title>color swatch generator</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>tailwind.config = { safelist: ['grid-cols-3', 'grid-cols-4', 'grid-cols-5', 'grid-cols-6', 'grid-cols-7', 'grid-cols-8'] }</script>
+    <script>tailwind.config = { safelist: ['grid-cols-2', 'grid-cols-3', 'grid-cols-4', 'grid-cols-5', 'grid-cols-6', 'grid-cols-7'] }</script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
     <style>
@@ -60,6 +60,26 @@
             border: none;
             cursor: pointer;
         }
+
+        /* #46 Responsive layout */
+        @media (max-width: 768px) {
+            .main-layout {
+                flex-direction: column !important;
+            }
+
+            .sidebar {
+                width: 100% !important;
+                min-width: 0 !important;
+                max-height: 50vh;
+                border-right: none !important;
+                border-bottom: 1px solid #262626 !important;
+            }
+
+            .swatch {
+                height: 40px !important;
+                min-height: 40px;
+            }
+        }
     </style>
 </head>
 
@@ -70,9 +90,9 @@
         <p class="text-[11px] text-neutral-600">drop, browse, or ctrl+v an image to extract colors</p>
     </header>
 
-    <div class="flex h-[calc(100vh-45px)]">
+    <div class="flex h-[calc(100vh-45px)] main-layout">
 
-        <div class="w-80 min-w-[320px] border-r border-neutral-800 flex flex-col overflow-y-auto">
+        <div class="w-80 min-w-[320px] border-r border-neutral-800 flex flex-col overflow-y-auto sidebar">
             <div id="dropZone"
                 class="relative group border-b border-neutral-800 p-5 text-center cursor-pointer hover:bg-neutral-900/50 transition-colors">
                 <input type="file" id="fileInput" class="hidden" accept="image/*">
@@ -80,47 +100,50 @@
                     <p class="text-xs text-neutral-500 py-6">drop image · browse · ctrl+v</p>
                 </div>
                 <div id="previewContainer" class="hidden flex flex-col items-center">
-                    <img id="imagePreview" class="max-h-40 max-w-full border border-neutral-800 mb-2" src=""
-                        alt="Preview">
-                    <button id="resetBtn" class="text-[10px] text-neutral-500 hover:text-white underline">reset</button>
+                    <div class="relative inline-block">
+                        <img id="imagePreview" class="max-h-40 max-w-full border border-neutral-800" src=""
+                            alt="Preview">
+                        <canvas id="colorMapCanvas"
+                            class="absolute top-0 left-0 w-full h-full border border-neutral-800 hidden"
+                            style="pointer-events:none;"></canvas>
+                    </div>
+                    <button id="resetBtn"
+                        class="text-[10px] text-neutral-500 hover:text-white underline mt-2">reset</button>
                 </div>
             </div>
 
             <div id="configPanel" class="hidden flex-1">
-                <div class="px-4 py-3 border-b border-neutral-800">
-                    <span class="text-[10px] text-neutral-600 uppercase tracking-wider">settings</span>
-                </div>
                 <div class="px-4 py-3 space-y-4">
-                    <div>
-                        <div class="flex justify-between items-center mb-1">
-                            <label class="text-[11px] text-neutral-500">sample_res</label>
-                            <span id="sampleResVal" class="text-[11px] text-white">300</span>
+                    <div class="flex gap-4">
+                        <div class="flex-1">
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="text-[11px] text-neutral-500">sample_res</label>
+                                <span id="sampleResVal" class="text-[11px] text-white">300</span>
+                            </div>
+                            <input type="range" id="sampleRes" min="50" max="300" value="300" step="10">
                         </div>
-                        <input type="range" id="sampleRes" min="50" max="300" value="300" step="10">
+                        <div class="flex-1">
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="text-[11px] text-neutral-500">max_iter</label>
+                                <span id="maxIterVal" class="text-[11px] text-white">60</span>
+                            </div>
+                            <input type="range" id="maxIter" min="5" max="60" value="60" step="1">
+                        </div>
                     </div>
-                    <div>
-                        <div class="flex justify-between items-center mb-1">
-                            <label class="text-[11px] text-neutral-500">max_iter</label>
-                            <span id="maxIterVal" class="text-[11px] text-white">60</span>
-                        </div>
-                        <input type="range" id="maxIter" min="5" max="60" value="60" step="1">
-                    </div>
-                    <div>
-                        <div class="flex justify-between items-center mb-1">
-                            <label class="text-[11px] text-neutral-500">diversity</label>
-                            <span id="diversityVal" class="text-[11px] text-white">5.0</span>
-                        </div>
-                        <input type="range" id="diversityBias" min="0.5" max="5.0" value="5.0" step="0.1">
-                    </div>
-                    <div>
-                        <div class="flex justify-between items-center mb-1">
-                            <label class="text-[11px] text-neutral-500">min_dist</label>
-                            <span id="minDistVal" class="text-[11px] text-white">80</span>
-                        </div>
-                        <input type="range" id="minColorDist" min="0" max="80" value="80" step="1">
+                    <div class="flex items-center justify-center gap-2 flex-nowrap whitespace-nowrap">
+                        <span id="sortMode" data-mode="hue"
+                            class="text-[11px] text-white cursor-pointer hover:text-white transition-colors select-none"
+                            style="white-space:nowrap">sort: hue</span>
+                        <span class="text-[11px] text-neutral-600 select-none">&nbsp;|&nbsp;</span>
+                        <span id="exactColors"
+                            class="text-[11px] text-neutral-600 cursor-pointer hover:text-white transition-colors select-none">exact_colors</span>
+                        <span class="text-[11px] text-neutral-600 select-none">&nbsp;|&nbsp;</span>
+                        <span id="excludeBg"
+                            class="text-[11px] text-neutral-600 cursor-pointer hover:text-white transition-colors select-none">exclude_bg</span>
                     </div>
                 </div>
             </div>
+
             <div class="mt-auto">
                 <button id="helpToggle"
                     class="px-4 py-2 text-[10px] text-neutral-500 hover:text-white transition-colors"
@@ -129,19 +152,26 @@
                     <div class="px-4 py-3 border-t border-neutral-800 space-y-1">
                         <p class="text-[10px] text-neutral-600 uppercase tracking-wider mb-2">general</p>
                         <p class="text-[10px] text-neutral-600">drop, browse, or ctrl+v an image</p>
+                        <p class="text-[10px] text-neutral-600">transparent pixels (PNG) are ignored</p>
+                        <p class="text-[10px] text-neutral-600">hover swatches to see HEX, RGB, and HSL</p>
                         <p class="text-[10px] text-neutral-600">click any swatch to copy its hex</p>
-                        <p class="text-[10px] text-neutral-600">adjust sliders to re-extract live</p>
                         <p class="text-[10px] text-neutral-600">"copy" copies all hex values for a row</p>
+                        <p class="text-[10px] text-neutral-600">"map" shows a color map overlay on preview</p>
                         <p class="text-[10px] text-neutral-600">"blender.py" copies a ColorRamp script</p>
+                    </div>
+                    <div class="px-4 py-3 border-t border-neutral-800 space-y-1">
+                        <p class="text-[10px] text-neutral-600 uppercase tracking-wider mb-2">settings</p>
+                        <p class="text-[10px] text-neutral-600">sort: cycles hue → light → lum → grad</p>
+                        <p class="text-[10px] text-neutral-600">exact_colors: snap to real pixel colors</p>
+                        <p class="text-[10px] text-neutral-600">exclude_bg: detect + remove background</p>
                     </div>
                     <div class="px-4 py-3 border-t border-neutral-800 space-y-1">
                         <p class="text-[10px] text-neutral-600 uppercase tracking-wider mb-2">custom palette</p>
                         <p class="text-[10px] text-neutral-600">"customize" sends a full row to custom</p>
                         <p class="text-[10px] text-neutral-600">drag any swatch to add it to custom</p>
-                        <p class="text-[10px] text-neutral-600">drag within custom to reorder</p>
                         <p class="text-[10px] text-neutral-600">click a custom swatch to remove it</p>
-                        <p class="text-[10px] text-neutral-600">"clear" removes all custom swatches</p>
-                        <p class="text-[10px] text-neutral-600">"sort" orders by hue then lightness</p>
+                        <p class="text-[10px] text-neutral-600">drag within custom to reorder</p>
+                        <p class="text-[10px] text-neutral-600">"sort" applies the active sort mode</p>
                         <p class="text-[10px] text-neutral-600">ctrl+z undo · ctrl+shift+z redo</p>
                     </div>
                 </div>
@@ -154,12 +184,12 @@
                     <p class="text-xs text-neutral-500 animate-pulse">extracting...</p>
                 </div>
                 <div id="paletteGrids" class="p-5 space-y-4">
+                    <section id="section-2"></section>
                     <section id="section-3"></section>
                     <section id="section-4"></section>
                     <section id="section-5"></section>
                     <section id="section-6"></section>
                     <section id="section-7"></section>
-                    <section id="section-8"></section>
                     <div class="border-t border-neutral-800 my-3"></div>
                     <section id="section-custom"></section>
                 </div>
@@ -193,25 +223,77 @@
         // State
         let currentImg = null;
         let reExtractTimer = null;
+        let extractionGen = 0;
+
+
+        // Copy format cycling
+        const _copyFormats = ['hex', 'css', 'scss', 'tailwind', 'json'];
+        function formatCopyText(colors, mode) {
+            switch (mode) {
+                case 'css':
+                    return ':root {\n' + colors.map((h, i) => `  --color-${i + 1}: ${h};`).join('\n') + '\n}';
+                case 'scss':
+                    return colors.map((h, i) => `$color-${i + 1}: ${h};`).join('\n');
+                case 'tailwind':
+                    return JSON.stringify(Object.fromEntries(colors.map((h, i) => [`color-${i + 1}`, h.toLowerCase()])), null, 2);
+                case 'json':
+                    return JSON.stringify(colors);
+                default: // hex
+                    return colors.join('\n');
+            }
+        }
 
         // [OPT 3] Precomputed sRGB-to-linear lookup table (256 entries)
-        const SRGB_LUT = new Float64Array(256);
+        // [OPT-D] Float32 is sufficient (values 0–1, ~7 decimal digits)
+        const SRGB_LUT = new Float32Array(256);
         for (let i = 0; i < 256; i++) {
             const c = i / 255;
             SRGB_LUT[i] = c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
         }
 
-        // Config (live-reads slider values)
+        // [OPT] Top-level rgbToLab — shared by processImage, renderColorMap, sortByGradient
+        function rgbToLab(r, g, b) {
+            const lr = SRGB_LUT[r], lg = SRGB_LUT[g], lb = SRGB_LUT[b];
+            let x = (lr * 0.4124564 + lg * 0.3575761 + lb * 0.1804375) / 0.95047;
+            let y = (lr * 0.2126729 + lg * 0.7151522 + lb * 0.0721750);
+            let z = (lr * 0.0193339 + lg * 0.1191920 + lb * 0.9503041) / 1.08883;
+            x = x > 0.008856 ? Math.cbrt(x) : 7.787 * x + 16 / 116;
+            y = y > 0.008856 ? Math.cbrt(y) : 7.787 * y + 16 / 116;
+            z = z > 0.008856 ? Math.cbrt(z) : 7.787 * z + 16 / 116;
+            return [116 * y - 16, 500 * (x - y), 200 * (y - z)];
+        }
+        // [OPT-C] Allocation-free variant: writes L,a,b directly into a typed array
+        function rgbToLabInto(r, g, b, out, off) {
+            const lr = SRGB_LUT[r], lg = SRGB_LUT[g], lb = SRGB_LUT[b];
+            let x = (lr * 0.4124564 + lg * 0.3575761 + lb * 0.1804375) / 0.95047;
+            let y = (lr * 0.2126729 + lg * 0.7151522 + lb * 0.0721750);
+            let z = (lr * 0.0193339 + lg * 0.1191920 + lb * 0.9503041) / 1.08883;
+            x = x > 0.008856 ? Math.cbrt(x) : 7.787 * x + 16 / 116;
+            y = y > 0.008856 ? Math.cbrt(y) : 7.787 * y + 16 / 116;
+            z = z > 0.008856 ? Math.cbrt(z) : 7.787 * z + 16 / 116;
+            out[off] = 116 * y - 16; out[off + 1] = 500 * (x - y); out[off + 2] = 200 * (y - z);
+        }
+        const _labTmp = new Float32Array(3); // scratch buffer for single-pixel LAB conversions
+
+        // [OPT 9] Cached DOM element refs for config
+        const _sampleResEl = document.getElementById('sampleRes');
+        const _maxIterEl = document.getElementById('maxIter');
+        const _exactColorsEl = document.getElementById('exactColors');
+        const _excludeBgEl = document.getElementById('excludeBg');
+        const _sortModeEl = document.getElementById('sortMode');
         const cfg = {
-            get sampleRes() { return parseInt(document.getElementById('sampleRes').value); },
-            get maxIter() { return parseInt(document.getElementById('maxIter').value); },
-            get diversityBias() { return parseFloat(document.getElementById('diversityBias').value); },
-            get minColorDist() { return parseFloat(document.getElementById('minColorDist').value); },
+            get sampleRes() { return parseInt(_sampleResEl.value); },
+            get maxIter() { return parseInt(_maxIterEl.value); },
+            get diversityBias() { return 5.0; },
+            get minColorDist() { return 80; },
+            get exactColors() { return _exactColorsEl.dataset.on === '1'; },
+            get excludeBg() { return _excludeBgEl.dataset.on === '1'; },
+            get sortMode() { return _sortModeEl.dataset.mode || 'hue'; },
         };
 
         // Slider wiring: update labels + debounced re-extract
-        const labelMap = { sampleRes: 'sampleResVal', maxIter: 'maxIterVal', diversityBias: 'diversityVal', minColorDist: 'minDistVal' };
-        ['sampleRes', 'maxIter', 'diversityBias', 'minColorDist'].forEach(id => {
+        const labelMap = { sampleRes: 'sampleResVal', maxIter: 'maxIterVal' };
+        ['sampleRes', 'maxIter'].forEach(id => {
             const slider = document.getElementById(id);
             slider.addEventListener('input', () => {
                 document.getElementById(labelMap[id]).textContent = slider.value;
@@ -221,6 +303,51 @@
                 }
             });
         });
+        document.getElementById('exactColors').addEventListener('click', () => {
+            const el = document.getElementById('exactColors');
+            const on = el.dataset.on !== '1';
+            el.dataset.on = on ? '1' : '0';
+            el.classList.toggle('text-white', on);
+            el.classList.toggle('text-neutral-600', !on);
+            if (currentImg) {
+                clearTimeout(reExtractTimer);
+                reExtractTimer = setTimeout(() => processImage(currentImg), 300);
+            }
+        });
+        // Wire up exclude_bg toggle
+        document.getElementById('excludeBg').addEventListener('click', () => {
+            const el = document.getElementById('excludeBg');
+            const on = el.dataset.on !== '1';
+            el.dataset.on = on ? '1' : '0';
+            el.classList.toggle('text-white', on);
+            el.classList.toggle('text-neutral-600', !on);
+            if (currentImg) {
+                clearTimeout(reExtractTimer);
+                reExtractTimer = setTimeout(() => processImage(currentImg), 300);
+            }
+        });
+
+        // Sort mode cycling
+        const sortModes = ['hue', 'light', 'lum', 'grad'];
+        document.getElementById('sortMode').addEventListener('click', () => {
+            const el = document.getElementById('sortMode');
+            const idx = (sortModes.indexOf(el.dataset.mode) + 1) % sortModes.length;
+            el.dataset.mode = sortModes[idx];
+            el.textContent = `sort: ${sortModes[idx]}`;
+            if (currentImg) {
+                clearTimeout(reExtractTimer);
+                reExtractTimer = setTimeout(() => processImage(currentImg), 300);
+            }
+        });
+
+        // Global sort dispatcher
+        function applySortMode(arr) {
+            const mode = cfg.sortMode;
+            if (mode === 'light') return sortByLightness(arr);
+            if (mode === 'lum') return sortByLuminance(arr);
+            if (mode === 'grad') return sortByGradient(arr);
+            return sortByHue(arr);
+        }
 
         // Events: click, drag, paste
         dropZone.onclick = () => fileInput.click();
@@ -248,6 +375,7 @@
             previewContainer.classList.add('hidden');
             results.classList.add('hidden');
             configPanel.classList.add('hidden');
+
         };
 
         // Image handling
@@ -270,6 +398,101 @@
             reader.readAsDataURL(file);
         }
 
+        // [OPT 2] Worker blob created once at init
+        const workerCode = `
+            self.onmessage = function(e) {
+                const { rgbFlat, labFlat, n, k, maxIter, diversityBias, minColorDist, exactColors, seed } = e.data;
+                // Deterministic PRNG (mulberry32)
+                let _s = seed | 0;
+                function rand() { _s |= 0; _s = _s + 0x6D2B79F5 | 0; let t = Math.imul(_s ^ _s >>> 15, 1 | _s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }
+                function labDistSq(a0,a1,a2,b0,b1,b2) { const d0=a0-b0,d1=a1-b1,d2=a2-b2; return d0*d0+d1*d1+d2*d2; }
+                const centroids = new Float32Array(k * 3);
+                const firstIdx = Math.floor(rand() * n) * 3;
+                centroids[0] = labFlat[firstIdx]; centroids[1] = labFlat[firstIdx + 1]; centroids[2] = labFlat[firstIdx + 2];
+                const dists = new Float32Array(n);
+                for (let c = 1; c < k; c++) {
+                    let totalDist = 0;
+                    for (let i = 0; i < n; i++) {
+                        const o = i * 3; let minD = Infinity;
+                        for (let ci = 0; ci < c; ci++) {
+                            const co = ci * 3;
+                            const dL = labFlat[o] - centroids[co], da = labFlat[o+1] - centroids[co+1], db = labFlat[o+2] - centroids[co+2];
+                            const d = dL*dL + da*da + db*db;
+                            if (d < minD) minD = d;
+                        }
+                        dists[i] = Math.pow(minD, diversityBias); totalDist += dists[i];
+                    }
+                    let r = rand() * totalDist; let picked = false;
+                    for (let i = 0; i < n; i++) { r -= dists[i]; if (r <= 0) { const o = i*3, co = c*3; centroids[co]=labFlat[o]; centroids[co+1]=labFlat[o+1]; centroids[co+2]=labFlat[o+2]; picked=true; break; } }
+                    if (!picked) { const f = Math.floor(rand()*n)*3, co = c*3; centroids[co]=labFlat[f]; centroids[co+1]=labFlat[f+1]; centroids[co+2]=labFlat[f+2]; }
+                }
+                const assignments = new Uint8Array(n);
+                const sumL = new Float32Array(k), sumA = new Float32Array(k), sumB = new Float32Array(k), counts = new Uint32Array(k);
+                for (let iter = 0; iter < maxIter; iter++) {
+                    for (let i = 0; i < n; i++) {
+                        const o = i*3; const pL = labFlat[o], pa = labFlat[o+1], pb = labFlat[o+2];
+                        let minDist = Infinity, idx = 0;
+                        for (let ci = 0; ci < k; ci++) { const co = ci*3; const dL = pL-centroids[co], da = pa-centroids[co+1], db = pb-centroids[co+2]; const d = dL*dL+da*da+db*db; if (d < minDist) { minDist = d; idx = ci; } }
+                        assignments[i] = idx;
+                    }
+                    sumL.fill(0); sumA.fill(0); sumB.fill(0); counts.fill(0);
+                    for (let i = 0; i < n; i++) { const o = i*3, ci = assignments[i]; sumL[ci] += labFlat[o]; sumA[ci] += labFlat[o+1]; sumB[ci] += labFlat[o+2]; counts[ci]++; }
+                    let converged = true;
+                    for (let ci = 0; ci < k; ci++) { const co = ci*3; if (counts[ci]===0) continue; const nL=sumL[ci]/counts[ci], nA=sumA[ci]/counts[ci], nB=sumB[ci]/counts[ci]; const dL=nL-centroids[co], da=nA-centroids[co+1], db=nB-centroids[co+2]; if (dL*dL+da*da+db*db>0.5) converged=false; centroids[co]=nL; centroids[co+1]=nA; centroids[co+2]=nB; }
+                    if (converged) break;
+                }
+                if (minColorDist > 0) {
+                    const minDistSq = minColorDist * minColorDist;
+                    for (let i = 0; i < k; i++) for (let j = i+1; j < k; j++) {
+                        const io = i*3, jo = j*3;
+                        if (labDistSq(centroids[io],centroids[io+1],centroids[io+2],centroids[jo],centroids[jo+1],centroids[jo+2]) < minDistSq) {
+                            let bestIdx=0, bestDist=0;
+                            for (let pi=0; pi<n; pi++) { const po=pi*3; let nearest=Infinity; for (let ci=0; ci<k; ci++) { if(ci===j) continue; const co=ci*3; const d=labDistSq(labFlat[po],labFlat[po+1],labFlat[po+2],centroids[co],centroids[co+1],centroids[co+2]); if(d<nearest) nearest=d; } if(nearest>bestDist){bestDist=nearest;bestIdx=pi;} }
+                            const bo=bestIdx*3; centroids[jo]=labFlat[bo]; centroids[jo+1]=labFlat[bo+1]; centroids[jo+2]=labFlat[bo+2];
+                        }
+                    }
+                }
+                const finalCounts = new Uint32Array(k);
+                for (let i=0; i<n; i++) { const o=i*3; let minD=Infinity, idx=0; for (let ci=0; ci<k; ci++) { const co=ci*3; const dL=labFlat[o]-centroids[co],da=labFlat[o+1]-centroids[co+1],db=labFlat[o+2]-centroids[co+2]; const d=dL*dL+da*da+db*db; if(d<minD){minD=d;idx=ci;}} finalCounts[idx]++; }
+                const rgbResults = [];
+                if (exactColors) {
+                    for (let ci=0; ci<k; ci++) { const co=ci*3; let bI=0,bD=Infinity; for(let i=0;i<n;i++){const o=i*3;const d=labDistSq(labFlat[o],labFlat[o+1],labFlat[o+2],centroids[co],centroids[co+1],centroids[co+2]);if(d<bD){bD=d;bI=i;}} const bo=bI*3; rgbResults.push([rgbFlat[bo],rgbFlat[bo+1],rgbFlat[bo+2]]); }
+                } else {
+                    for (let ci=0; ci<k; ci++) { const co=ci*3; const L=centroids[co],a=centroids[co+1],bVal=centroids[co+2]; let fy=(L+16)/116,fx=a/500+fy,fz=fy-bVal/200; let x=fx>0.206897?fx*fx*fx:(fx-16/116)/7.787; let y=fy>0.206897?fy*fy*fy:(fy-16/116)/7.787; let z=fz>0.206897?fz*fz*fz:(fz-16/116)/7.787; x*=0.95047;z*=1.08883; let lr=3.2404542*x-1.5371385*y-0.4985314*z; let lg=-0.9692660*x+1.8760108*y+0.0415560*z; let lb=0.0556434*x-0.2040259*y+1.0572252*z; const toS=c=>c<=0.0031308?12.92*c:1.055*Math.pow(c,1/2.4)-0.055; rgbResults.push([Math.max(0,Math.min(255,Math.round(toS(lr)*255))),Math.max(0,Math.min(255,Math.round(toS(lg)*255))),Math.max(0,Math.min(255,Math.round(toS(lb)*255)))]); }
+                }
+                self.postMessage({ rgbResults, finalCounts: Array.from(finalCounts), centroids: Array.from(centroids), k });
+            };
+        `;
+        const workerBlob = new Blob([workerCode], { type: 'application/javascript' });
+        const workerUrl = URL.createObjectURL(workerBlob);
+        // [OPT-A] Persistent worker pool (reuses workers across extractions)
+        // [OPT-B] Dynamic pool sizing based on CPU core count
+        const POOL_SIZE = navigator.hardwareConcurrency || 4;
+        const _pool = [];
+        const _taskQueue = [];
+        for (let i = 0; i < POOL_SIZE; i++) {
+            const w = new Worker(workerUrl);
+            w._busy = false;
+            _pool.push(w);
+        }
+        function enqueueWorkerTask(data, callback) {
+            const idle = _pool.find(w => !w._busy);
+            if (idle) {
+                idle._busy = true;
+                idle.onmessage = (e) => {
+                    idle._busy = false;
+                    callback(e);
+                    if (_taskQueue.length > 0) {
+                        const next = _taskQueue.shift();
+                        enqueueWorkerTask(next.data, next.callback);
+                    }
+                };
+                idle.postMessage(data);
+            } else {
+                _taskQueue.push({ data, callback });
+            }
+        }
+
         function processImage(img) {
             currentImg = img;
             configPanel.classList.remove('hidden');
@@ -280,45 +503,160 @@
             ctx.drawImage(img, 0, 0, thumbSize, thumbSize);
             const imageData = ctx.getImageData(0, 0, thumbSize, thumbSize).data;
 
-            // [OPT 5] Deduplicate pixels via 6-bit quantization (>>2 per channel = 18-bit key)
-            const seen = new Uint8Array(262144); // 2^18 buckets
-            const uniqueRgb = [];  // flat: [r,g,b, r,g,b, ...]
+            // [#24] Collect non-transparent pixels
+            // [OPT-E] Pre-allocated Uint8Array avoids repeated .push() reallocations
+            const maxPixels = thumbSize * thumbSize * 3;
+            const opaqueRgb = new Uint8Array(maxPixels);
+            let opaqueCount = 0;
             for (let i = 0; i < imageData.length; i += 4) {
-                const r = imageData[i], g = imageData[i + 1], b = imageData[i + 2];
-                const key = ((r >> 2) << 12) | ((g >> 2) << 6) | (b >> 2);
-                if (!seen[key]) {
-                    seen[key] = 1;
-                    uniqueRgb.push(r, g, b);
+                if (imageData[i + 3] < 128) continue;
+                opaqueRgb[opaqueCount++] = imageData[i];
+                opaqueRgb[opaqueCount++] = imageData[i + 1];
+                opaqueRgb[opaqueCount++] = imageData[i + 2];
+            }
+            const opaqueView = opaqueRgb.subarray(0, opaqueCount);
+
+            // [#19] Background exclusion via corner sampling
+            let filteredRgb = opaqueView;
+            let filteredCount = opaqueCount;
+            if (cfg.excludeBg && opaqueCount >= 12) {
+                const w = thumbSize, h = thumbSize;
+                const corners = [
+                    [imageData[0], imageData[1], imageData[2]],
+                    [imageData[(w - 1) * 4], imageData[(w - 1) * 4 + 1], imageData[(w - 1) * 4 + 2]],
+                    [imageData[(h - 1) * w * 4], imageData[(h - 1) * w * 4 + 1], imageData[(h - 1) * w * 4 + 2]],
+                    [imageData[((h - 1) * w + w - 1) * 4], imageData[((h - 1) * w + w - 1) * 4 + 1], imageData[((h - 1) * w + w - 1) * 4 + 2]],
+                ];
+                const cornerLabs = corners.map(c => rgbToLab(c[0], c[1], c[2]));
+                let bgLab = null;
+                for (let i = 0; i < 4; i++) {
+                    let similar = 0;
+                    for (let j = 0; j < 4; j++) {
+                        if (i !== j && labDistSq(cornerLabs[i][0], cornerLabs[i][1], cornerLabs[i][2],
+                            cornerLabs[j][0], cornerLabs[j][1], cornerLabs[j][2]) < 625) similar++;
+                    }
+                    if (similar >= 2) { bgLab = cornerLabs[i]; break; }
+                }
+                if (bgLab) {
+                    const kept = new Uint8Array(opaqueCount);
+                    let keptCount = 0;
+                    for (let i = 0; i < opaqueCount; i += 3) {
+                        rgbToLabInto(opaqueView[i], opaqueView[i + 1], opaqueView[i + 2], _labTmp, 0);
+                        if (labDistSq(_labTmp[0], _labTmp[1], _labTmp[2], bgLab[0], bgLab[1], bgLab[2]) >= 625) {
+                            kept[keptCount++] = opaqueView[i];
+                            kept[keptCount++] = opaqueView[i + 1];
+                            kept[keptCount++] = opaqueView[i + 2];
+                        }
+                    }
+                    if (keptCount >= 24) { filteredRgb = kept.subarray(0, keptCount); filteredCount = keptCount; }
                 }
             }
 
-            // [OPT 2] Store pixels as flat typed arrays
-            const pixelCount = uniqueRgb.length / 3;
-            const rgbFlat = new Uint8Array(uniqueRgb);
-            const labFlat = new Float64Array(pixelCount * 3);
-
-            // [OPT 1] Precompute Lab once for all 6 k-means runs
-            for (let i = 0; i < pixelCount; i++) {
-                const o = i * 3;
-                const lr = SRGB_LUT[rgbFlat[o]];
-                const lg = SRGB_LUT[rgbFlat[o + 1]];
-                const lb = SRGB_LUT[rgbFlat[o + 2]];
-                let x = (lr * 0.4124564 + lg * 0.3575761 + lb * 0.1804375) / 0.95047;
-                let y = (lr * 0.2126729 + lg * 0.7151522 + lb * 0.0721750);
-                let z = (lr * 0.0193339 + lg * 0.1191920 + lb * 0.9503041) / 1.08883;
-                x = x > 0.008856 ? Math.cbrt(x) : 7.787 * x + 16 / 116;
-                y = y > 0.008856 ? Math.cbrt(y) : 7.787 * y + 16 / 116;
-                z = z > 0.008856 ? Math.cbrt(z) : 7.787 * z + 16 / 116;
-                labFlat[o] = 116 * y - 16;
-                labFlat[o + 1] = 500 * (x - y);
-                labFlat[o + 2] = 200 * (y - z);
+            // [OPT 5] Deduplicate pixels via 6-bit quantization
+            // [OPT-E] Pre-allocated Uint8Array avoids .push() reallocations
+            const seen = new Uint8Array(262144);
+            const uniqueRgb = new Uint8Array(filteredCount);
+            let uniqueCount = 0;
+            for (let i = 0; i < filteredCount; i += 3) {
+                const r = filteredRgb[i], g = filteredRgb[i + 1], b = filteredRgb[i + 2];
+                const key = ((r >> 2) << 12) | ((g >> 2) << 6) | (b >> 2);
+                if (!seen[key]) { seen[key] = 1; uniqueRgb[uniqueCount++] = r; uniqueRgb[uniqueCount++] = g; uniqueRgb[uniqueCount++] = b; }
             }
 
-            [3, 4, 5, 6, 7, 8].forEach(count => {
-                renderPalette(count, extractDominantColors(rgbFlat, labFlat, pixelCount, count));
+            const rgbFlat = uniqueRgb.subarray(0, uniqueCount);
+            const pixelCount = uniqueCount / 3;
+            // [OPT-D] Float32 halves memory; CIELAB values don't need 64-bit precision
+            const labFlat = new Float32Array(pixelCount * 3);
+
+            // [OPT-C] Write directly into labFlat, no intermediate array allocation
+            for (let i = 0; i < pixelCount; i++) {
+                rgbToLabInto(rgbFlat[i * 3], rgbFlat[i * 3 + 1], rgbFlat[i * 3 + 2], labFlat, i * 3);
+            }
+
+            // Compute deterministic seed from pixel data
+            let pixelHash = 0x811c9dc5;
+            for (let i = 0; i < rgbFlat.length; i++) {
+                pixelHash ^= rgbFlat[i];
+                pixelHash = Math.imul(pixelHash, 0x01000193);
+            }
+
+            // [OPT-A] Dispatch via persistent worker pool
+            const gen = ++extractionGen;
+            _taskQueue.length = 0; // flush pending tasks from previous extraction
+            let completed = 0;
+
+            [2, 3, 4, 5, 6, 7].forEach(count => {
+                enqueueWorkerTask({
+                    rgbFlat: rgbFlat, labFlat: labFlat, n: pixelCount, k: count,
+                    maxIter: cfg.maxIter, diversityBias: cfg.diversityBias,
+                    minColorDist: cfg.minColorDist, exactColors: cfg.exactColors,
+                    seed: (pixelHash ^ count) >>> 0
+                }, (e) => {
+                    if (gen !== extractionGen) return; // discard stale results
+                    const { rgbResults, finalCounts } = e.data;
+                    const totalPixels = finalCounts.reduce((s, c) => s + c, 0);
+                    const paired = rgbResults.map((c, i) => ({ rgb: c, weight: totalPixels > 0 ? finalCounts[i] / totalPixels * 100 : 0 }));
+                    const hexes = paired.map(p => rgbToHex(p.rgb[0], p.rgb[1], p.rgb[2]));
+                    const weightsMap = new Map(paired.map((p, i) => [rgbToHex(p.rgb[0], p.rgb[1], p.rgb[2]), p.weight]));
+                    const sorted = applySortMode(hexes);
+                    const colors = sorted;
+                    const weights = sorted.map(h => weightsMap.get(h) || 0);
+                    renderPalette(count, colors, weights);
+
+                    completed++;
+                    if (completed === 6) {
+                        loader.classList.add('hidden');
+                        paletteGrids.classList.remove('hidden');
+                    }
+                });
             });
-            loader.classList.add('hidden');
-            paletteGrids.classList.remove('hidden');
+            document.getElementById('colorMapCanvas').classList.add('hidden');
+        }
+
+        // [#55] Color map overlay: paint each pixel with its cluster color
+        function renderColorMap(img, colors) {
+            const mapCanvas = document.getElementById('colorMapCanvas');
+            const previewImg = document.getElementById('imagePreview');
+            const mapSize = 150; // render resolution
+            const tmpCanvas = document.createElement('canvas');
+            tmpCanvas.width = mapSize; tmpCanvas.height = mapSize;
+            const tmpCtx = tmpCanvas.getContext('2d');
+            tmpCtx.drawImage(img, 0, 0, mapSize, mapSize);
+            const imgData = tmpCtx.getImageData(0, 0, mapSize, mapSize);
+            const px = imgData.data;
+
+            // [OPT 4] Reuse top-level rgbToLab
+            const paletteLabs = colors.map(hex => {
+                const [r, g, b] = hexToRgb(hex);
+                return rgbToLab(r, g, b);
+            });
+            const paletteRgbs = colors.map(hex => [parseInt(hex.substring(1, 3), 16), parseInt(hex.substring(3, 5), 16), parseInt(hex.substring(5, 7), 16)]);
+
+            // [OPT 4] Assign each pixel to nearest cluster using top-level rgbToLab
+            // [OPT-C] Use allocation-free rgbToLabInto with scratch buffer
+            for (let i = 0; i < px.length; i += 4) {
+                rgbToLabInto(px[i], px[i + 1], px[i + 2], _labTmp, 0);
+                const pL = _labTmp[0], pa = _labTmp[1], pb = _labTmp[2];
+
+                let bestIdx = 0, bestDist = Infinity;
+                for (let ci = 0; ci < paletteLabs.length; ci++) {
+                    const dL = pL - paletteLabs[ci][0], da = pa - paletteLabs[ci][1], db = pb - paletteLabs[ci][2];
+                    const d = dL * dL + da * da + db * db;
+                    if (d < bestDist) { bestDist = d; bestIdx = ci; }
+                }
+                px[i] = paletteRgbs[bestIdx][0];
+                px[i + 1] = paletteRgbs[bestIdx][1];
+                px[i + 2] = paletteRgbs[bestIdx][2];
+            }
+            tmpCtx.putImageData(imgData, 0, 0);
+
+            // Draw onto the visible overlay canvas
+            mapCanvas.width = previewImg.naturalWidth || mapSize;
+            mapCanvas.height = previewImg.naturalHeight || mapSize;
+            const mapCtx = mapCanvas.getContext('2d');
+            mapCtx.imageSmoothingEnabled = false;
+            mapCtx.drawImage(tmpCanvas, 0, 0, mapCanvas.width, mapCanvas.height);
+            mapCanvas.classList.remove('hidden');
         }
 
         // Color space conversions (used outside hot path)
@@ -342,181 +680,17 @@
         }
 
         // labDistSq for non-hot-path uses (merge step, centroid snapping)
+        // [OPT-F] Explicit multiply instead of ** for faster hot-loop performance
         function labDistSq(a0, a1, a2, b0, b1, b2) {
-            return (a0 - b0) ** 2 + (a1 - b1) ** 2 + (a2 - b2) ** 2;
+            const d0 = a0 - b0, d1 = a1 - b1, d2 = a2 - b2;
+            return d0 * d0 + d1 * d1 + d2 * d2;
         }
 
-        // K-means++ init with flat Lab array
-        function kmeansppInit(labFlat, n, k) {
-            const bias = cfg.diversityBias;
-            // Centroids stored as flat array: [L,a,b, L,a,b, ...]
-            const centroids = new Float64Array(k * 3);
-            const firstIdx = Math.floor(Math.random() * n) * 3;
-            centroids[0] = labFlat[firstIdx];
-            centroids[1] = labFlat[firstIdx + 1];
-            centroids[2] = labFlat[firstIdx + 2];
+        // [OPT 1] Dead code removed: kmeansppInit, extractDominantColors (work is done in Web Worker)
 
-            const dists = new Float64Array(n);
-            for (let c = 1; c < k; c++) {
-                let totalDist = 0;
-                for (let i = 0; i < n; i++) {
-                    const o = i * 3;
-                    let minD = Infinity;
-                    // [OPT 4] Inlined distance calc in hot loop
-                    for (let ci = 0; ci < c; ci++) {
-                        const co = ci * 3;
-                        const dL = labFlat[o] - centroids[co];
-                        const da = labFlat[o + 1] - centroids[co + 1];
-                        const db = labFlat[o + 2] - centroids[co + 2];
-                        const d = dL * dL + da * da + db * db;
-                        if (d < minD) minD = d;
-                    }
-                    dists[i] = Math.pow(minD, bias);
-                    totalDist += dists[i];
-                }
-                let r = Math.random() * totalDist;
-                let picked = false;
-                for (let i = 0; i < n; i++) {
-                    r -= dists[i];
-                    if (r <= 0) {
-                        const o = i * 3;
-                        const co = c * 3;
-                        centroids[co] = labFlat[o];
-                        centroids[co + 1] = labFlat[o + 1];
-                        centroids[co + 2] = labFlat[o + 2];
-                        picked = true;
-                        break;
-                    }
-                }
-                if (!picked) {
-                    const fallback = Math.floor(Math.random() * n) * 3;
-                    const co = c * 3;
-                    centroids[co] = labFlat[fallback];
-                    centroids[co + 1] = labFlat[fallback + 1];
-                    centroids[co + 2] = labFlat[fallback + 2];
-                }
-            }
-            return centroids;
-        }
-
-        // K-means clustering with flat typed arrays
-        function extractDominantColors(rgbFlat, labFlat, n, k) {
-            const centroids = kmeansppInit(labFlat, n, k);
-            const maxIterations = cfg.maxIter;
-
-            // Cluster assignment array (index per pixel)
-            const assignments = new Uint8Array(n);
-            // Cluster accumulators
-            const sumL = new Float64Array(k);
-            const sumA = new Float64Array(k);
-            const sumB = new Float64Array(k);
-            const counts = new Uint32Array(k);
-
-            for (let iter = 0; iter < maxIterations; iter++) {
-                // Assign pixels to nearest centroid
-                // [OPT 4] Inlined distance calc in hot assignment loop
-                for (let i = 0; i < n; i++) {
-                    const o = i * 3;
-                    const pL = labFlat[o], pa = labFlat[o + 1], pb = labFlat[o + 2];
-                    let minDist = Infinity, idx = 0;
-                    for (let ci = 0; ci < k; ci++) {
-                        const co = ci * 3;
-                        const dL = pL - centroids[co];
-                        const da = pa - centroids[co + 1];
-                        const db = pb - centroids[co + 2];
-                        const d = dL * dL + da * da + db * db;
-                        if (d < minDist) { minDist = d; idx = ci; }
-                    }
-                    assignments[i] = idx;
-                }
-
-                // Recompute centroids
-                sumL.fill(0); sumA.fill(0); sumB.fill(0); counts.fill(0);
-                for (let i = 0; i < n; i++) {
-                    const o = i * 3;
-                    const ci = assignments[i];
-                    sumL[ci] += labFlat[o];
-                    sumA[ci] += labFlat[o + 1];
-                    sumB[ci] += labFlat[o + 2];
-                    counts[ci]++;
-                }
-
-                let converged = true;
-                for (let ci = 0; ci < k; ci++) {
-                    const co = ci * 3;
-                    if (counts[ci] === 0) continue;
-                    const newL = sumL[ci] / counts[ci];
-                    const newA = sumA[ci] / counts[ci];
-                    const newB = sumB[ci] / counts[ci];
-                    const dL = newL - centroids[co];
-                    const da = newA - centroids[co + 1];
-                    const db = newB - centroids[co + 2];
-                    if (dL * dL + da * da + db * db > 0.5) converged = false;
-                    centroids[co] = newL;
-                    centroids[co + 1] = newA;
-                    centroids[co + 2] = newB;
-                }
-                if (converged) break;
-            }
-
-            // Post-processing: merge too-close centroids
-            const minDist = cfg.minColorDist;
-            if (minDist > 0) {
-                const minDistSq = minDist * minDist;
-                for (let i = 0; i < k; i++) {
-                    for (let j = i + 1; j < k; j++) {
-                        const io = i * 3, jo = j * 3;
-                        if (labDistSq(centroids[io], centroids[io + 1], centroids[io + 2],
-                            centroids[jo], centroids[jo + 1], centroids[jo + 2]) < minDistSq) {
-                            let bestIdx = 0, bestDist = 0;
-                            for (let pi = 0; pi < n; pi++) {
-                                const po = pi * 3;
-                                let nearest = Infinity;
-                                for (let ci = 0; ci < k; ci++) {
-                                    if (ci === j) continue;
-                                    const co = ci * 3;
-                                    const d = labDistSq(labFlat[po], labFlat[po + 1], labFlat[po + 2],
-                                        centroids[co], centroids[co + 1], centroids[co + 2]);
-                                    if (d < nearest) nearest = d;
-                                }
-                                if (nearest > bestDist) { bestDist = nearest; bestIdx = pi; }
-                            }
-                            const bo = bestIdx * 3;
-                            centroids[jo] = labFlat[bo];
-                            centroids[jo + 1] = labFlat[bo + 1];
-                            centroids[jo + 2] = labFlat[bo + 2];
-                        }
-                    }
-                }
-            }
-
-            // Snap centroids to nearest real pixel RGB
-            const rgbResults = [];
-            for (let ci = 0; ci < k; ci++) {
-                const co = ci * 3;
-                let bestIdx = 0, bestDist = Infinity;
-                for (let i = 0; i < n; i++) {
-                    const o = i * 3;
-                    const d = labDistSq(labFlat[o], labFlat[o + 1], labFlat[o + 2],
-                        centroids[co], centroids[co + 1], centroids[co + 2]);
-                    if (d < bestDist) { bestDist = d; bestIdx = i; }
-                }
-                const bo = bestIdx * 3;
-                rgbResults.push([rgbFlat[bo], rgbFlat[bo + 1], rgbFlat[bo + 2]]);
-            }
-
-            // Sort by hue then lightness
-            rgbResults.sort((a, b) => {
-                const hslA = rgbToHsl(a[0], a[1], a[2]);
-                const hslB = rgbToHsl(b[0], b[1], b[2]);
-                return hslA[0] - hslB[0] || hslA[2] - hslB[2];
-            });
-
-            return rgbResults.map(c => rgbToHex(c[0], c[1], c[2]));
-        }
-
+        // [OPT 6] Bit-math hex conversion (avoids array alloc + map + join)
         function rgbToHex(r, g, b) {
-            return "#" + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join("").toUpperCase();
+            return '#' + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1).toUpperCase();
         }
 
         function getContrastYIQ(hex) {
@@ -530,21 +704,89 @@
             const r = parseInt(hex.substring(1, 3), 16);
             const g = parseInt(hex.substring(3, 5), 16);
             const b = parseInt(hex.substring(5, 7), 16);
-            return `${r}, ${g}, ${b}`;
+            return `R${r} G${g} B${b}`;
+        }
+
+        function hexToHslText(hex) {
+            const r = parseInt(hex.substring(1, 3), 16);
+            const g = parseInt(hex.substring(3, 5), 16);
+            const b = parseInt(hex.substring(5, 7), 16);
+            const [h, s, l] = rgbToHsl(r, g, b);
+            return `H${Math.round(h * 360)} S${Math.round(s * 100)} L${Math.round(l * 100)}`;
+        }
+
+        // Sort helpers for #32 + #35
+        function hexToRgb(hex) {
+            return [parseInt(hex.substring(1, 3), 16), parseInt(hex.substring(3, 5), 16), parseInt(hex.substring(5, 7), 16)];
+        }
+        // [OPT 5] Precompute sort keys once before sorting (avoids redundant hex→rgb→hsl per comparison)
+        function sortByHue(arr) {
+            const keyed = arr.map(h => ({ h, k: rgbToHsl(...hexToRgb(h)) }));
+            keyed.sort((a, b) => a.k[0] - b.k[0] || a.k[2] - b.k[2]);
+            return keyed.map(x => x.h);
+        }
+        function sortByLightness(arr) {
+            const keyed = arr.map(h => ({ h, k: rgbToHsl(...hexToRgb(h))[2] }));
+            keyed.sort((a, b) => a.k - b.k);
+            return keyed.map(x => x.h);
+        }
+        // [OPT 8] sortBySaturation removed (unused dead code)
+        function sortByLuminance(arr) {
+            const keyed = arr.map(h => { const [r, g, b] = hexToRgb(h); return { h, k: 0.2126 * r + 0.7152 * g + 0.0722 * b }; });
+            keyed.sort((a, b) => a.k - b.k);
+            return keyed.map(x => x.h);
+        }
+        function sortByGradient(arr) {
+            // Nearest-neighbor chain in CIELAB for smoothest gradient
+            if (arr.length < 3) return [...arr];
+            // [OPT 4] Reuse top-level rgbToLab
+            const labs = arr.map(hex => { const [r, g, b] = hexToRgb(hex); return rgbToLab(r, g, b); });
+            // Start from darkest color
+            const used = new Uint8Array(arr.length);
+            let startIdx = 0, minL = Infinity;
+            for (let i = 0; i < labs.length; i++) { if (labs[i][0] < minL) { minL = labs[i][0]; startIdx = i; } }
+            const order = [startIdx];
+            used[startIdx] = 1;
+            for (let step = 1; step < arr.length; step++) {
+                const last = labs[order[order.length - 1]];
+                let bestIdx = -1, bestDist = Infinity;
+                for (let i = 0; i < arr.length; i++) {
+                    if (used[i]) continue;
+                    const d = labDistSq(last[0], last[1], last[2], labs[i][0], labs[i][1], labs[i][2]);
+                    if (d < bestDist) { bestDist = d; bestIdx = i; }
+                }
+                order.push(bestIdx);
+                used[bestIdx] = 1;
+            }
+            return order.map(i => arr[i]);
+        }
+
+        // [OPT 7] Shared helper: build swatch hover overlay via createElement (avoids innerHTML parsing)
+        function buildSwatchOverlay(hex) {
+            const wrap = document.createElement('div');
+            wrap.className = `flex flex-col items-center opacity-0 group-hover:opacity-100 transition-opacity ${getContrastYIQ(hex)}`;
+            const s1 = document.createElement('span');
+            s1.className = 'text-[11px] leading-tight'; s1.textContent = hex;
+            const s2 = document.createElement('span');
+            s2.className = 'text-[9px] leading-tight opacity-80'; s2.textContent = hexToRgbText(hex);
+            const s3 = document.createElement('span');
+            s3.className = 'text-[9px] leading-tight opacity-60'; s3.textContent = hexToHslText(hex);
+            wrap.append(s1, s2, s3);
+            return wrap;
         }
 
         // Rendering
-        function renderPalette(count, colors) {
+        function renderPalette(count, colors, weights) {
             const section = document.getElementById(`section-${count}`);
             section.innerHTML = '';
 
-            // Row header: label + customize + export button
             const header = document.createElement('div');
             header.className = 'flex items-center gap-3 mb-1';
             header.innerHTML = `
                 <p class="text-[11px] text-neutral-600">${count} colors</p>
                 <button class="customize-btn text-[10px] text-neutral-600 hover:text-white transition-colors">customize</button>
-                <button class="copy-hex-btn text-[10px] text-neutral-600 hover:text-white transition-colors">copy</button>
+                <button class="map-btn text-[10px] text-neutral-600 hover:text-white transition-colors" title="Show color map overlay">map</button>
+                <button class="copy-fmt-btn text-[10px] text-neutral-600 hover:text-white transition-colors" data-fmt="hex">copy</button>
                 <button class="blender-btn text-[10px] text-neutral-600 hover:text-white transition-colors" title="Copy Blender ColorRamp script">blender.py</button>
             `;
             header.querySelector('.customize-btn').onclick = (e) => {
@@ -554,33 +796,49 @@
                 renderCustomSection();
                 document.getElementById('section-custom').scrollIntoView({ behavior: 'smooth' });
             };
-            header.querySelector('.copy-hex-btn').onclick = (e) => {
+            const copyBtn = header.querySelector('.copy-fmt-btn');
+            copyBtn.onclick = (e) => {
                 e.stopPropagation();
-                navigator.clipboard.writeText(colors.join('\n'));
-                showToast('hex values copied');
+                const fmt = copyBtn.dataset.fmt;
+                navigator.clipboard.writeText(formatCopyText(colors, fmt));
+                showToast(`${fmt} copied`);
+            };
+            copyBtn.oncontextmenu = (e) => {
+                e.preventDefault(); e.stopPropagation();
+                const idx = (_copyFormats.indexOf(copyBtn.dataset.fmt) + 1) % _copyFormats.length;
+                copyBtn.dataset.fmt = _copyFormats[idx];
+                copyBtn.textContent = `copy: ${_copyFormats[idx]}`;
             };
             header.querySelector('.blender-btn').onclick = (e) => {
                 e.stopPropagation();
                 copyBlenderScript(colors);
+            };
+            header.querySelector('.map-btn').onclick = (e) => {
+                e.stopPropagation();
+                if (currentImg) renderColorMap(currentImg, colors);
             };
             section.appendChild(header);
 
             // Swatch grid
             const grid = document.createElement('div');
             grid.className = `grid grid-cols-${count} gap-1`;
-            colors.forEach(hex => {
+            // [OPT-G] Batch DOM updates with DocumentFragment
+            const fragment = document.createDocumentFragment();
+            colors.forEach((hex, idx) => {
                 const swatch = document.createElement('div');
                 swatch.className = `swatch group relative h-12 flex items-center justify-center cursor-pointer transition-transform duration-150`;
                 swatch.style.backgroundColor = hex;
-                swatch.innerHTML = `<div class="flex flex-col items-center opacity-0 group-hover:opacity-100 transition-opacity ${getContrastYIQ(hex)}"><span class="text-[11px] leading-tight">${hex}</span><span class="text-[9px] leading-tight opacity-80">${hexToRgbText(hex)}</span></div>`;
+                // [OPT 7] Use createElement helper instead of innerHTML
+                swatch.appendChild(buildSwatchOverlay(hex));
                 swatch.onclick = () => copyToClipboard(hex);
                 swatch.draggable = true;
                 swatch.addEventListener('dragstart', (e) => {
                     e.dataTransfer.setData('text/plain', hex);
                     e.dataTransfer.effectAllowed = 'copy';
                 });
-                grid.appendChild(swatch);
+                fragment.appendChild(swatch);
             });
+            grid.appendChild(fragment);
             section.appendChild(grid);
 
             // Gradient bar (always visible, same height as swatches)
@@ -676,6 +934,7 @@ print(f"Added ColorRamp with {len(colors)} stops to '{mat.name}'")
                 <button id="sortCustomBtn" class="text-[10px] text-neutral-600 hover:text-white transition-colors">sort</button>
                 <button id="undoCustomBtn" class="text-[10px] text-neutral-600 hover:text-white transition-colors">undo</button>
                 <button id="redoCustomBtn" class="text-[10px] text-neutral-600 hover:text-white transition-colors">redo</button>
+                <button id="customCopyFmtBtn" class="text-[10px] text-neutral-600 hover:text-white transition-colors" data-fmt="hex">copy</button>
                 <button id="customBlenderBtn" class="text-[10px] text-neutral-600 hover:text-white transition-colors" title="Copy Blender ColorRamp script">blender.py</button>
             `;
             header.querySelector('#undoCustomBtn').onclick = () => {
@@ -691,17 +950,19 @@ print(f"Added ColorRamp with {len(colors)} stops to '{mat.name}'")
                 renderCustomSection();
             };
             header.querySelector('#clearCustomBtn').onclick = () => { saveCustomSnapshot(); customColors = []; renderCustomSection(); };
-            header.querySelector('#sortCustomBtn').onclick = () => {
-                if (customColors.length < 2) return;
-                saveCustomSnapshot();
-                customColors.sort((a, b) => {
-                    const pa = [parseInt(a.slice(1, 3), 16), parseInt(a.slice(3, 5), 16), parseInt(a.slice(5, 7), 16)];
-                    const pb = [parseInt(b.slice(1, 3), 16), parseInt(b.slice(3, 5), 16), parseInt(b.slice(5, 7), 16)];
-                    const ha = rgbToHsl(pa[0], pa[1], pa[2]);
-                    const hb = rgbToHsl(pb[0], pb[1], pb[2]);
-                    return ha[0] - hb[0] || ha[2] - hb[2];
-                });
-                renderCustomSection();
+            header.querySelector('#sortCustomBtn').onclick = () => { if (customColors.length < 2) return; saveCustomSnapshot(); customColors = applySortMode(customColors); renderCustomSection(); };
+            const customCopyBtn = header.querySelector('#customCopyFmtBtn');
+            customCopyBtn.onclick = () => {
+                if (customColors.length === 0) return;
+                const fmt = customCopyBtn.dataset.fmt;
+                navigator.clipboard.writeText(formatCopyText(customColors, fmt));
+                showToast(`${fmt} copied`);
+            };
+            customCopyBtn.oncontextmenu = (e) => {
+                e.preventDefault();
+                const idx = (_copyFormats.indexOf(customCopyBtn.dataset.fmt) + 1) % _copyFormats.length;
+                customCopyBtn.dataset.fmt = _copyFormats[idx];
+                customCopyBtn.textContent = `copy: ${_copyFormats[idx]}`;
             };
             header.querySelector('#customBlenderBtn').onclick = () => { if (customColors.length > 0) copyBlenderScript(customColors); };
             section.appendChild(header);
@@ -722,12 +983,15 @@ print(f"Added ColorRamp with {len(colors)} stops to '{mat.name}'")
             } else {
                 const grid = document.createElement('div');
                 grid.style.cssText = 'display:flex; gap:4px;';
+                // [OPT-G] Batch DOM updates with DocumentFragment
+                const customFragment = document.createDocumentFragment();
                 customColors.forEach((hex, idx) => {
                     const sw = document.createElement('div');
                     sw.className = 'swatch group relative h-12 flex items-center justify-center cursor-pointer transition-transform duration-150';
                     sw.style.cssText = `background:${hex}; flex:1;`;
                     sw.title = 'click to remove';
-                    sw.innerHTML = `<div class="flex flex-col items-center opacity-0 group-hover:opacity-100 transition-opacity ${getContrastYIQ(hex)}"><span class="text-[11px] leading-tight">${hex}</span><span class="text-[9px] leading-tight opacity-80">${hexToRgbText(hex)}</span></div>`;
+                    // [OPT 7] Use createElement helper instead of innerHTML
+                    sw.appendChild(buildSwatchOverlay(hex));
                     sw.onclick = () => { saveCustomSnapshot(); customColors.splice(idx, 1); renderCustomSection(); };
                     sw.draggable = true;
                     sw.addEventListener('dragstart', (e) => {
@@ -756,8 +1020,9 @@ print(f"Added ColorRamp with {len(colors)} stops to '{mat.name}'")
                         customDragIdx = -1;
                         renderCustomSection();
                     });
-                    grid.appendChild(sw);
+                    customFragment.appendChild(sw);
                 });
+                grid.appendChild(customFragment);
                 attachDrop(grid);
                 section.appendChild(grid);
 
@@ -795,6 +1060,7 @@ print(f"Added ColorRamp with {len(colors)} stops to '{mat.name}'")
         // Init custom section early so renderCustomSection is safe to call from handleFile
         initCustomSection();
         // ────────────────────────────────────────────────────────────────────────
+
 
         function copyToClipboard(text) {
             navigator.clipboard.writeText(text);
