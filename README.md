@@ -26,3 +26,6 @@
 ## Sorting
 
 [Sorting](https://ev-bro.github.io/gpt-html/sorting_algorithms.html)
+
+## Swatch Maker
+[Swatch](https://ev-bro.github.io/gpt-html/swatch.html)
