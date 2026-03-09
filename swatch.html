@@ -546,7 +546,6 @@
                 <button class="customize-btn text-[10px] text-neutral-600 hover:text-white transition-colors">customize</button>
                 <button class="copy-hex-btn text-[10px] text-neutral-600 hover:text-white transition-colors">copy</button>
                 <button class="blender-btn text-[10px] text-neutral-600 hover:text-white transition-colors" title="Copy Blender ColorRamp script">blender.py</button>
-                <button class="ramp-btn text-[10px] text-neutral-600 hover:text-white transition-colors" title="Copy ColorRamp-only script">colorramp</button>
             `;
             header.querySelector('.customize-btn').onclick = (e) => {
                 e.stopPropagation();
@@ -563,10 +562,6 @@
             header.querySelector('.blender-btn').onclick = (e) => {
                 e.stopPropagation();
                 copyBlenderScript(colors);
-            };
-            header.querySelector('.ramp-btn').onclick = (e) => {
-                e.stopPropagation();
-                copyBlenderColorRamp(colors);
             };
             section.appendChild(header);
 
@@ -638,40 +633,7 @@ print(f"Added ColorRamp with {len(colors)} stops to '{mat.name}'")
             showToast('blender script copied');
         }
 
-        // ColorRamp-only script (assumes active material exists)
-        function copyBlenderColorRamp(colors) {
-            const hexList = colors.map(c => `"${c}"`).join(', ');
-            const script = `import bpy
 
-def hex_to_linear(hex):
-    r, g, b = [int(hex[i:i+2], 16) / 255.0 for i in (1, 3, 5)]
-    to_lin = lambda c: c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
-    return (to_lin(r), to_lin(g), to_lin(b), 1.0)
-
-colors = [${hexList}]
-
-mat = bpy.context.active_object.active_material
-tree = mat.node_tree
-ramp = tree.nodes.new("ShaderNodeValToRGB")
-ramp.label = "Palette"
-ramp.location = (0, 300)
-
-ramp.color_ramp.elements.remove(ramp.color_ramp.elements[1])
-
-for i, hex_color in enumerate(colors):
-    pos = i / (len(colors) - 1)
-    if i == 0:
-        el = ramp.color_ramp.elements[0]
-        el.position = pos
-    else:
-        el = ramp.color_ramp.elements.new(pos)
-    el.color = hex_to_linear(hex_color)
-
-print(f"Added ColorRamp with {len(colors)} stops")
-`;
-            navigator.clipboard.writeText(script);
-            showToast('colorramp script copied');
-        }
 
         // ── Custom swatch builder ────────────────────────────────────────────
         let customColors = [];
@@ -715,7 +677,6 @@ print(f"Added ColorRamp with {len(colors)} stops")
                 <button id="undoCustomBtn" class="text-[10px] text-neutral-600 hover:text-white transition-colors">undo</button>
                 <button id="redoCustomBtn" class="text-[10px] text-neutral-600 hover:text-white transition-colors">redo</button>
                 <button id="customBlenderBtn" class="text-[10px] text-neutral-600 hover:text-white transition-colors" title="Copy Blender ColorRamp script">blender.py</button>
-                <button id="customRampBtn" class="text-[10px] text-neutral-600 hover:text-white transition-colors" title="Copy ColorRamp-only script">colorramp</button>
             `;
             header.querySelector('#undoCustomBtn').onclick = () => {
                 if (undoStack.length === 0) return;
@@ -743,7 +704,6 @@ print(f"Added ColorRamp with {len(colors)} stops")
                 renderCustomSection();
             };
             header.querySelector('#customBlenderBtn').onclick = () => { if (customColors.length > 0) copyBlenderScript(customColors); };
-            header.querySelector('#customRampBtn').onclick = () => { if (customColors.length > 0) copyBlenderColorRamp(customColors); };
             section.appendChild(header);
             renderCustomSection();
         }
