@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>color swatch generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { safelist: ['grid-cols-3', 'grid-cols-4', 'grid-cols-5', 'grid-cols-6', 'grid-cols-7', 'grid-cols-8'] }</script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            font-family: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+        }
+
+        body {
+            background: #111;
+            color: #aaa;
+        }
+
+        ::selection {
+            background: #333;
+        }
+
+        .swatch:hover {
+            transform: translateY(-2px);
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 4px;
+            border-radius: 0;
+            background: #333;
+            outline: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #eee;
+            border: none;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #eee;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body class="h-screen overflow-hidden">
+
+    <header class="flex items-baseline gap-4 px-5 py-3 border-b border-neutral-800">
+        <h1 class="text-sm font-bold text-white tracking-wide">color swatch generator</h1>
+        <p class="text-[11px] text-neutral-600">drop, browse, or ctrl+v an image to extract colors</p>
+    </header>
+
+    <div class="flex h-[calc(100vh-45px)]">
+
+        <div class="w-80 min-w-[320px] border-r border-neutral-800 flex flex-col overflow-y-auto">
+            <div id="dropZone"
+                class="relative group border-b border-neutral-800 p-5 text-center cursor-pointer hover:bg-neutral-900/50 transition-colors">
+                <input type="file" id="fileInput" class="hidden" accept="image/*">
+                <div id="uploadContent">
+                    <p class="text-xs text-neutral-500 py-6">drop image · browse · ctrl+v</p>
+                </div>
+                <div id="previewContainer" class="hidden flex flex-col items-center">
+                    <img id="imagePreview" class="max-h-40 max-w-full border border-neutral-800 mb-2" src=""
+                        alt="Preview">
+                    <button id="resetBtn" class="text-[10px] text-neutral-500 hover:text-white underline">reset</button>
+                </div>
+            </div>
+
+            <div id="configPanel" class="hidden flex-1">
+                <div class="px-4 py-3 border-b border-neutral-800">
+                    <span class="text-[10px] text-neutral-600 uppercase tracking-wider">settings</span>
+                </div>
+                <div class="px-4 py-3 space-y-4">
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-[11px] text-neutral-500">sample_res</label>
+                            <span id="sampleResVal" class="text-[11px] text-white">300</span>
+                        </div>
+                        <input type="range" id="sampleRes" min="50" max="300" value="300" step="10">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-[11px] text-neutral-500">max_iter</label>
+                            <span id="maxIterVal" class="text-[11px] text-white">60</span>
+                        </div>
+                        <input type="range" id="maxIter" min="5" max="60" value="60" step="1">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-[11px] text-neutral-500">diversity</label>
+                            <span id="diversityVal" class="text-[11px] text-white">5.0</span>
+                        </div>
+                        <input type="range" id="diversityBias" min="0.5" max="5.0" value="5.0" step="0.1">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-[11px] text-neutral-500">min_dist</label>
+                            <span id="minDistVal" class="text-[11px] text-white">80</span>
+                        </div>
+                        <input type="range" id="minColorDist" min="0" max="80" value="80" step="1">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto">
+            <div id="results" class="hidden h-full">
+                <div id="loader" class="hidden flex items-center justify-center h-full">
+                    <p class="text-xs text-neutral-500 animate-pulse">extracting...</p>
+                </div>
+                <div id="paletteGrids" class="p-5 space-y-4">
+                    <section id="section-3"></section>
+                    <section id="section-4"></section>
+                    <section id="section-5"></section>
+                    <section id="section-6"></section>
+                    <section id="section-7"></section>
+                    <section id="section-8"></section>
+                    <div class="border-t border-neutral-800 my-3"></div>
+                    <section id="section-custom"></section>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <canvas id="extractCanvas" class="hidden"></canvas>
+
+    <div id="copyToast"
+        class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white text-black px-4 py-2 text-xs opacity-0 translate-y-10 pointer-events-none z-50 transition-all duration-200">
+        copied
+    </div>
+
+    <script>
+        // DOM refs
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const uploadContent = document.getElementById('uploadContent');
+        const previewContainer = document.getElementById('previewContainer');
+        const imagePreview = document.getElementById('imagePreview');
+        const resetBtn = document.getElementById('resetBtn');
+        const results = document.getElementById('results');
+        const loader = document.getElementById('loader');
+        const paletteGrids = document.getElementById('paletteGrids');
+        const extractCanvas = document.getElementById('extractCanvas');
+        const copyToast = document.getElementById('copyToast');
+        const configPanel = document.getElementById('configPanel');
+
+        // State
+        let currentImg = null;
+        let reExtractTimer = null;
+
+        // [OPT 3] Precomputed sRGB-to-linear lookup table (256 entries)
+        const SRGB_LUT = new Float64Array(256);
+        for (let i = 0; i < 256; i++) {
+            const c = i / 255;
+            SRGB_LUT[i] = c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+        }
+
+        // Config (live-reads slider values)
+        const cfg = {
+            get sampleRes() { return parseInt(document.getElementById('sampleRes').value); },
+            get maxIter() { return parseInt(document.getElementById('maxIter').value); },
+            get diversityBias() { return parseFloat(document.getElementById('diversityBias').value); },
+            get minColorDist() { return parseFloat(document.getElementById('minColorDist').value); },
+        };
+
+        // Slider wiring: update labels + debounced re-extract
+        const labelMap = { sampleRes: 'sampleResVal', maxIter: 'maxIterVal', diversityBias: 'diversityVal', minColorDist: 'minDistVal' };
+        ['sampleRes', 'maxIter', 'diversityBias', 'minColorDist'].forEach(id => {
+            const slider = document.getElementById(id);
+            slider.addEventListener('input', () => {
+                document.getElementById(labelMap[id]).textContent = slider.value;
+                if (currentImg) {
+                    clearTimeout(reExtractTimer);
+                    reExtractTimer = setTimeout(() => processImage(currentImg), 300);
+                }
+            });
+        });
+
+        // Events: click, drag, paste
+        dropZone.onclick = () => fileInput.click();
+        fileInput.onchange = (e) => { if (e.target.files[0]) handleFile(e.target.files[0]); };
+
+        dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('border-neutral-400'); };
+        dropZone.ondragleave = () => { dropZone.classList.remove('border-neutral-400'); };
+        dropZone.ondrop = (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-neutral-400');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) handleFile(file);
+        };
+
+        window.addEventListener('paste', (e) => {
+            for (const item of e.clipboardData.items) {
+                if (item.type.startsWith('image/')) { handleFile(item.getAsFile()); break; }
+            }
+        });
+
+        resetBtn.onclick = (e) => {
+            e.stopPropagation();
+            fileInput.value = '';
+            uploadContent.classList.remove('hidden');
+            previewContainer.classList.add('hidden');
+            results.classList.add('hidden');
+            configPanel.classList.add('hidden');
+        };
+
+        // Image handling
+        function handleFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                imagePreview.src = e.target.result;
+                uploadContent.classList.add('hidden');
+                previewContainer.classList.remove('hidden');
+                results.classList.remove('hidden');
+                loader.classList.remove('hidden');
+                paletteGrids.classList.add('hidden');
+                const img = new Image();
+                img.onload = () => processImage(img);
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function processImage(img) {
+            currentImg = img;
+            configPanel.classList.remove('hidden');
+            customColors = [];
+            renderCustomSection();
+            const ctx = extractCanvas.getContext('2d');
+            const thumbSize = cfg.sampleRes;
+            extractCanvas.width = thumbSize;
+            extractCanvas.height = thumbSize;
+            ctx.drawImage(img, 0, 0, thumbSize, thumbSize);
+            const imageData = ctx.getImageData(0, 0, thumbSize, thumbSize).data;
+
+            // [OPT 5] Deduplicate pixels via 5-bit quantization (>>3 per channel = 15-bit key)
+            const seen = new Uint8Array(32768); // 2^15 buckets
+            const uniqueRgb = [];  // flat: [r,g,b, r,g,b, ...]
+            for (let i = 0; i < imageData.length; i += 4) {
+                const r = imageData[i], g = imageData[i + 1], b = imageData[i + 2];
+                const key = ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3);
+                if (!seen[key]) {
+                    seen[key] = 1;
+                    uniqueRgb.push(r, g, b);
+                }
+            }
+
+            // [OPT 2] Store pixels as flat typed arrays
+            const pixelCount = uniqueRgb.length / 3;
+            const rgbFlat = new Uint8Array(uniqueRgb);
+            const labFlat = new Float64Array(pixelCount * 3);
+
+            // [OPT 1] Precompute Lab once for all 6 k-means runs
+            for (let i = 0; i < pixelCount; i++) {
+                const o = i * 3;
+                const lr = SRGB_LUT[rgbFlat[o]];
+                const lg = SRGB_LUT[rgbFlat[o + 1]];
+                const lb = SRGB_LUT[rgbFlat[o + 2]];
+                let x = (lr * 0.4124564 + lg * 0.3575761 + lb * 0.1804375) / 0.95047;
+                let y = (lr * 0.2126729 + lg * 0.7151522 + lb * 0.0721750);
+                let z = (lr * 0.0193339 + lg * 0.1191920 + lb * 0.9503041) / 1.08883;
+                x = x > 0.008856 ? Math.cbrt(x) : 7.787 * x + 16 / 116;
+                y = y > 0.008856 ? Math.cbrt(y) : 7.787 * y + 16 / 116;
+                z = z > 0.008856 ? Math.cbrt(z) : 7.787 * z + 16 / 116;
+                labFlat[o] = 116 * y - 16;
+                labFlat[o + 1] = 500 * (x - y);
+                labFlat[o + 2] = 200 * (y - z);
+            }
+
+            [3, 4, 5, 6, 7, 8].forEach(count => {
+                renderPalette(count, extractDominantColors(rgbFlat, labFlat, pixelCount, count));
+            });
+            loader.classList.add('hidden');
+            paletteGrids.classList.remove('hidden');
+        }
+
+        // Color space conversions (used outside hot path)
+        function rgbToHsl(r, g, b) {
+            r /= 255; g /= 255; b /= 255;
+            const max = Math.max(r, g, b), min = Math.min(r, g, b);
+            let h, s, l = (max + min) / 2;
+            if (max === min) {
+                h = s = 0;
+            } else {
+                const d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                switch (max) {
+                    case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                    case g: h = (b - r) / d + 2; break;
+                    case b: h = (r - g) / d + 4; break;
+                }
+                h /= 6;
+            }
+            return [h, s, l];
+        }
+
+        // labDistSq for non-hot-path uses (merge step, centroid snapping)
+        function labDistSq(a0, a1, a2, b0, b1, b2) {
+            return (a0 - b0) ** 2 + (a1 - b1) ** 2 + (a2 - b2) ** 2;
+        }
+
+        // K-means++ init with flat Lab array
+        function kmeansppInit(labFlat, n, k) {
+            const bias = cfg.diversityBias;
+            // Centroids stored as flat array: [L,a,b, L,a,b, ...]
+            const centroids = new Float64Array(k * 3);
+            const firstIdx = Math.floor(Math.random() * n) * 3;
+            centroids[0] = labFlat[firstIdx];
+            centroids[1] = labFlat[firstIdx + 1];
+            centroids[2] = labFlat[firstIdx + 2];
+
+            const dists = new Float64Array(n);
+            for (let c = 1; c < k; c++) {
+                let totalDist = 0;
+                for (let i = 0; i < n; i++) {
+                    const o = i * 3;
+                    let minD = Infinity;
+                    // [OPT 4] Inlined distance calc in hot loop
+                    for (let ci = 0; ci < c; ci++) {
+                        const co = ci * 3;
+                        const dL = labFlat[o] - centroids[co];
+                        const da = labFlat[o + 1] - centroids[co + 1];
+                        const db = labFlat[o + 2] - centroids[co + 2];
+                        const d = dL * dL + da * da + db * db;
+                        if (d < minD) minD = d;
+                    }
+                    dists[i] = Math.pow(minD, bias);
+                    totalDist += dists[i];
+                }
+                let r = Math.random() * totalDist;
+                let picked = false;
+                for (let i = 0; i < n; i++) {
+                    r -= dists[i];
+                    if (r <= 0) {
+                        const o = i * 3;
+                        const co = c * 3;
+                        centroids[co] = labFlat[o];
+                        centroids[co + 1] = labFlat[o + 1];
+                        centroids[co + 2] = labFlat[o + 2];
+                        picked = true;
+                        break;
+                    }
+                }
+                if (!picked) {
+                    const fallback = Math.floor(Math.random() * n) * 3;
+                    const co = c * 3;
+                    centroids[co] = labFlat[fallback];
+                    centroids[co + 1] = labFlat[fallback + 1];
+                    centroids[co + 2] = labFlat[fallback + 2];
+                }
+            }
+            return centroids;
+        }
+
+        // K-means clustering with flat typed arrays
+        function extractDominantColors(rgbFlat, labFlat, n, k) {
+            const centroids = kmeansppInit(labFlat, n, k);
+            const maxIterations = cfg.maxIter;
+
+            // Cluster assignment array (index per pixel)
+            const assignments = new Uint8Array(n);
+            // Cluster accumulators
+            const sumL = new Float64Array(k);
+            const sumA = new Float64Array(k);
+            const sumB = new Float64Array(k);
+            const counts = new Uint32Array(k);
+
+            for (let iter = 0; iter < maxIterations; iter++) {
+                // Assign pixels to nearest centroid
+                // [OPT 4] Inlined distance calc in hot assignment loop
+                for (let i = 0; i < n; i++) {
+                    const o = i * 3;
+                    const pL = labFlat[o], pa = labFlat[o + 1], pb = labFlat[o + 2];
+                    let minDist = Infinity, idx = 0;
+                    for (let ci = 0; ci < k; ci++) {
+                        const co = ci * 3;
+                        const dL = pL - centroids[co];
+                        const da = pa - centroids[co + 1];
+                        const db = pb - centroids[co + 2];
+                        const d = dL * dL + da * da + db * db;
+                        if (d < minDist) { minDist = d; idx = ci; }
+                    }
+                    assignments[i] = idx;
+                }
+
+                // Recompute centroids
+                sumL.fill(0); sumA.fill(0); sumB.fill(0); counts.fill(0);
+                for (let i = 0; i < n; i++) {
+                    const o = i * 3;
+                    const ci = assignments[i];
+                    sumL[ci] += labFlat[o];
+                    sumA[ci] += labFlat[o + 1];
+                    sumB[ci] += labFlat[o + 2];
+                    counts[ci]++;
+                }
+
+                let converged = true;
+                for (let ci = 0; ci < k; ci++) {
+                    const co = ci * 3;
+                    if (counts[ci] === 0) continue;
+                    const newL = sumL[ci] / counts[ci];
+                    const newA = sumA[ci] / counts[ci];
+                    const newB = sumB[ci] / counts[ci];
+                    const dL = newL - centroids[co];
+                    const da = newA - centroids[co + 1];
+                    const db = newB - centroids[co + 2];
+                    if (dL * dL + da * da + db * db > 0.5) converged = false;
+                    centroids[co] = newL;
+                    centroids[co + 1] = newA;
+                    centroids[co + 2] = newB;
+                }
+                if (converged) break;
+            }
+
+            // Post-processing: merge too-close centroids
+            const minDist = cfg.minColorDist;
+            if (minDist > 0) {
+                const minDistSq = minDist * minDist;
+                for (let i = 0; i < k; i++) {
+                    for (let j = i + 1; j < k; j++) {
+                        const io = i * 3, jo = j * 3;
+                        if (labDistSq(centroids[io], centroids[io + 1], centroids[io + 2],
+                            centroids[jo], centroids[jo + 1], centroids[jo + 2]) < minDistSq) {
+                            let bestIdx = 0, bestDist = 0;
+                            for (let pi = 0; pi < n; pi++) {
+                                const po = pi * 3;
+                                let nearest = Infinity;
+                                for (let ci = 0; ci < k; ci++) {
+                                    if (ci === j) continue;
+                                    const co = ci * 3;
+                                    const d = labDistSq(labFlat[po], labFlat[po + 1], labFlat[po + 2],
+                                        centroids[co], centroids[co + 1], centroids[co + 2]);
+                                    if (d < nearest) nearest = d;
+                                }
+                                if (nearest > bestDist) { bestDist = nearest; bestIdx = pi; }
+                            }
+                            const bo = bestIdx * 3;
+                            centroids[jo] = labFlat[bo];
+                            centroids[jo + 1] = labFlat[bo + 1];
+                            centroids[jo + 2] = labFlat[bo + 2];
+                        }
+                    }
+                }
+            }
+
+            // Snap centroids to nearest real pixel RGB
+            const rgbResults = [];
+            for (let ci = 0; ci < k; ci++) {
+                const co = ci * 3;
+                let bestIdx = 0, bestDist = Infinity;
+                for (let i = 0; i < n; i++) {
+                    const o = i * 3;
+                    const d = labDistSq(labFlat[o], labFlat[o + 1], labFlat[o + 2],
+                        centroids[co], centroids[co + 1], centroids[co + 2]);
+                    if (d < bestDist) { bestDist = d; bestIdx = i; }
+                }
+                const bo = bestIdx * 3;
+                rgbResults.push([rgbFlat[bo], rgbFlat[bo + 1], rgbFlat[bo + 2]]);
+            }
+
+            // Sort by hue then lightness
+            rgbResults.sort((a, b) => {
+                const hslA = rgbToHsl(a[0], a[1], a[2]);
+                const hslB = rgbToHsl(b[0], b[1], b[2]);
+                return hslA[0] - hslB[0] || hslA[2] - hslB[2];
+            });
+
+            return rgbResults.map(c => rgbToHex(c[0], c[1], c[2]));
+        }
+
+        function rgbToHex(r, g, b) {
+            return "#" + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join("").toUpperCase();
+        }
+
+        function getContrastYIQ(hex) {
+            const r = parseInt(hex.substring(1, 3), 16);
+            const g = parseInt(hex.substring(3, 5), 16);
+            const b = parseInt(hex.substring(5, 7), 16);
+            return ((r * 299 + g * 587 + b * 114) / 1000 >= 128) ? 'text-black' : 'text-white';
+        }
+
+        // Rendering
+        function renderPalette(count, colors) {
+            const section = document.getElementById(`section-${count}`);
+            section.innerHTML = '';
+
+            // Row header: label + export button
+            const header = document.createElement('div');
+            header.className = 'flex items-center gap-3 mb-1';
+            header.innerHTML = `
+                <p class="text-[11px] text-neutral-600">${count} colors</p>
+                <button class="blender-btn text-[10px] text-neutral-600 hover:text-white transition-colors" title="Copy Blender ColorRamp script">blender.py</button>
+            `;
+            header.querySelector('.blender-btn').onclick = (e) => {
+                e.stopPropagation();
+                copyBlenderScript(colors);
+            };
+            section.appendChild(header);
+
+            // Swatch grid
+            const grid = document.createElement('div');
+            grid.className = `grid grid-cols-${count} gap-1`;
+            colors.forEach(hex => {
+                const swatch = document.createElement('div');
+                swatch.className = `swatch group relative h-12 flex items-center justify-center cursor-pointer transition-transform duration-150`;
+                swatch.style.backgroundColor = hex;
+                swatch.innerHTML = `<span class="text-[11px] ${getContrastYIQ(hex)} opacity-0 group-hover:opacity-100 transition-opacity">${hex}</span>`;
+                swatch.onclick = () => copyToClipboard(hex);
+                swatch.draggable = true;
+                swatch.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', hex);
+                    e.dataTransfer.effectAllowed = 'copy';
+                });
+                grid.appendChild(swatch);
+            });
+            section.appendChild(grid);
+
+            // Gradient bar (always visible, same height as swatches)
+            const gradientBar = document.createElement('div');
+            gradientBar.style.cssText = `height:48px; background: linear-gradient(to right, ${colors.join(', ')});`;
+            section.appendChild(gradientBar);
+        }
+
+        // Blender script generation
+        function copyBlenderScript(colors) {
+            const hexList = colors.map(c => `"${c}"`).join(', ');
+            const script = `import bpy
+
+def hex_to_linear(hex):
+    r, g, b = [int(hex[i:i+2], 16) / 255.0 for i in (1, 3, 5)]
+    to_lin = lambda c: c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+    return (to_lin(r), to_lin(g), to_lin(b), 1.0)
+
+colors = [${hexList}]
+
+obj = bpy.context.active_object
+if obj and obj.active_material and obj.active_material.use_nodes:
+    mat = obj.active_material
+    tree = mat.node_tree
+else:
+    mat = bpy.data.materials.new("Palette")
+    mat.use_nodes = True
+    tree = mat.node_tree
+    if obj:
+        obj.data.materials.append(mat)
+
+ramp = tree.nodes.new("ShaderNodeValToRGB")
+ramp.label = "Palette"
+ramp.location = (0, 300)
+
+ramp.color_ramp.elements.remove(ramp.color_ramp.elements[1])
+
+for i, hex_color in enumerate(colors):
+    pos = i / (len(colors) - 1)
+    if i == 0:
+        el = ramp.color_ramp.elements[0]
+        el.position = pos
+    else:
+        el = ramp.color_ramp.elements.new(pos)
+    el.color = hex_to_linear(hex_color)
+
+print(f"Added ColorRamp with {len(colors)} stops to '{mat.name}'")
+`;
+            navigator.clipboard.writeText(script);
+            showToast('blender script copied');
+        }
+
+        // ── Custom swatch builder ────────────────────────────────────────────
+        let customColors = [];
+
+        function initCustomSection() {
+            const section = document.getElementById('section-custom');
+            section.innerHTML = '';
+
+            const header = document.createElement('div');
+            header.className = 'flex items-center gap-3 mb-1';
+            header.innerHTML = `
+                <p class="text-[11px] text-neutral-600">custom</p>
+                <button id="clearCustomBtn" class="text-[10px] text-neutral-600 hover:text-white transition-colors">clear</button>
+                <button id="sortCustomBtn" class="text-[10px] text-neutral-600 hover:text-white transition-colors">sort</button>
+                <button id="customBlenderBtn" class="text-[10px] text-neutral-600 hover:text-white transition-colors" title="Copy Blender ColorRamp script">blender.py</button>
+            `;
+            header.querySelector('#clearCustomBtn').onclick = () => { customColors = []; renderCustomSection(); };
+            header.querySelector('#sortCustomBtn').onclick = () => {
+                if (customColors.length < 2) return;
+                customColors.sort((a, b) => {
+                    const pa = [parseInt(a.slice(1, 3), 16), parseInt(a.slice(3, 5), 16), parseInt(a.slice(5, 7), 16)];
+                    const pb = [parseInt(b.slice(1, 3), 16), parseInt(b.slice(3, 5), 16), parseInt(b.slice(5, 7), 16)];
+                    const ha = rgbToHsl(pa[0], pa[1], pa[2]);
+                    const hb = rgbToHsl(pb[0], pb[1], pb[2]);
+                    return ha[0] - hb[0] || ha[2] - hb[2];
+                });
+                renderCustomSection();
+            };
+            header.querySelector('#customBlenderBtn').onclick = () => { if (customColors.length > 0) copyBlenderScript(customColors); };
+            section.appendChild(header);
+            renderCustomSection();
+        }
+
+        function renderCustomSection() {
+            const section = document.getElementById('section-custom');
+            // Remove dynamic children, keep header (first child)
+            while (section.children.length > 1) section.removeChild(section.lastChild);
+
+            if (customColors.length === 0) {
+                const dropzone = document.createElement('div');
+                dropzone.style.cssText = 'height:48px; border:1px dashed #2a2a2a; display:flex; align-items:center; justify-content:center; box-sizing:border-box;';
+                dropzone.innerHTML = '<span style="font-size:11px; color:#3a3a3a;">drag swatches here</span>';
+                attachDrop(dropzone);
+                section.appendChild(dropzone);
+            } else {
+                const grid = document.createElement('div');
+                grid.style.cssText = 'display:flex; gap:4px;';
+                customColors.forEach((hex, idx) => {
+                    const sw = document.createElement('div');
+                    sw.className = 'swatch group relative h-12 flex items-center justify-center cursor-pointer transition-transform duration-150';
+                    sw.style.cssText = `background:${hex}; flex:1;`;
+                    sw.title = 'click to remove';
+                    sw.innerHTML = `<span class="text-[11px] ${getContrastYIQ(hex)} opacity-0 group-hover:opacity-100 transition-opacity">${hex}</span>`;
+                    sw.onclick = () => { customColors.splice(idx, 1); renderCustomSection(); };
+                    sw.draggable = true;
+                    sw.addEventListener('dragstart', (e) => {
+                        customDragIdx = idx;
+                        e.dataTransfer.setData('text/plain', hex);
+                        e.dataTransfer.effectAllowed = 'copyMove';
+                    });
+                    sw.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = customDragIdx !== -1 ? 'move' : 'copy';
+                        sw.style.outline = '1px solid #555';
+                    });
+                    sw.addEventListener('dragleave', () => { sw.style.outline = ''; });
+                    sw.addEventListener('drop', (e) => {
+                        e.preventDefault(); e.stopPropagation();
+                        sw.style.outline = '';
+                        const droppedHex = e.dataTransfer.getData('text/plain');
+                        if (!droppedHex || !droppedHex.startsWith('#')) return;
+                        if (customDragIdx !== -1) {
+                            // Internal move: remove from old pos, insert at new pos
+                            customColors.splice(customDragIdx, 1);
+                            customColors.splice(idx > customDragIdx ? idx - 1 : idx, 0, droppedHex.toUpperCase());
+                        } else {
+                            // External: insert at this position
+                            customColors.splice(idx, 0, droppedHex.toUpperCase());
+                        }
+                        customDragIdx = -1;
+                        renderCustomSection();
+                    });
+                    grid.appendChild(sw);
+                });
+                attachDrop(grid);
+                section.appendChild(grid);
+
+                const gradBar = document.createElement('div');
+                gradBar.style.cssText = `height:48px; background:linear-gradient(to right, ${customColors.join(', ')});`;
+                attachDrop(gradBar);
+                section.appendChild(gradBar);
+            }
+        }
+
+        // -1 = drag came from outside custom area
+        let customDragIdx = -1;
+        document.addEventListener('dragend', () => { customDragIdx = -1; });
+
+        function attachDrop(el) {
+            el.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = customDragIdx !== -1 ? 'move' : 'copy'; el.style.outline = '1px solid #555'; });
+            el.addEventListener('dragleave', () => { el.style.outline = ''; });
+            el.addEventListener('drop', (e) => {
+                e.preventDefault();
+                el.style.outline = '';
+                const hex = e.dataTransfer.getData('text/plain');
+                if (!hex || !hex.startsWith('#')) return;
+                if (customDragIdx !== -1) {
+                    // Internal: move to end
+                    customColors.splice(customDragIdx, 1);
+                    customColors.push(hex.toUpperCase());
+                } else {
+                    // External: append
+                    customColors.push(hex.toUpperCase());
+                }
+                customDragIdx = -1;
+                renderCustomSection();
+            });
+        }
+
+        initCustomSection();
+        // ────────────────────────────────────────────────────────────────────────
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text);
+            showToast('copied');
+        }
+
+        function showToast(msg) {
+            copyToast.textContent = msg;
+            copyToast.classList.remove('opacity-0', 'translate-y-10');
+            copyToast.classList.add('opacity-100', 'translate-y-0');
+            setTimeout(() => {
+                copyToast.classList.add('opacity-0', 'translate-y-10');
+                copyToast.classList.remove('opacity-100', 'translate-y-0');
+            }, 1500);
+        }
+    </script>
+</body>
+
+</html>
