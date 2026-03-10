@@ -29,3 +29,6 @@
 
 ## Swatch Maker
 [Swatch](https://ev-bro.github.io/gpt-html/swatch.html)
+
+## Mahjong 
+[2025 Card](https://ev-bro.github.io/gpt-html/mahjong_card.html)
