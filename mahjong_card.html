@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2025 Mahjong Card Recreation</title>
+    <style>
+        body {
+            font-family: 'Inter', Arial, Helvetica, sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .container-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            max-width: 850px;
+            width: 100%;
+        }
+
+        .card-container {
+            background-color: #fdfcf8; /* Light paper cream */
+            border: 1px solid #d1d1d1;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            width: 100%;
+            padding: 25px 35px;
+            box-sizing: border-box;
+            color: #1a1a1a;
+            border-radius: 12px;
+        }
+
+        .header-notes {
+            font-size: 11px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            color: #444;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            text-align: center;
+        }
+
+        .section {
+            margin-bottom: 22px;
+        }
+
+        .section-header {
+            text-align: center;
+            font-weight: 900;
+            font-size: 16px;
+            margin-bottom: 10px;
+            position: relative;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: #000;
+        }
+
+        .values-label {
+            position: absolute;
+            right: 0;
+            top: 2px;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            color: #666;
+        }
+
+        .row {
+            display: flex;
+            align-items: baseline;
+            font-size: 14px;
+            margin-bottom: 6px;
+            font-weight: 800;
+            line-height: 1.4;
+        }
+
+        .pattern {
+            flex-shrink: 0;
+            letter-spacing: 0.4px;
+        }
+
+        .desc {
+            font-weight: 500;
+            font-size: 11.5px;
+            margin-left: 8px;
+            color: #444;
+            flex-shrink: 0;
+            font-style: italic;
+        }
+
+        .dots {
+            flex-grow: 1;
+            border-bottom: 1px dotted #aaa;
+            margin: 0 10px;
+            position: relative;
+            top: -4px;
+        }
+
+        .value {
+            flex-shrink: 0;
+            font-size: 15px;
+            font-weight: 900;
+            text-align: right;
+            min-width: 45px;
+            color: #000;
+        }
+
+        /* Color Classes */
+        .bk { color: #111111; } /* Deep Black */
+        .gr { color: #2e7d32; } /* Forest Green */
+        .rd { color: #d32f2f; } /* Vibrant Red */
+
+        /* Mobile Optimization */
+        @media (max-width: 600px) {
+            .card-container { padding: 15px 20px; }
+            .row { font-size: 12.5px; flex-wrap: wrap; }
+            .dots { display: none; }
+            .value { width: 100%; text-align: left; border-top: 1px solid #eee; padding-top: 2px; margin-top: 2px; font-size: 13px; }
+            .values-label { position: static; display: block; text-align: right; margin-bottom: 5px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container-wrapper">
+    <!-- CARD 1 -->
+    <div class="card-container">
+        <div class="header-notes">
+            NOTE: WHITE DRAGON IS USED AS ZERO "0". IT MAY BE USED WITH ANY SUIT.
+        </div>
+        
+        <!-- 2025 -->
+        <div class="section">
+            <div class="section-header">2025 <span class="values-label">VALUES</span></div>
+            <div class="row"><span class="pattern"><span class="bk">FFFF</span> <span class="gr">2025</span> <span class="rd">222 222</span></span> <span class="desc">(Any 3 Suits, Like Pungs 2s or 5s in Opp. Suits)</span><div class="dots"></div><span class="value">X 25</span></div>
+            <div class="row"><span class="pattern"><span class="gr">222</span> <span class="bk">0000</span> <span class="rd">222 5555</span></span> <span class="desc">(Any 2 Suits)</span><div class="dots"></div><span class="value">X 25</span></div>
+            <div class="row"><span class="pattern"><span class="gr">2025</span> <span class="rd">222 555</span> <span class="bk">DDDD</span></span> <span class="desc">(Any 3 Suits)</span><div class="dots"></div><span class="value">X 30</span></div>
+            <div class="row"><span class="pattern"><span class="gr">FF 222</span> <span class="bk">000</span> <span class="rd">222 555</span></span> <span class="desc">(Any 3 Suits)</span><div class="dots"></div><span class="value">C 30</span></div>
+        </div>
+
+        <!-- 2468 -->
+        <div class="section">
+            <div class="section-header">2468</div>
+            <div class="row"><span class="pattern"><span class="bk">222 4444 666 8888</span> <span class="desc" style="font-style: normal; font-weight: 800;">-or-</span> <span class="gr">222 4444</span> <span class="rd">666 8888</span></span> <span class="desc">(Any 1 or 2 Suits)</span><div class="dots"></div><span class="value">X 25</span></div>
+            <div class="row"><span class="pattern"><span class="bk">FF</span> <span class="gr">2222</span> <span class="bk">+</span> <span class="rd">4444</span> <span class="bk">= 6666</span> <span class="desc" style="font-style: normal; font-weight: 800;">-or-</span> <span class="bk">FF</span> <span class="gr">2222</span> <span class="bk">+</span> <span class="rd">6666</span> <span class="bk">= 8888</span></span> <span class="desc">(Any 3 Suits)</span><div class="dots"></div><span class="value">X 25</span></div>
+            <div class="row"><span class="pattern"><span class="bk">22 444 66 888 DDDD</span></span> <span class="desc">(Any 1 Suit)</span><div class="dots"></div><span class="value">X 25</span></div>
+            <div class="row"><span class="pattern"><span class="bk">FFFF</span> <span class="rd">2</span><span class="bk">4</span><span class="rd">6</span><span class="bk">8</span> <span class="bk">222 222</span></span> <span class="desc">(Any 3 Suits, Like Pungs Any Even No.)</span><div class="dots"></div><span class="value">X 25</span></div>
+            <div class="row"><span class="pattern"><span class="bk">FF 22 44 666 8888</span></span> <span class="desc">(Any 1 Suit)</span><div class="dots"></div><span class="value">X 25</span></div>
+            <div class="row"><span class="pattern"><span class="gr">222 4444</span> <span class="rd">666</span> <span class="bk">88 88</span></span> <span class="desc">(Any 3 Suits, Pairs 8s Only)</span><div class="dots"></div><span class="value">X 25</span></div>
+            <div class="row"><span class="pattern"><span class="gr">FF 2222</span> <span class="rd">DDDD</span> <span class="bk">2222</span></span> <span class="desc">(Any 3 Suits, Like Kongs Any Even No.)</span><div class="dots"></div><span class="value">X 25</span></div>
+            <div class="row"><span class="pattern"><span class="gr">22 44</span> <span class="bk">66 88</span> <span class="rd">222 222</span></span> <span class="desc">(Any 3 Suits, Like Pungs Any Even No.)</span><div class="dots"></div><span class="value">C 30</span></div>
+        </div>
+
+        <!-- ANY LIKE NUMBERS -->
+        <div class="section" style="margin-bottom:0;">
+            <div class="section-header">ANY LIKE NUMBERS</div>
+            <div class="row"><span class="pattern"><span class="bk">FF</span> <span class="gr">1111</span> <span class="bk">D</span> <span class="rd">1111</span> <span class="bk">D 11</span></span> <span class="desc">(Any 3 Suits)</span><div class="dots"></div><span class="value">X 25</span></div>
+            <div class="row"><span class="pattern"><span class="bk">FFFF</span> <span class="gr">11</span> <span class="rd">111</span> <span class="bk">111</span> <span class="gr">11</span></span> <span class="desc">(Any 3 Suits, Pairs Must Be Same Suit)</span><div class="dots"></div><span class="value">X 30</span></div>
+            <div class="row"><span class="pattern"><span class="bk">FF</span> <span class="gr">111 111</span> <span class="rd">111</span> <span class="gr">DDD</span></span> <span class="desc">(Any 3 Suits, Any Dragon)</span><div class="dots"></div><span class="value">C 30</span></div>
+        </div>
+    </div>
+
+    <!-- CARD 2 -->
+    <div class="card-container">
+        <!-- QUINTS -->
+        <div class="section">
+            <div class="section-header">QUINTS <span class="values-label">VALUES</span></div>
+            <div class="row"><span class="pattern"><span class="bk">FF</span> <span class="gr">111</span> <span class="rd">2222 33333</span></span> <span class="desc">(Any 3 Suits, Any 3 Consec. Nos.)</span><div class="dots"></div><span class="value">X 40</span></div>
+            <div class="row"><span class="pattern"><span class="bk">11111 NNNN 22222</span></span> <span class="desc">(Any 1 Suit, Any 2 Consec. Nos., Any Wind)</span><div class="dots"></div><span class="value">X 45</span></div>
+            <div class="row"><span class="pattern"><span class="bk">FF</span> <span class="gr">11111</span> <span class="rd">11</span> <span class="bk">11111</span></span> <span class="desc">(Any 3 Suits, Any Like Nos.)</span><div class="dots"></div><span class="value">X 45</span></div>
+        </div>
+
+        <!-- CONSECUTIVE RUN -->
+        <div class="section">
+            <div class="section-header">CONSECUTIVE RUN</div>
+            <div class="row"><span class="pattern"><span class="bk">11 222 3333 444 55</span> <span class="desc" style="font-style: normal;">-or-</span> <span class="bk">55 666 7777 888 99</span></span> <span class="desc">(Any 1 Suit, These Nos. Only)</span><div class="dots"></div><span class="value">X 25</span></div>
+            <div class="row"><span class="pattern"><span class="bk">111 2222 333 4444</span> <span class="desc" style="font-style: normal;">-or-</span> <span class="gr">111 2222</span> <span class="rd">333 4444</span></span> <span class="desc">(Any 1 or 2 Suits, Any 4 Consec. Nos.)</span><div class="dots"></div><span class="value">X 25</span></div>
+            <div class="row"><span class="pattern"><span class="bk">FFFF 1111 22 3333</span> <span class="desc" style="font-style: normal;">-or-</span> <span class="bk">FFFF</span> <span class="gr">1111 22 3333</span></span> <span class="desc">(Any 1 or 3 Suits, Any 3 Consec. Nos.)</span><div class="dots"></div><span class="value">X 25</span></div>
+            <div class="row"><span class="pattern"><span class="bk">FFF</span> <span class="gr">123</span> <span class="rd">4444</span> <span class="bk">5555</span></span> <span class="desc">(Any 3 Suits, Any 5 Consec. Nos.)</span><div class="dots"></div><span class="value">X 25</span></div>
+            <div class="row"><span class="pattern"><span class="bk">FF 11 222 3333 DDD</span></span> <span class="desc">(Any 1 Suit, Any 3 Consec. Nos.)</span><div class="dots"></div><span class="value">X 25</span></div>
+            <div class="row"><span class="pattern"><span class="gr">111 222 3333</span> <span class="rd">DD DD</span></span> <span class="desc">(Any 3 Suits, Any 3 Consec. Nos. w Opp. Dragons)</span><div class="dots"></div><span class="value">X 25</span></div>
+            <div class="row"><span class="pattern"><span class="gr">112345 1111 1111</span></span> <span class="desc">(Any 5 Consec. Nos., Pair Any No. in Run, Kongs Match Pair)</span><div class="dots"></div><span class="value">X 30</span></div>
+            <div class="row"><span class="pattern"><span class="bk">FF</span> <span class="gr">1 22 333</span> <span class="rd">1 22 333</span></span> <span class="desc">(Any 2 Suits, Any Same 3 Consec. Nos.)</span><div class="dots"></div><span class="value">C 30</span></div>
+        </div>
+
+        <!-- 13579 -->
+        <div class="section" style="margin-bottom:0;">
+            <div class="section-header">13579</div>
+            <div class="row"><span class="pattern"><span class="bk">11 333 5555 777 99</span> <span class="desc" style="font-style: normal;">-or-</span> <span class="gr">11 333</span> <span class="rd">5555</span> <span class="bk">777 99</span></span> <span class="desc">(Any 1 or 3 Suits)</span><div class="dots"></div><span class="value">X 25</span></div>
+            <div class="row"><span class="pattern"><span class="gr">111 3333</span> <span class="rd">333 5555</span> <span class="desc" style="font-style: normal;">-or-</span> <span class="gr">555 7777</span> <span class="rd">777 9999</span></span> <span class="desc">(Any 2 Suits)</span><div class="dots"></div><span class="value">X 25</span></div>
+            <div class="row"><span class="pattern"><span class="bk">1111 333 5555 DDD</span> <span class="desc" style="font-style: normal;">-or-</span> <span class="bk">5555 777 9999 DDD</span></span> <span class="desc">(Any 1 Suit)</span><div class="dots"></div><span class="value">X 25</span></div>
+            <div class="row"><span class="pattern"><span class="bk">FFFF</span> <span class="gr">1111</span> <span class="bk">+</span> <span class="gr">9999</span> <span class="bk">=</span> <span class="rd">10</span></span> <span class="desc">(Any 2 Suits, These Nos. Only)</span><div class="dots"></div><span class="value">X 25</span></div>
+            <div class="row"><span class="pattern"><span class="bk">FFF 135 7777 9999</span> <span class="desc" style="font-style: normal;">-or-</span> <span class="bk">FFF</span> <span class="gr">135</span> <span class="bk">7777 9999</span></span> <span class="desc">(Any 1 or 3 Suits)</span><div class="dots"></div><span class="value">X 25</span></div>
+            <div class="row"><span class="pattern"><span class="gr">111 333 5555</span> <span class="rd">DD DD</span> <span class="desc" style="font-style: normal;">-or-</span> <span class="gr">555 777 9999</span> <span class="rd">DD DD</span></span> <span class="desc">(Any 3 Suits w Opp. Dragons)</span><div class="dots"></div><span class="value">X 25</span></div>
+            <div class="row"><span class="pattern"><span class="gr">11 333</span> <span class="bk">NEWS</span> <span class="rd">333 55</span> <span class="desc" style="font-style: normal;">-or-</span> <span class="gr">55 777</span> <span class="bk">NEWS</span> <span class="rd">777 99</span></span> <span class="desc">(Any 2 Suits)</span><div class="dots"></div><span class="value">X 30</span></div>
+            <div class="row"><span class="pattern"><span class="gr">1111</span> <span class="rd">33 55 77</span> <span class="gr">9999</span></span> <span class="desc">(Any 2 Suits)</span><div class="dots"></div><span class="value">X 30</span></div>
+            <div class="row"><span class="pattern"><span class="bk">FF</span> <span class="gr">11 33</span> <span class="rd">111 333</span> <span class="bk">55</span> <span class="desc" style="font-style: normal;">-or-</span> <span class="bk">FF</span> <span class="gr">55 77</span> <span class="rd">555 777</span> <span class="bk">99</span></span> <span class="desc">(Any 3 Suits)</span><div class="dots"></div><span class="value">C 30</span></div>
+        </div>
+    </div>
+
+    <!-- CARD 3 -->
+    <div class="card-container">
+        <!-- WINDS - DRAGONS -->
+        <div class="section">
+            <div class="section-header">WINDS - DRAGONS <span class="values-label">VALUES</span></div>
+            <div class="row"><span class="pattern"><span class="bk">NNNN EEE WWW SSSS</span> <span class="desc" style="font-style: normal;">-or-</span> <span class="bk">NNN EEEE WWWW SSS</span></span><div class="dots"></div><span class="value">X 25</span></div>
+            <div class="row"><span class="pattern"><span class="bk">FF 123</span> <span class="gr">DD</span> <span class="rd">DDD</span> <span class="bk">DDDD</span></span> <span class="desc">(Any 3 Consec. Nos. in Any 1 Suit, Any 3 Dragons)</span><div class="dots"></div><span class="value">X 25</span></div>
+            <div class="row"><span class="pattern"><span class="bk">FFF NN EE WWW SSSS</span></span><div class="dots"></div><span class="value">X 25</span></div>
+            <div class="row"><span class="pattern"><span class="bk">FFFF</span> <span class="gr">DDD</span> <span class="bk">NEWS</span> <span class="rd">DDD</span></span> <span class="desc">(Dragons Any 2 Suits)</span><div class="dots"></div><span class="value">X 25</span></div>
+            <div class="row"><span class="pattern"><span class="bk">NNNN</span> <span class="gr">1 11</span> <span class="rd">111</span> <span class="bk">SSSS</span></span> <span class="desc">(Any Like Odd Nos. in 3 Suits)</span><div class="dots"></div><span class="value">X 25</span></div>
+            <div class="row"><span class="pattern"><span class="bk">EEEE</span> <span class="gr">2 22</span> <span class="rd">222</span> <span class="bk">WWWW</span></span> <span class="desc">(Any Like Even Nos. in 3 Suits)</span><div class="dots"></div><span class="value">X 25</span></div>
+            <div class="row"><span class="pattern"><span class="bk">NN EEE WWW SS 2025</span> <span class="desc" style="font-style: normal;">-or-</span> <span class="bk">NNN EE WW SSS 2025</span></span> <span class="desc">(2025 Any 1 Suit)</span><div class="dots"></div><span class="value">X 30</span></div>
+            <div class="row"><span class="pattern"><span class="bk">NN EE WWW SSS DDDD</span></span> <span class="desc">(Kong Any Dragon)</span><div class="dots"></div><span class="value">C 30</span></div>
+        </div>
+
+        <!-- 369 -->
+        <div class="section">
+            <div class="section-header">369</div>
+            <div class="row"><span class="pattern"><span class="gr">333 6666 666 9999</span> <span class="desc" style="font-style: normal;">-or-</span> <span class="gr">333 6666</span> <span class="rd">666 9999</span></span> <span class="desc">(Any 2 or 3 Suits)</span><div class="dots"></div><span class="value">X 25</span></div>
+            <div class="row"><span class="pattern"><span class="bk">FF</span> <span class="gr">3333</span> <span class="bk">+</span> <span class="gr">6666</span> <span class="bk">= 9999</span> <span class="desc" style="font-style: normal;">-or-</span> <span class="bk">FF</span> <span class="gr">3333</span> <span class="bk">+</span> <span class="rd">6666</span> <span class="bk">= 9999</span></span> <span class="desc">(Any 1 or 3 Suits)</span><div class="dots"></div><span class="value">X 25</span></div>
+            <div class="row"><span class="pattern"><span class="gr">3333</span> <span class="rd">DDD</span> <span class="gr">3333</span> <span class="rd">DDD</span></span> <span class="desc">(Any 2 Suits, Like Kongs 3, 6 or 9 w Matching Dragons)</span><div class="dots"></div><span class="value">X 25</span></div>
+            <div class="row"><span class="pattern"><span class="bk">FFF</span> <span class="gr">3333</span> <span class="rd">369</span> <span class="gr">9999</span></span> <span class="desc">(Any 2 Suits)</span><div class="dots"></div><span class="value">X 25</span></div>
+            <div class="row"><span class="pattern"><span class="gr">33 66 99</span> <span class="bk">3333 3333</span></span> <span class="desc">(Any 3 Suits, Like Kongs 3, 6, or 9)</span><div class="dots"></div><span class="value">X 25</span></div>
+            <div class="row"><span class="pattern"><span class="bk">FF</span> <span class="gr">333 D</span> <span class="rd">666 D</span> <span class="bk">999 D</span></span> <span class="desc">(Any 3 Suits w Matching Dragons)</span><div class="dots"></div><span class="value">C 30</span></div>
+        </div>
+
+        <!-- SINGLES AND PAIRS -->
+        <div class="section" style="margin-bottom:0;">
+            <div class="section-header">SINGLES AND PAIRS</div>
+            <div class="row"><span class="pattern"><span class="bk">NN EW SS 11 22 33 44</span></span> <span class="desc">(Any 1 Suit, Any 4 Consec. Nos.)</span><div class="dots"></div><span class="value">C 50</span></div>
+            <div class="row"><span class="pattern"><span class="bk">FF</span> <span class="gr">2468 DD</span> <span class="rd">2468 DD</span></span> <span class="desc">(Any 2 Suits w Matching Dragons)</span><div class="dots"></div><span class="value">C 50</span></div>
+            <div class="row"><span class="pattern"><span class="gr">336699</span> <span class="rd">336699</span> <span class="bk">33</span></span> <span class="desc">(Any 3 Suits, Pair 3, 6, or 9 in Third Suit)</span><div class="dots"></div><span class="value">C 50</span></div>
+            <div class="row"><span class="pattern"><span class="bk">FF</span> <span class="gr">11 22</span> <span class="rd">11 22</span> <span class="bk">11 22</span></span> <span class="desc">(Any 3 Suits, Any 2 Consec. Nos.)</span><div class="dots"></div><span class="value">C 50</span></div>
+            <div class="row"><span class="pattern"><span class="gr">11 33 55 77 99</span> <span class="rd">11 11</span></span> <span class="desc">(Any 3 Suits, Pairs Any Like Odd Nos. in Opp. Suits)</span><div class="dots"></div><span class="value">C 50</span></div>
+            <div class="row"><span class="pattern"><span class="bk">FF</span> <span class="gr">2025</span> <span class="rd">2025</span> <span class="bk">2025</span></span> <span class="desc">(Any 3 Suits)</span><div class="dots"></div><span class="value">C 75</span></div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
