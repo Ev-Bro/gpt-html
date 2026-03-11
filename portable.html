@@ -1,0 +1,3192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>American Mahjong — NMJL 2025 (Portable)</title>
+    <meta name="description" content="Play American Mahjong against 3 bot opponents with toggleable hints.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+/* style.css — American Mahjong dark premium theme */
+
+:root {
+    --bg-dark: #0d1117;
+    --bg-card: #161b22;
+    --bg-surface: #21262d;
+    --bg-hover: #30363d;
+    --border: #30363d;
+    --border-light: #484f58;
+    --text: #e6edf3;
+    --text-dim: #8b949e;
+    --text-muted: #6e7681;
+    --accent: #58a6ff;
+    --accent-glow: rgba(88, 166, 255, 0.3);
+    --green: #3fb950;
+    --green-glow: rgba(63, 185, 80, 0.4);
+    --red: #f85149;
+    --orange: #d29922;
+    --pink: #db61a2;
+    --purple: #bc8cff;
+    --tile-bg: #f0e6d3;
+    --tile-border: #c9b896;
+    --tile-text: #1a1a2e;
+    --tile-back: #1f6f8b;
+    --tile-back-pattern: #2a8fac;
+    --tile-shadow: rgba(0,0,0,0.4);
+    --tile-selected: #58a6ff;
+    --tile-hint: #3fb950;
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: var(--font);
+    background: var(--bg-dark);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* ---- HEADER ---- */
+#game-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.header-left {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+}
+
+.header-left h1 {
+    font-size: 1.3rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #f85149, #ff9800, #3fb950, #58a6ff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    font-weight: 500;
+}
+
+.header-center { display: flex; gap: 10px; align-items: center; }
+.header-right { display: flex; gap: 8px; }
+
+.badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+}
+.badge.turn {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+}
+
+/* ---- BUTTONS ---- */
+.btn {
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-surface);
+    color: var(--text);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: var(--font);
+}
+.btn:hover { background: var(--bg-hover); border-color: var(--border-light); }
+.btn-primary { background: var(--accent); color: #000; border-color: var(--accent); }
+.btn-primary:hover { background: #79c0ff; }
+.btn-hint { position: relative; }
+.btn-hint.active { background: var(--green); color: #000; border-color: var(--green); }
+.btn-autoplay { position: relative; }
+.btn-autoplay.active { background: var(--orange); color: #000; border-color: var(--orange); animation: pulse 1.5s ease-in-out infinite; }
+.btn-claim { background: var(--purple); color: #000; border-color: var(--purple); font-size: 0.85rem; }
+.btn-claim:hover { opacity: 0.85; }
+.btn-mahjong {
+    background: linear-gradient(135deg, #f85149, #ff9800);
+    color: #fff; border: none; font-size: 0.9rem;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+.btn-pass { background: var(--bg-surface); }
+
+/* ---- GAME BOARD ----
+ * 5-row grid:
+ *   row 1 = top player (West)
+ *   row 2 = center (discard pool + claim controls)
+ *   row 3 = hint panel (only visible when toggled)
+ *   row 4 = human player (You/East)
+ * Side players span rows 1–2 only so they don't overlap hints/hand
+ */
+/* ---- GAME WRAPPER (board + sidebar) ---- */
+#game-wrapper {
+    display: flex;
+    height: calc(100vh - 60px);
+}
+
+#game-board {
+    display: grid;
+    grid-template-columns: 110px 1fr 110px;
+    grid-template-rows: auto 1fr auto;
+    gap: 6px;
+    padding: 8px;
+    padding-bottom: 12px;
+    flex: 1;
+    position: relative;
+    min-width: 0;
+}
+
+.player-area {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 8px;
+    position: relative;
+    overflow-y: auto;
+}
+
+.player-top    { grid-column: 2; grid-row: 1; }
+.player-left   { grid-column: 1; grid-row: 1 / 3; display: flex; flex-direction: column; }
+.player-right  { grid-column: 3; grid-row: 1 / 3; display: flex; flex-direction: column; }
+.player-bottom { grid-column: 1 / 4; grid-row: 3; overflow: visible; }
+
+#center-area {
+    grid-column: 2; grid-row: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 12px;
+    overflow-y: auto;
+}
+
+.player-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.player-name {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--text);
+}
+
+.tile-count {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.player-hand {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    min-height: 70px;
+    justify-content: center;
+}
+
+.player-exposed {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 6px;
+    justify-content: center;
+}
+
+.exposed-group {
+    display: flex;
+    gap: 2px;
+    padding: 3px;
+    background: rgba(88,166,255,0.08);
+    border-radius: 6px;
+    border: 1px solid rgba(88,166,255,0.15);
+}
+
+.tile.joker-exchangeable {
+    cursor: pointer;
+    border-color: var(--orange) !important;
+    box-shadow: 0 0 12px rgba(210, 153, 34, 0.5);
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* ---- TILES ---- */
+.tile {
+    width: 46px;
+    height: 62px;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: default;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    position: relative;
+    user-select: none;
+}
+
+.tile-face {
+    background: var(--tile-bg);
+    border: 2px solid var(--tile-border);
+    color: var(--tile-text);
+    box-shadow: 0 2px 4px var(--tile-shadow), inset 0 1px 0 rgba(255,255,255,0.6);
+}
+
+.tile-back {
+    background: linear-gradient(135deg, var(--tile-back), var(--tile-back-pattern));
+    border: 2px solid #175a6e;
+    box-shadow: 0 2px 4px var(--tile-shadow);
+}
+
+.tile-back::after {
+    content: '🀄';
+    font-size: 0.9rem;
+    opacity: 0.4;
+}
+
+.tile-label {
+    font-size: 0.45rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    opacity: 0.7;
+    margin-top: 1px;
+}
+
+.tile-emoji {
+    font-size: 1.15rem;
+    line-height: 1;
+}
+
+/* Suit colors on tiles */
+.tile-crak .tile-emoji { color: #c0392b; }
+.tile-bam .tile-emoji { color: #27ae60; }
+.tile-dot .tile-emoji { color: #2980b9; }
+.tile-dragon-Red .tile-emoji { color: #e74c3c; }
+.tile-dragon-Green .tile-emoji { color: #2ecc71; }
+.tile-dragon-White .tile-emoji { color: #95a5a6; }
+.tile-wind .tile-emoji { color: #8e44ad; }
+.tile-joker { background: linear-gradient(135deg, #f39c12, #e74c3c); border-color: #d68910; }
+.tile-joker .tile-emoji { color: #fff; }
+.tile-flower .tile-emoji, .tile-season .tile-emoji { color: #e91e63; }
+
+/* Interactive states (human player's tiles) */
+.player-bottom .tile-face {
+    cursor: pointer;
+}
+.player-bottom .tile-face:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 6px 12px var(--tile-shadow);
+    border-color: var(--accent);
+}
+.player-bottom .tile-face.selected {
+    transform: translateY(-10px);
+    border-color: var(--tile-selected);
+    box-shadow: 0 0 12px var(--accent-glow);
+}
+.player-bottom .tile-face.hint-glow {
+    border-color: var(--tile-hint);
+    box-shadow: 0 0 16px var(--green-glow);
+    transform: translateY(-8px);
+    animation: hint-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes hint-pulse {
+    0%, 100% { box-shadow: 0 0 12px var(--green-glow); }
+    50% { box-shadow: 0 0 24px var(--green-glow), 0 0 40px rgba(63, 185, 80, 0.15); }
+}
+
+.hint-badge {
+    position: absolute;
+    top: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--green);
+    color: #000;
+    font-size: 0.5rem;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+    pointer-events: none;
+    letter-spacing: 0.5px;
+}
+
+/* Side player tiles (vertical) */
+.player-left .player-hand,
+.player-right .player-hand {
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    flex: 1;
+}
+
+.player-left .tile,
+.player-right .tile {
+    width: 70px;
+    flex: 1;
+    max-height: 42px;
+    font-size: 0.6rem;
+}
+
+/* ---- DISCARD POOL ---- */
+#discard-pool {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    justify-content: center;
+    max-width: 500px;
+    padding: 12px;
+    background: var(--bg-surface);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    min-height: 80px;
+}
+
+#discard-pool .tile {
+    width: 38px;
+    height: 50px;
+    font-size: 0.85rem;
+}
+
+#discard-pool .tile-label {
+    font-size: 0.35rem;
+}
+
+#discard-pool .tile:last-child {
+    border-color: var(--orange);
+    box-shadow: 0 0 8px rgba(210, 153, 34, 0.4);
+}
+
+#claim-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+/* ---- SIDEBAR (hints + history) ---- */
+#game-sidebar {
+    width: 220px;
+    min-width: 220px;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-card);
+    border-left: 1px solid var(--border);
+}
+
+#game-log {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+    font-size: 0.7rem;
+    font-family: 'Courier New', monospace;
+    color: var(--text-dim);
+    line-height: 1.45;
+    min-height: 0;
+}
+#game-log h3 {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--font);
+}
+#game-log-entries {
+    display: flex;
+    flex-direction: column-reverse;
+}
+.log-entry {
+    padding: 2px 0;
+    border-bottom: 1px solid rgba(48, 54, 61, 0.3);
+}
+.log-entry:first-child {
+    color: var(--text);
+    font-weight: 600;
+}
+.log-draw { color: var(--accent); }
+.log-discard { color: var(--orange); }
+.log-claim { color: var(--purple); }
+.log-mahjong { color: var(--green); font-weight: 700; }
+
+/* ---- HINT PANEL (in sidebar) ---- */
+#hint-panel {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    border-bottom: 1px solid var(--border);
+    min-height: 0;
+}
+#hint-panel h3 { color: var(--green); margin-bottom: 6px; font-size: 0.85rem; font-family: var(--font); }
+#hint-content { font-size: 0.75rem; color: var(--text-dim); line-height: 1.5; }
+#hint-content .hint-hand { color: var(--accent); font-weight: 600; }
+#hint-content .hint-action { color: var(--green); font-weight: 600; }
+#hint-content .hint-needed { color: var(--orange); font-weight: 600; }
+
+/* Dim tiles that don't contribute to the target hand */
+.player-bottom .tile-face.tile-dim {
+    opacity: 0.45;
+    filter: grayscale(40%);
+}
+.player-bottom .tile-face.tile-dim:hover {
+    opacity: 0.75;
+    filter: none;
+}
+
+/* ---- MODALS ---- */
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+.modal-content {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+}
+.modal-close {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 1.2rem;
+    cursor: pointer;
+}
+.modal-close:hover { color: var(--text); }
+
+.gameover-content {
+    text-align: center;
+}
+#gameover-title { font-size: 2rem; margin-bottom: 12px; }
+#gameover-details { color: var(--text-dim); margin-bottom: 8px; }
+#gameover-hand { color: var(--accent); font-weight: 600; margin-bottom: 20px; }
+
+/* Scorecard */
+#scorecard-body {
+    font-size: 0.8rem;
+}
+.scorecard-cat {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+}
+.scorecard-cat h4 {
+    color: var(--accent);
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+}
+.scorecard-hand {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-bottom: 2px;
+}
+.scorecard-hand:hover { background: var(--bg-surface); }
+.sc-pattern { font-family: 'Courier New', monospace; color: var(--text); font-weight: 600; }
+.sc-value {
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 700;
+}
+.sc-x { background: rgba(88,166,255,0.15); color: var(--accent); }
+.sc-c { background: rgba(219,97,162,0.15); color: var(--pink); }
+
+/* ---- ANIMATIONS ---- */
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.04); }
+}
+
+.hidden { display: none !important; }
+
+/* ---- ACTIVE PLAYER INDICATOR ---- */
+.player-area.active-player {
+    border-color: var(--accent);
+    box-shadow: 0 0 16px var(--accent-glow);
+}
+
+/* ---- RESPONSIVE ---- */
+@media (max-width: 900px) {
+    #game-board {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto auto auto;
+        height: auto;
+        overflow: auto;
+    }
+    .player-top { grid-column: 1; grid-row: 1; }
+    .player-left { grid-column: 1; grid-row: 2; flex-direction: row; }
+    .player-right { grid-column: 1; grid-row: 4; flex-direction: row; }
+    #center-area { grid-column: 1; grid-row: 3; }
+    .player-bottom { grid-column: 1; grid-row: 5; }
+    .player-left .player-hand,
+    .player-right .player-hand {
+        flex-direction: row;
+    }
+    .player-left .tile,
+    .player-right .tile {
+        width: 38px;
+        height: 50px;
+    }
+}
+
+    </style>
+</head>
+<body>
+<header id="game-header">
+        <div class="header-left">
+            <h1>🀄 American Mahjong</h1>
+            <span class="subtitle">NMJL 2025</span>
+        </div>
+        <div class="header-center">
+            <span id="wall-count" class="badge">Wall: 152</span>
+            <span id="turn-indicator" class="badge turn">East's Turn</span>
+        </div>
+        <div class="header-right">
+            <button id="btn-hint" class="btn btn-hint" title="Toggle Hints">💡 Hints</button>
+            <button id="btn-autoplay" class="btn btn-autoplay" title="Toggle Auto-Play">▶ Auto Play</button>
+            <button id="btn-scorecard" class="btn btn-scorecard" title="View Scorecard">📋 Card</button>
+            <button id="btn-new-game" class="btn btn-primary" title="New Game">🔄 New Game</button>
+        </div>
+    </header>
+
+    <div id="game-wrapper">
+    <main id="game-board">
+        <!-- Bot 2 (across) -->
+        <section id="player-2" class="player-area player-top">
+            <div class="player-label"><span class="player-name">West</span> <span class="tile-count"></span></div>
+            <div class="player-exposed"></div>
+            <div class="player-hand"></div>
+        </section>
+
+        <!-- Bot 1 (left) -->
+        <section id="player-1" class="player-area player-left">
+            <div class="player-label"><span class="player-name">South</span> <span class="tile-count"></span></div>
+            <div class="player-exposed"></div>
+            <div class="player-hand"></div>
+        </section>
+
+        <!-- Center: discard pool -->
+        <section id="center-area">
+            <div id="discard-pool"></div>
+            <div id="claim-controls" class="hidden">
+                <button id="btn-claim-pung" class="btn btn-claim">Pung</button>
+                <button id="btn-claim-kong" class="btn btn-claim">Kong</button>
+                <button id="btn-claim-quint" class="btn btn-claim">Quint</button>
+                <button id="btn-claim-mahjong" class="btn btn-mahjong">Mahjong!</button>
+                <button id="btn-pass" class="btn btn-pass">Pass</button>
+            </div>
+
+        </section>
+
+        <!-- Bot 3 (right) -->
+        <section id="player-3" class="player-area player-right">
+            <div class="player-label"><span class="player-name">North</span> <span class="tile-count"></span></div>
+            <div class="player-exposed"></div>
+            <div class="player-hand"></div>
+        </section>
+
+        <!-- Human (bottom) -->
+        <section id="player-0" class="player-area player-bottom">
+            <div class="player-label"><span class="player-name">You (East)</span> <span class="tile-count"></span></div>
+            <div class="player-exposed"></div>
+            <div class="player-hand"></div>
+        </section>
+    </main>
+    <aside id="game-sidebar">
+        <div id="hint-panel" class="hidden">
+            <h3>💡 Hints</h3>
+            <div id="hint-content"></div>
+        </div>
+        <div id="game-log">
+            <h3>📜 History</h3>
+            <div id="game-log-entries"></div>
+        </div>
+    </aside>
+    </div>
+
+    <!-- Scorecard modal -->
+    <div id="scorecard-modal" class="modal hidden">
+        <div class="modal-content">
+            <button class="modal-close" id="scorecard-close">✕</button>
+            <h2>📋 NMJL 2025 Scorecard</h2>
+            <div id="scorecard-body"></div>
+        </div>
+    </div>
+
+    <!-- Game over modal -->
+    <div id="gameover-modal" class="modal hidden">
+        <div class="modal-content gameover-content">
+            <h2 id="gameover-title">🎉 Mahjong!</h2>
+            <p id="gameover-details"></p>
+            <p id="gameover-hand"></p>
+            <button class="btn btn-primary" id="gameover-new">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+// tiles.js — Tile definitions & wall builder for American Mahjong (152 tiles)
+// Works in both browser (global) and Node.js (module.exports)
+
+const SUIT = { CRAK: 'crak', BAM: 'bam', DOT: 'dot' };
+const SUITS = [SUIT.CRAK, SUIT.BAM, SUIT.DOT];
+const SUIT_EMOJI = { crak: '🉐', bam: '🎋', dot: '🔘' };
+const SUIT_LABEL = { crak: 'CRAK', bam: 'BAM', dot: 'DOT' };
+const SUIT_COLOR = { crak: '#e74c3c', bam: '#2ecc71', dot: '#3498db' };
+
+const WINDS = ['N', 'E', 'S', 'W'];
+const WIND_NAME = { N: 'North', E: 'East', S: 'South', W: 'West' };
+
+const DRAGONS = ['Red', 'Green', 'White'];
+const DRAGON_COLOR = { Red: '#e74c3c', Green: '#2ecc71', White: '#ecf0f1' };
+// Matching dragons: Crak↔Red, Bam↔Green, Dot↔White
+const SUIT_DRAGON = { crak: 'Red', bam: 'Green', dot: 'White' };
+const DRAGON_SUIT = { Red: 'crak', Green: 'bam', White: 'dot' };
+
+const FLOWERS = [
+    { name: 'Plum',           emoji: '🌸' },
+    { name: 'Orchid',         emoji: '💐' },
+    { name: 'Chrysanthemum',  emoji: '🌻' },
+    { name: 'Bamboo',         emoji: '🎍' }
+];
+
+const SEASONS = [
+    { name: 'Spring', emoji: '🌱' },
+    { name: 'Summer', emoji: '☀️' },
+    { name: 'Autumn', emoji: '🍁' },
+    { name: 'Winter', emoji: '❄️' }
+];
+
+// ---------------------------------------------------------------------------
+// Build the 152-tile wall
+// ---------------------------------------------------------------------------
+function buildWall() {
+    const tiles = [];
+    let id = 0;
+
+    // Suited tiles: crak, bam, dot — values 1–9, 4 copies each (108 tiles)
+    for (const suit of SUITS) {
+        for (let v = 1; v <= 9; v++) {
+            for (let c = 0; c < 4; c++) {
+                tiles.push({
+                    id: id++, type: 'suited', suit, value: v,
+                    emoji: v + SUIT_EMOJI[suit],
+                    label: SUIT_LABEL[suit],
+                    color: SUIT_COLOR[suit]
+                });
+            }
+        }
+    }
+
+    // Winds: N, E, S, W — 4 copies each (16 tiles)
+    for (const w of WINDS) {
+        for (let c = 0; c < 4; c++) {
+            tiles.push({
+                id: id++, type: 'wind', suit: 'wind', value: w,
+                emoji: w, label: 'WIND', color: '#9b59b6'
+            });
+        }
+    }
+
+    // Dragons: Red, Green, White — 4 copies each (12 tiles)
+    for (const d of DRAGONS) {
+        for (let c = 0; c < 4; c++) {
+            tiles.push({
+                id: id++, type: 'dragon', suit: 'dragon', value: d,
+                emoji: '🐉', label: d.toUpperCase(),
+                color: DRAGON_COLOR[d]
+            });
+        }
+    }
+
+    // Flowers — 4 unique, 1 each
+    for (const f of FLOWERS) {
+        tiles.push({
+            id: id++, type: 'flower', suit: 'flower', value: f.name,
+            emoji: f.emoji, label: 'FLOWER', color: '#e91e63'
+        });
+    }
+
+    // Seasons — 4 unique, 1 each
+    for (const s of SEASONS) {
+        tiles.push({
+            id: id++, type: 'season', suit: 'season', value: s.name,
+            emoji: s.emoji, label: 'SEASON', color: '#ff9800'
+        });
+    }
+
+    // Jokers — 8 copies
+    for (let c = 0; c < 8; c++) {
+        tiles.push({
+            id: id++, type: 'joker', suit: 'joker', value: 'Joker',
+            emoji: '🃏', label: 'JOKER', color: '#f39c12'
+        });
+    }
+
+    // Pre-cache _key on every tile for fast lookup
+    for (const t of tiles) {
+        t._key = tileKey(t);
+    }
+
+    return tiles; // 152 total
+}
+
+// ---------------------------------------------------------------------------
+// Utility helpers
+// ---------------------------------------------------------------------------
+function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}
+
+/** Canonical string key for a tile (ignores copy id) */
+function tileKey(t) {
+    if (t._key) return t._key;
+    if (t.type === 'suited') return `${t.suit}-${t.value}`;
+    if (t.type === 'wind')   return `wind-${t.value}`;
+    if (t.type === 'dragon') return `dragon-${t.value}`;
+    if (t.type === 'flower') return `flower-${t.value}`;
+    if (t.type === 'season') return `season-${t.value}`;
+    return 'joker';
+}
+
+/** Short display string for terminal output */
+function tileStr(t) {
+    if (t.type === 'suited') return `${t.value}${t.suit[0].toUpperCase()}`;
+    if (t.type === 'wind')   return t.value;
+    if (t.type === 'dragon') return t.value[0] + 'Dr';
+    if (t.type === 'flower') return 'Fl:' + t.value.slice(0, 3);
+    if (t.type === 'season') return 'Sn:' + t.value.slice(0, 3);
+    return 'JK';
+}
+
+/** Flowers & seasons both count as "flowers" in NMJL */
+function isFlower(t) {
+    return t.type === 'flower' || t.type === 'season';
+}
+
+/** Can a joker substitute in a group of this size? (≥3 only) */
+function jokerAllowed(groupSize) {
+    return groupSize >= 3;
+}
+
+/** Count tiles by key */
+function countTiles(tiles) {
+    const m = {};
+    for (const t of tiles) {
+        const k = tileKey(t);
+        m[k] = (m[k] || 0) + 1;
+    }
+    return m;
+}
+
+/** Sort tiles for display: suited by suit+value, then winds, dragons, flowers, jokers */
+function sortTiles(tiles) {
+    const order = { crak: 0, bam: 1, dot: 2, wind: 3, dragon: 4, flower: 5, season: 6, joker: 7 };
+    return [...tiles].sort((a, b) => {
+        const sa = order[a.suit] || 0, sb = order[b.suit] || 0;
+        if (sa !== sb) return sa - sb;
+        if (a.type === 'suited') return a.value - b.value;
+        if (a.type === 'wind') return WINDS.indexOf(a.value) - WINDS.indexOf(b.value);
+        if (a.type === 'dragon') return DRAGONS.indexOf(a.value) - DRAGONS.indexOf(b.value);
+        return 0;
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Export for Node.js, otherwise attach to window
+// ---------------------------------------------------------------------------
+const TilesModule = {
+    SUIT, SUITS, SUIT_EMOJI, SUIT_LABEL, SUIT_COLOR,
+    WINDS, WIND_NAME, DRAGONS, DRAGON_COLOR, SUIT_DRAGON, DRAGON_SUIT,
+    FLOWERS, SEASONS,
+    buildWall, shuffle, tileKey, tileStr, isFlower, jokerAllowed,
+    countTiles, sortTiles
+};
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = TilesModule;
+} else {
+    window.Tiles = TilesModule;
+}
+
+    </script>
+    <script>
+// hands.js — NMJL 2025 hand patterns & matching engine (optimized)
+// Works in both browser and Node.js
+
+(function () {
+    const T = (typeof module !== 'undefined' && module.exports)
+        ? require('./tiles')
+        : window.Tiles;
+
+    // -----------------------------------------------------------------------
+    // SCORECARD DATA (2025 NMJL)
+    // Each hand: { cat, display, groups, suitRule, value, concealed }
+    // Groups: array of { ch, count } from pattern parsing
+    // suitRule: constraint on how many distinct suits the numbered groups use
+    // -----------------------------------------------------------------------
+
+    function parseGroups(pat) {
+        const groups = [];
+        const clean = pat.replace(/[+=]/g, '');
+        const tokens = clean.split(/\s+/).filter(Boolean);
+        for (const tok of tokens) {
+            let i = 0;
+            while (i < tok.length) {
+                const ch = tok[i];
+                let count = 0;
+                while (i < tok.length && tok[i] === ch) { count++; i++; }
+                groups.push({ ch, count });
+            }
+        }
+        return groups;
+    }
+
+    const RAW = [
+        // 2025 VALUES
+        { cat:'2025 VALUES', p:'FFFF 2025 222 222', sr:[3,3], v:25 },
+        { cat:'2025 VALUES', p:'222 0000 222 5555', sr:[2,2], v:25 },
+        { cat:'2025 VALUES', p:'2025 222 555 DDDD', sr:[3,3], v:30 },
+        { cat:'2025 VALUES', p:'FF 222 000 222 555', sr:[3,3], v:30, c:true },
+        // 2468
+        { cat:'2468', p:'222 4444 666 8888', sr:[1,2], v:25 },
+        { cat:'2468', p:'FF 2222 4444 6666', sr:[3,3], v:25 },
+        { cat:'2468', p:'22 444 66 888 DDDD', sr:[1,1], v:25 },
+        { cat:'2468', p:'FFFF 2468 222 222', sr:[3,3], v:25 },
+        { cat:'2468', p:'FF 22 44 666 8888', sr:[1,1], v:25 },
+        { cat:'2468', p:'222 4444 666 88 88', sr:[3,3], v:25 },
+        { cat:'2468', p:'FF 2222 DDDD 2222', sr:[2,3], v:25 },
+        { cat:'2468', p:'22 44 66 88 222 222', sr:[3,3], v:30, c:true },
+        // ANY LIKE NUMBERS
+        { cat:'ANY LIKE NUMBERS', p:'FF 1111 D 1111 D 11', sr:[3,3], v:25, num:'like' },
+        { cat:'ANY LIKE NUMBERS', p:'FFFF 11 111 111 11', sr:[3,3], v:30, num:'like' },
+        { cat:'ANY LIKE NUMBERS', p:'FF 111 111 111 DDD', sr:[3,3], v:30, c:true, num:'like' },
+        // QUINTS
+        { cat:'QUINTS', p:'FF 111 2222 33333', sr:[3,3], v:40, num:'consec3' },
+        { cat:'QUINTS', p:'11111 NNNN 22222', sr:[1,1], v:45, num:'consec2' },
+        { cat:'QUINTS', p:'FF 11111 11 11111', sr:[3,3], v:45, num:'like' },
+        // CONSECUTIVE RUN
+        { cat:'CONSEC RUN', p:'11 222 3333 444 55', sr:[1,1], v:25, num:'consec5a' },
+        { cat:'CONSEC RUN', p:'55 666 7777 888 99', sr:[1,1], v:25 },
+        { cat:'CONSEC RUN', p:'111 2222 333 4444', sr:[1,2], v:25, num:'consec4' },
+        { cat:'CONSEC RUN', p:'FFFF 1111 22 3333', sr:[1,3], v:25, num:'consec3' },
+        { cat:'CONSEC RUN', p:'FFF 123 4444 5555', sr:[3,3], v:25, num:'consec5' },
+        { cat:'CONSEC RUN', p:'FF 11 222 3333 DDD', sr:[1,1], v:25, num:'consec3' },
+        { cat:'CONSEC RUN', p:'111 222 3333 DD DD', sr:[3,3], v:25, num:'consec3' },
+        { cat:'CONSEC RUN', p:'FF 1 22 333 1 22 333', sr:[2,2], v:30, c:true, num:'consec3' },
+        // 13579
+        { cat:'13579', p:'11 333 5555 777 99', sr:[1,3], v:25 },
+        { cat:'13579', p:'111 3333 333 5555', sr:[2,2], v:25, alt:'555 7777 777 9999' },
+        { cat:'13579', p:'1111 333 5555 DDD', sr:[1,1], v:25, alt:'5555 777 9999 DDD' },
+        { cat:'13579', p:'FFFF 1111 9999 10', sr:[2,2], v:25 },
+        { cat:'13579', p:'FFF 135 7777 9999', sr:[1,3], v:25 },
+        { cat:'13579', p:'111 333 5555 DD DD', sr:[3,3], v:25, alt:'555 777 9999 DD DD' },
+        { cat:'13579', p:'11 333 NEWS 333 55', sr:[2,2], v:30, alt:'55 777 NEWS 777 99' },
+        { cat:'13579', p:'1111 33 55 77 9999', sr:[2,2], v:30 },
+        { cat:'13579', p:'FF 11 33 111 333 55', sr:[3,3], v:30, c:true, alt:'FF 55 77 555 777 99' },
+        // WINDS-DRAGONS
+        { cat:'WINDS-DRAGONS', p:'NNNN EEE WWW SSSS', sr:[0,0], v:25, alt:'NNN EEEE WWWW SSS' },
+        { cat:'WINDS-DRAGONS', p:'FF 123 DD DDD DDDD', sr:[1,1], v:25, num:'consec3' },
+        { cat:'WINDS-DRAGONS', p:'FFF NN EE WWW SSSS', sr:[0,0], v:25 },
+        { cat:'WINDS-DRAGONS', p:'FFFF DDD NEWS DDD', sr:[0,0], v:25 },
+        { cat:'WINDS-DRAGONS', p:'NNNN 1 11 111 SSSS', sr:[3,3], v:25, num:'like' },
+        { cat:'WINDS-DRAGONS', p:'EEEE 2 22 222 WWWW', sr:[3,3], v:25, num:'like' },
+        { cat:'WINDS-DRAGONS', p:'NN EEE WWW SS 2025', sr:[1,1], v:30, alt:'NNN EE WW SSS 2025' },
+        { cat:'WINDS-DRAGONS', p:'NN EE WWW SSS DDDD', sr:[0,0], v:30, c:true },
+        // 369
+        { cat:'369', p:'333 6666 666 9999', sr:[2,3], v:25 },
+        { cat:'369', p:'FF 3333 6666 9999', sr:[1,3], v:25 },
+        { cat:'369', p:'3333 DDD 3333 DDD', sr:[2,2], v:25 },
+        { cat:'369', p:'FFF 3333 369 9999', sr:[2,2], v:25 },
+        { cat:'369', p:'33 66 99 3333 3333', sr:[3,3], v:25 },
+        { cat:'369', p:'FF 333 D 666 D 999 D', sr:[3,3], v:30, c:true },
+        // SINGLES & PAIRS
+        { cat:'SINGLES & PAIRS', p:'NN EW SS 11 22 33 44', sr:[1,1], v:50, c:true, num:'consec4' },
+        { cat:'SINGLES & PAIRS', p:'FF 2468 DD 2468 DD', sr:[2,2], v:50, c:true },
+        { cat:'SINGLES & PAIRS', p:'336699 336699 33', sr:[3,3], v:50, c:true },
+        { cat:'SINGLES & PAIRS', p:'FF 11 22 11 22 11 22', sr:[3,3], v:50, c:true, num:'consec2' },
+        { cat:'SINGLES & PAIRS', p:'11 33 55 77 99 11 11', sr:[3,3], v:50, c:true },
+        { cat:'SINGLES & PAIRS', p:'FF 2025 2025 2025', sr:[3,3], v:75, c:true },
+    ];
+
+    // -----------------------------------------------------------------------
+    // COMPILE HANDS — build abstract hand definitions (fast lookup)
+    // -----------------------------------------------------------------------
+    let COMPILED = null;
+
+    function compileHands() {
+        if (COMPILED) return COMPILED;
+        COMPILED = [];
+        for (const h of RAW) {
+            const patterns = [h.p];
+            if (h.alt) patterns.push(h.alt);
+            for (const pat of patterns) {
+                const groups = parseGroups(pat);
+                const numMode = h.num || 'fixed';
+                const offsets = getOffsets(groups, numMode);
+                for (const off of offsets) {
+                    const mapped = applyOffset(groups, off);
+                    // Validate total = 14
+                    const total = mapped.reduce((s, g) => s + g.count, 0);
+                    if (total !== 14) continue;
+                    COMPILED.push({
+                        cat: h.cat, display: pat, value: h.v,
+                        concealed: !!h.c,
+                        groups: mapped,
+                        suitMin: h.sr[0], suitMax: h.sr[1]
+                    });
+                }
+            }
+        }
+        return COMPILED;
+    }
+
+    function getOffsets(groups, numMode) {
+        if (numMode === 'fixed') return [0];
+        const digits = groups.filter(g => g.ch >= '1' && g.ch <= '9').map(g => parseInt(g.ch));
+        if (digits.length === 0) return [0];
+        const minD = Math.min(...digits), maxD = Math.max(...digits);
+        const span = maxD - minD;
+
+        if (numMode === 'like') {
+            // All digits mapped to same value
+            return [1,2,3,4,5,6,7,8,9].map(n => n - minD);
+        }
+        if (numMode.startsWith('consec')) {
+            // Consecutive: shift the pattern so digits stay in 1-9
+            const offsets = [];
+            for (let off = 1 - minD; off <= 9 - maxD; off++) {
+                offsets.push(off);
+            }
+            return offsets.length ? offsets : [0];
+        }
+        return [0];
+    }
+
+    function applyOffset(groups, offset) {
+        return groups.map(g => {
+            if (g.ch >= '1' && g.ch <= '9') {
+                const newVal = parseInt(g.ch) + offset;
+                if (newVal < 1 || newVal > 9) return { ...g, ch: g.ch, value: parseInt(g.ch), invalid: true };
+                return { ...g, ch: String(newVal), value: newVal };
+            }
+            return { ...g };
+        }).filter(g => !g.invalid);
+    }
+
+    // -----------------------------------------------------------------------
+    // MATCHING — check tiles against a compiled hand (runtime suit assignment)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Check if tiles match a hand definition.
+     * Returns { matched, jokersUsed } or null.
+     * Uses greedy suit assignment — tries all permutations of suit mapping.
+     */
+    function matchHand(hand, tiles) {
+        // Build tile inventory
+        const inv = {};
+        let jokers = 0;
+        for (const t of tiles) {
+            if (t.type === 'joker') { jokers++; continue; }
+            const k = T.tileKey(t);
+            inv[k] = (inv[k] || 0) + 1;
+        }
+
+        // Identify suit variables from numbered groups
+        const suitedGroups = hand.groups.filter(g => g.ch >= '0' && g.ch <= '9' && g.ch !== '0');
+        // How many distinct suits are needed?
+        const { suitMin, suitMax } = hand;
+
+        if (suitMin === 0 && suitMax === 0) {
+            // No suited tiles — just match directly
+            return matchWithInv(hand.groups, inv, jokers);
+        }
+
+        // Try all suit permutations for numbered groups
+        const suitPerms = getSuitPerms(suitMin, suitMax);
+        let best = null;
+
+        // Save original inv values for restore
+        const invKeys = Object.keys(inv);
+        const savedVals = new Array(invKeys.length);
+
+        for (const perm of suitPerms) {
+            // Save
+            for (let i = 0; i < invKeys.length; i++) savedVals[i] = inv[invKeys[i]];
+
+            const result = matchWithSuits(hand.groups, inv, jokers, perm);
+            if (result && result.matched) {
+                if (!best || result.jokersUsed < best.jokersUsed) best = result;
+            }
+
+            // Restore
+            for (let i = 0; i < invKeys.length; i++) inv[invKeys[i]] = savedVals[i];
+        }
+        return best;
+    }
+
+    const _suitPermCache = {};
+    function getSuitPerms(minSuits, maxSuits) {
+        const cacheKey = `${minSuits},${maxSuits}`;
+        if (_suitPermCache[cacheKey]) return _suitPermCache[cacheKey];
+        const suits = ['crak', 'bam', 'dot'];
+        const results = [];
+        for (const a of suits) {
+            for (const b of suits) {
+                for (const c of suits) {
+                    const used = new Set([a, b, c]);
+                    if (used.size >= minSuits && used.size <= maxSuits) {
+                        results.push([a, b, c]);
+                    }
+                }
+            }
+        }
+        const seen = new Set();
+        const filtered = results.filter(p => {
+            const k = p.join(',');
+            if (seen.has(k)) return false;
+            seen.add(k);
+            return true;
+        });
+        _suitPermCache[cacheKey] = filtered;
+        return filtered;
+    }
+
+    function matchWithSuits(groups, inv, jokers, suitPerm) {
+        const invCopy = { ...inv };
+        let jUsed = 0;
+        let suitVarIdx = 0;
+
+        for (const g of groups) {
+            const ch = g.ch;
+            let keys, canUseJoker;
+
+            if (ch === 'F') {
+                keys = ['flower-Plum','flower-Orchid','flower-Chrysanthemum','flower-Bamboo',
+                        'season-Spring','season-Summer','season-Autumn','season-Winter'];
+                canUseJoker = g.count >= 3;
+            } else if (ch === 'D') {
+                keys = ['dragon-Red','dragon-Green','dragon-White'];
+                canUseJoker = g.count >= 3;
+            } else if (ch === 'N') {
+                keys = ['wind-N']; canUseJoker = g.count >= 3;
+            } else if (ch === 'E') {
+                keys = ['wind-E']; canUseJoker = g.count >= 3;
+            } else if (ch === 'W') {
+                keys = ['wind-W']; canUseJoker = g.count >= 3;
+            } else if (ch === 'S') {
+                keys = ['wind-S']; canUseJoker = g.count >= 3;
+            } else if (ch === '0') {
+                keys = ['dragon-White']; canUseJoker = g.count >= 3;
+            } else if (ch >= '1' && ch <= '9') {
+                const val = g.value || parseInt(ch);
+                const suit = suitPerm[suitVarIdx % 3];
+                suitVarIdx++;
+                keys = [`${suit}-${val}`];
+                canUseJoker = g.count >= 3;
+            } else {
+                continue;
+            }
+
+            // Try to fill this group
+            let have = 0;
+            for (const k of keys) {
+                const use = Math.min(invCopy[k] || 0, g.count - have);
+                have += use;
+                invCopy[k] = (invCopy[k] || 0) - use;
+            }
+            const deficit = g.count - have;
+            if (deficit > 0) {
+                if (canUseJoker && jokers - jUsed >= deficit) {
+                    jUsed += deficit;
+                } else {
+                    return null;
+                }
+            }
+        }
+        return { matched: true, jokersUsed: jUsed };
+    }
+
+    function matchWithInv(groups, inv, jokers) {
+        return matchWithSuits(groups, inv, jokers, ['crak','bam','dot']);
+    }
+
+    // -----------------------------------------------------------------------
+    // PUBLIC API
+    // -----------------------------------------------------------------------
+
+    function checkMahjong(tiles) {
+        if (tiles.length !== 14) return null;
+        const hands = compileHands();
+        let best = null;
+        for (const h of hands) {
+            const r = matchHand(h, tiles);
+            if (r && r.matched) {
+                if (!best || h.value > best.value) {
+                    best = { ...h, jokersUsed: r.jokersUsed };
+                }
+            }
+        }
+        return best;
+    }
+
+    /**
+     * Pre-filter: quick check whether the player has ANY relevant tiles
+     * for this hand. Returns false if the hand is clearly hopeless.
+     */
+    function quickReject(hand, inv, jokers) {
+        // Count how many groups can be matched at all (at least 1 natural tile)
+        let totalHave = 0;
+        for (const g of hand.groups) {
+            const ch = g.ch;
+            if (ch === 'F') {
+                const fKeys = ['flower-Plum','flower-Orchid','flower-Chrysanthemum','flower-Bamboo',
+                    'season-Spring','season-Summer','season-Autumn','season-Winter'];
+                for (const k of fKeys) totalHave += (inv[k] || 0);
+            } else if (ch === 'D') {
+                totalHave += (inv['dragon-Red'] || 0) + (inv['dragon-Green'] || 0) + (inv['dragon-White'] || 0);
+            } else if (ch === 'N') { totalHave += (inv['wind-N'] || 0); }
+            else if (ch === 'E') { totalHave += (inv['wind-E'] || 0); }
+            else if (ch === 'W') { totalHave += (inv['wind-W'] || 0); }
+            else if (ch === 'S') { totalHave += (inv['wind-S'] || 0); }
+            else if (ch === '0') { totalHave += (inv['dragon-White'] || 0); }
+            // Suited digits handled below per-suit, so skip here
+        }
+        // If no non-suited tiles match and the hand needs many, reject
+        // This is a lightweight heuristic — the full distance check is the real filter
+        // We reject if we have < 3 matching tiles total (excluding suited, which vary by suit perm)
+        const hasSuited = hand.groups.some(g => g.ch >= '1' && g.ch <= '9');
+        if (!hasSuited && totalHave + jokers < 3) return true;
+        return false;
+    }
+
+    function evaluateHand(tiles) {
+        const hands = compileHands();
+        const results = [];
+
+        // Build inventory once
+        const inv = {};
+        let jokers = 0;
+        for (const t of tiles) {
+            if (t.type === 'joker') { jokers++; continue; }
+            const k = T.tileKey(t);
+            inv[k] = (inv[k] || 0) + 1;
+        }
+
+        for (const h of hands) {
+            // Pre-filter: skip obviously impossible hands
+            if (quickReject(h, inv, jokers)) continue;
+
+            const dist = computeDistanceFast(h, inv, jokers);
+            results.push({
+                cat: h.cat, display: h.display, value: h.value,
+                concealed: h.concealed, distance: dist
+            });
+        }
+        results.sort((a, b) => a.distance - b.distance);
+        // Deduplicate by display
+        const seen = new Set();
+        const deduped = [];
+        for (const r of results) {
+            const k = r.cat + '|' + r.display;
+            if (!seen.has(k)) { seen.add(k); deduped.push(r); }
+        }
+        return deduped.slice(0, 15);
+    }
+
+    /**
+     * Fast distance computation using pre-built inventory.
+     * Avoids re-scanning tiles array each call.
+     */
+    function computeDistanceFast(hand, inv, jokers) {
+        const { suitMin, suitMax } = hand;
+        if (suitMin === 0 && suitMax === 0) {
+            return distWithSuits(hand.groups, inv, jokers, ['crak','bam','dot'], 99);
+        }
+
+        const perms = getSuitPerms(suitMin, suitMax);
+        let best = 99;
+
+        // Save and restore inv instead of copying
+        const invKeys = Object.keys(inv);
+        const savedVals = new Array(invKeys.length);
+
+        for (const p of perms) {
+            for (let i = 0; i < invKeys.length; i++) savedVals[i] = inv[invKeys[i]];
+
+            const d = distWithSuits(hand.groups, inv, jokers, p, best);
+            if (d < best) best = d;
+
+            for (let i = 0; i < invKeys.length; i++) inv[invKeys[i]] = savedVals[i];
+        }
+        return best;
+    }
+
+    function computeDistance(hand, tiles) {
+        const inv = {};
+        let jokers = 0;
+        for (const t of tiles) {
+            if (t.type === 'joker') { jokers++; continue; }
+            const k = T.tileKey(t);
+            inv[k] = (inv[k] || 0) + 1;
+        }
+        return computeDistanceFast(hand, inv, jokers);
+    }
+
+    function distWithSuits(groups, inv, jokers, suitPerm, bestSoFar) {
+        let jokersLeft = jokers;
+        let needed = 0;
+        let suitVarIdx = 0;
+
+        for (const g of groups) {
+            const ch = g.ch;
+            let keys;
+            const canJoker = g.count >= 3;
+
+            if (ch === 'F') {
+                keys = ['flower-Plum','flower-Orchid','flower-Chrysanthemum','flower-Bamboo',
+                        'season-Spring','season-Summer','season-Autumn','season-Winter'];
+            } else if (ch === 'D') {
+                keys = ['dragon-Red','dragon-Green','dragon-White'];
+            } else if (ch === 'N') { keys = ['wind-N']; }
+            else if (ch === 'E') { keys = ['wind-E']; }
+            else if (ch === 'W') { keys = ['wind-W']; }
+            else if (ch === 'S') { keys = ['wind-S']; }
+            else if (ch === '0') { keys = ['dragon-White']; }
+            else if (ch >= '1' && ch <= '9') {
+                const val = g.value || parseInt(ch);
+                const suit = suitPerm[suitVarIdx % 3];
+                suitVarIdx++;
+                keys = [`${suit}-${val}`];
+            } else continue;
+
+            let have = 0;
+            for (const k of keys) {
+                const use = Math.min(inv[k] || 0, g.count - have);
+                have += use;
+                inv[k] = (inv[k] || 0) - use;
+            }
+            const deficit = g.count - have;
+            if (deficit > 0) {
+                if (canJoker) {
+                    const jUse = Math.min(deficit, jokersLeft);
+                    jokersLeft -= jUse;
+                    needed += deficit - jUse;
+                } else {
+                    needed += deficit;
+                }
+            }
+            // Early exit: if we already need more tiles than the best known, bail
+            if (needed >= bestSoFar) return needed;
+        }
+        return needed;
+    }
+
+    function getScorecard() {
+        return RAW.map(h => ({
+            category: h.cat, pattern: h.p, value: h.v,
+            concealed: !!h.c, alt: h.alt || null
+        }));
+    }
+
+    // -----------------------------------------------------------------------
+    // Export
+    // -----------------------------------------------------------------------
+    const HandsModule = { checkMahjong, evaluateHand, getScorecard, compileHands };
+
+    if (typeof module !== 'undefined' && module.exports) {
+        module.exports = HandsModule;
+    } else {
+        window.Hands = HandsModule;
+    }
+})();
+
+    </script>
+    <script>
+// game.js — Game state machine for American Mahjong
+// Works in both browser and Node.js
+
+(function () {
+    const T = (typeof module !== 'undefined' && module.exports) ? require('./tiles') : window.Tiles;
+    const H = (typeof module !== 'undefined' && module.exports) ? require('./hands') : window.Hands;
+
+    // Game phases
+    const PHASE = {
+        DEALING: 'dealing',
+        TURN_DRAW: 'turn_draw',      // current player draws from wall
+        TURN_DISCARD: 'turn_discard', // current player picks a tile to discard
+        CLAIM_WINDOW: 'claim_window', // other players may claim the discard
+        GAME_OVER: 'game_over'
+    };
+
+    function createGame(options = {}) {
+        const numPlayers = options.numPlayers || 4;
+        const wall = T.shuffle(T.buildWall());
+        const headless = options.humanIndex === -1 || options.headless === true;
+
+        const players = [];
+        for (let i = 0; i < numPlayers; i++) {
+            players.push({
+                index: i,
+                name: options.names ? options.names[i] : `Player ${i}`,
+                isHuman: options.humanIndex === i,
+                hand: [],       // concealed tiles
+                exposed: [],    // array of exposed groups: [{ tiles: [], claimedTile }]
+                discards: [],   // tiles this player has discarded
+                score: 0,
+                targetHands: null, // bot's target hands (set by bot AI)
+                _allTilesCache: null // cached getAllTiles result
+            });
+        }
+
+        const game = {
+            wall,
+            players,
+            headless,
+            currentPlayer: 0,  // East is dealer (index 0)
+            phase: PHASE.DEALING,
+            discardPool: [],    // all discards in order
+            lastDiscard: null,  // most recent discard (tile object)
+            lastDiscardFrom: -1,
+            turnCount: 0,
+            winner: null,
+            winningHand: null,
+            log: [],
+            callbacks: {
+                onPhaseChange: null,
+                onTileDraw: null,
+                onDiscard: null,
+                onClaim: null,
+                onWin: null,
+                onWallEmpty: null,
+                onLog: null
+            }
+        };
+
+        return game;
+    }
+
+    /** Invalidate a player's cached tile data */
+    function invalidateCache(player) {
+        player._allTilesCache = null;
+    }
+
+    function addLog(game, msg) {
+        game.log.push(msg);
+        if (game.log.length > 500) game.log.shift();
+        if (game.callbacks.onLog) game.callbacks.onLog(msg);
+    }
+
+    // -----------------------------------------------------------------------
+    // DEALING
+    // -----------------------------------------------------------------------
+    function dealTiles(game) {
+        game.phase = PHASE.DEALING;
+        // East (player 0) gets 14 tiles, others get 13
+        for (let round = 0; round < 13; round++) {
+            for (let p = 0; p < game.players.length; p++) {
+                if (game.wall.length > 0) {
+                    game.players[p].hand.push(game.wall.pop());
+                }
+            }
+        }
+        // East gets one extra
+        if (game.wall.length > 0) {
+            game.players[0].hand.push(game.wall.pop());
+        }
+
+        if (!game.headless) {
+            for (const p of game.players) {
+                p.hand = T.sortTiles(p.hand);
+            }
+        }
+        for (const p of game.players) invalidateCache(p);
+
+        addLog(game, `Dealt tiles. Wall: ${game.wall.length} remaining.`);
+        game.currentPlayer = 0;
+        // East already has 14 tiles, goes straight to discard
+        game.phase = PHASE.TURN_DISCARD;
+        if (game.callbacks.onPhaseChange) game.callbacks.onPhaseChange(game);
+    }
+
+    // -----------------------------------------------------------------------
+    // DRAW
+    // -----------------------------------------------------------------------
+    function drawTile(game) {
+        if (game.phase === PHASE.GAME_OVER) return null;
+        if (game.wall.length === 0) {
+            game.phase = PHASE.GAME_OVER;
+            addLog(game, 'Wall is empty — wall game (no winner).');
+            if (game.callbacks.onWallEmpty) game.callbacks.onWallEmpty(game);
+            if (game.callbacks.onPhaseChange) game.callbacks.onPhaseChange(game);
+            return null;
+        }
+        const tile = game.wall.pop();
+        const player = game.players[game.currentPlayer];
+        player.hand.push(tile);
+        if (!game.headless) player.hand = T.sortTiles(player.hand);
+        invalidateCache(player);
+        game.phase = PHASE.TURN_DISCARD;
+        addLog(game, `${player.name} draws ${T.tileStr(tile)}. (Wall: ${game.wall.length})`);
+        if (game.callbacks.onTileDraw) game.callbacks.onTileDraw(game, tile);
+        if (game.callbacks.onPhaseChange) game.callbacks.onPhaseChange(game);
+        return tile;
+    }
+
+    // -----------------------------------------------------------------------
+    // DISCARD
+    // -----------------------------------------------------------------------
+    function discardTile(game, tileIndex) {
+        if (game.phase !== PHASE.TURN_DISCARD) return null;
+        const player = game.players[game.currentPlayer];
+        if (tileIndex < 0 || tileIndex >= player.hand.length) return null;
+
+        // Cannot discard a joker — check BEFORE splicing
+        if (player.hand[tileIndex].type === 'joker') return null;
+
+        const tile = player.hand.splice(tileIndex, 1)[0];
+        invalidateCache(player);
+        player.discards.push(tile);
+        game.discardPool.push(tile);
+        game.lastDiscard = tile;
+        game.lastDiscardFrom = game.currentPlayer;
+        game._pendingBotClaims = null;
+        game.phase = PHASE.CLAIM_WINDOW;
+
+        addLog(game, `${player.name} discards ${T.tileStr(tile)}.`);
+        if (game.callbacks.onDiscard) game.callbacks.onDiscard(game, tile);
+        if (game.callbacks.onPhaseChange) game.callbacks.onPhaseChange(game);
+        return tile;
+    }
+
+    // -----------------------------------------------------------------------
+    // CLAIMING
+    // -----------------------------------------------------------------------
+
+    /**
+     * Get all tiles the player has of the same key as the tile.
+     */
+    function getMatchingTiles(player, tile) {
+        const key = T.tileKey(tile);
+        return player.hand.filter(t => T.tileKey(t) === key);
+    }
+
+    /**
+     * Check if a player can claim the discard for exposure (pung/kong/quint).
+     * Returns array of possible claim types: [{ type: 'pung'|'kong'|'quint', tiles }]
+     */
+    function getClaimOptions(game, playerIndex) {
+        if (!game.lastDiscard) return [];
+        if (playerIndex === game.lastDiscardFrom) return [];
+
+        const player = game.players[playerIndex];
+        const tile = game.lastDiscard;
+        const key = T.tileKey(tile);
+        const matching = player.hand.filter(t => T.tileKey(t) === key);
+        const jokers = player.hand.filter(t => t.type === 'joker');
+        const options = [];
+
+        // Count total available (matching + jokers)
+        const totalNatural = matching.length;
+        const totalJokers = jokers.length;
+
+        // For pung: need 2 more (natural + jokers)
+        if (totalNatural + totalJokers >= 2) {
+            const pungTiles = [];
+            let needed = 2;
+            for (const m of matching) { if (needed > 0) { pungTiles.push(m); needed--; } }
+            for (const j of jokers) { if (needed > 0) { pungTiles.push(j); needed--; } }
+            options.push({ type: 'pung', tiles: pungTiles, count: 3 });
+        }
+
+        // For kong: need 3 more
+        if (totalNatural + totalJokers >= 3) {
+            const kongTiles = [];
+            let needed = 3;
+            for (const m of matching) { if (needed > 0) { kongTiles.push(m); needed--; } }
+            for (const j of jokers) { if (needed > 0) { kongTiles.push(j); needed--; } }
+            options.push({ type: 'kong', tiles: kongTiles, count: 4 });
+        }
+
+        // For quint: need 4 more
+        if (totalNatural + totalJokers >= 4) {
+            const quintTiles = [];
+            let needed = 4;
+            for (const m of matching) { if (needed > 0) { quintTiles.push(m); needed--; } }
+            for (const j of jokers) { if (needed > 0) { quintTiles.push(j); needed--; } }
+            options.push({ type: 'quint', tiles: quintTiles, count: 5 });
+        }
+
+        return options;
+    }
+
+    /**
+     * Check if a player can call Mahjong on the discard.
+     */
+    function canCallMahjong(game, playerIndex) {
+        if (!game.lastDiscard) return false;
+        if (playerIndex === game.lastDiscardFrom) return false;
+        const player = game.players[playerIndex];
+        // Temporarily add the discard to the player's hand
+        const testHand = getAllTiles(player).concat([game.lastDiscard]);
+        return H.checkMahjong(testHand) !== null;
+    }
+
+    /**
+     * Check if current player has Mahjong after drawing (self-draw / tsumo).
+     */
+    function checkSelfMahjong(game) {
+        const player = game.players[game.currentPlayer];
+        const allTiles = getAllTiles(player);
+        return H.checkMahjong(allTiles);
+    }
+
+    /**
+     * Get all tiles (hand + exposed) for a player.
+     */
+    function getAllTiles(player) {
+        if (player._allTilesCache) return player._allTilesCache;
+        const tiles = [...player.hand];
+        for (const group of player.exposed) {
+            tiles.push(...group.tiles);
+        }
+        player._allTilesCache = tiles;
+        return tiles;
+    }
+
+    /**
+     * Execute a claim: player takes the discard and exposes a group.
+     */
+    function executeClaim(game, playerIndex, claimType, exposeTiles) {
+        const player = game.players[playerIndex];
+        const tile = game.lastDiscard;
+
+        // Remove from discard pool
+        game.discardPool.pop();
+
+        // Remove exposed tiles from player's hand
+        for (const et of exposeTiles) {
+            const idx = player.hand.findIndex(t => t.id === et.id);
+            if (idx >= 0) player.hand.splice(idx, 1);
+        }
+
+        // Create exposed group
+        const group = { tiles: [tile, ...exposeTiles], claimType };
+        player.exposed.push(group);
+        if (!game.headless) player.hand = T.sortTiles(player.hand);
+        invalidateCache(player);
+
+        game.currentPlayer = playerIndex;
+        game.lastDiscard = null;
+        game.lastDiscardFrom = -1;
+        game.phase = PHASE.TURN_DISCARD;
+
+        addLog(game, `${player.name} claims ${T.tileStr(tile)} for ${claimType}! Exposed: [${group.tiles.map(T.tileStr).join(', ')}]`);
+        if (game.callbacks.onClaim) game.callbacks.onClaim(game, playerIndex, group);
+        if (game.callbacks.onPhaseChange) game.callbacks.onPhaseChange(game);
+    }
+
+    /**
+     * Execute a Mahjong claim.
+     */
+    function executeMahjong(game, playerIndex) {
+        const player = game.players[playerIndex];
+        const tile = game.lastDiscard;
+
+        if (tile) {
+            game.discardPool.pop();
+            player.hand.push(tile);
+            if (!game.headless) player.hand = T.sortTiles(player.hand);
+            invalidateCache(player);
+        }
+
+        const allTiles = getAllTiles(player);
+        const winHand = H.checkMahjong(allTiles);
+
+        game.winner = playerIndex;
+        game.winningHand = winHand;
+        game.phase = PHASE.GAME_OVER;
+
+        addLog(game, `🎉 ${player.name} declares MAHJONG! ${winHand ? winHand.cat + ' — ' + winHand.display + ' (' + winHand.value + ' pts)' : ''}`);
+        if (game.callbacks.onWin) game.callbacks.onWin(game, playerIndex, winHand);
+        if (game.callbacks.onPhaseChange) game.callbacks.onPhaseChange(game);
+    }
+
+    /**
+     * No one claims — advance to next player's turn.
+     */
+    function passClaim(game) {
+        if (game.phase === PHASE.GAME_OVER) return;
+        game.lastDiscard = null;
+        game.lastDiscardFrom = -1;
+        game._pendingBotClaims = null;
+        game.currentPlayer = (game.currentPlayer + 1) % game.players.length;
+        game.turnCount++;
+        game.phase = PHASE.TURN_DRAW;
+        if (game.callbacks.onPhaseChange) game.callbacks.onPhaseChange(game);
+    }
+
+    /**
+     * Resolve claims from multiple players. Priority: Mahjong > larger group > seat order.
+     * Returns the winning claim or null (no claims).
+     */
+    function resolveClaims(game, claims) {
+        if (!claims || claims.length === 0) return null;
+
+        // Mahjong claims have absolute priority
+        const mjClaims = claims.filter(c => c.type === 'mahjong');
+        if (mjClaims.length > 0) {
+            // Closest seat to discarder wins
+            return pickClosestSeat(game, mjClaims);
+        }
+
+        // Among exposure claims, larger group wins
+        const sorted = [...claims].sort((a, b) => (b.count || 3) - (a.count || 3));
+        const best = sorted[0];
+        const ties = sorted.filter(c => (c.count || 3) === (best.count || 3));
+        return pickClosestSeat(game, ties);
+    }
+
+    function pickClosestSeat(game, claims) {
+        const from = game.lastDiscardFrom;
+        let best = null;
+        let bestDist = 99;
+        for (const c of claims) {
+            const dist = (c.playerIndex - from + game.players.length) % game.players.length;
+            if (dist > 0 && dist < bestDist) {
+                best = c;
+                bestDist = dist;
+            }
+        }
+        return best;
+    }
+
+    // -----------------------------------------------------------------------
+    // Joker exchange: swap a natural tile for an exposed joker
+    // -----------------------------------------------------------------------
+    function canExchangeJoker(game, playerIndex, tileInHand, targetPlayer, groupIndex) {
+        const group = game.players[targetPlayer].exposed[groupIndex];
+        if (!group || group.tiles.length < 3) return false;
+        // Find a joker in the group
+        const hasJoker = group.tiles.some(t => t.type === 'joker');
+        if (!hasJoker) return false;
+        // The tile must match what the joker is substituting
+        const nonJokers = group.tiles.filter(t => t.type !== 'joker');
+        if (nonJokers.length === 0) {
+            // All jokers? Any tile can replace
+            return true;
+        }
+        const groupKey = T.tileKey(nonJokers[0]);
+        return T.tileKey(tileInHand) === groupKey;
+    }
+
+    function executeJokerExchange(game, playerIndex, tileInHand, targetPlayer, groupIndex) {
+        const player = game.players[playerIndex];
+        const group = game.players[targetPlayer].exposed[groupIndex];
+        // Remove tile from hand
+        const idx = player.hand.findIndex(t => t.id === tileInHand.id);
+        if (idx < 0) return false;
+        player.hand.splice(idx, 1);
+        // Swap: add tile to group, remove a joker from group
+        const jkIdx = group.tiles.findIndex(t => t.type === 'joker');
+        const joker = group.tiles.splice(jkIdx, 1)[0];
+        group.tiles.push(tileInHand);
+        // Give joker to player
+        player.hand.push(joker);
+        if (!game.headless) player.hand = T.sortTiles(player.hand);
+        invalidateCache(player);
+        invalidateCache(game.players[targetPlayer]);
+        addLog(game, `${player.name} exchanges ${T.tileStr(tileInHand)} for a Joker from ${game.players[targetPlayer].name}'s exposed group.`);
+        return true;
+    }
+
+    // -----------------------------------------------------------------------
+    // Export
+    // -----------------------------------------------------------------------
+    const GameModule = {
+        PHASE,
+        createGame, dealTiles, drawTile, discardTile,
+        getClaimOptions, canCallMahjong, checkSelfMahjong,
+        executeClaim, executeMahjong, passClaim, resolveClaims,
+        getAllTiles, getMatchingTiles,
+        canExchangeJoker, executeJokerExchange,
+        addLog
+    };
+
+    if (typeof module !== 'undefined' && module.exports) {
+        module.exports = GameModule;
+    } else {
+        window.Game = GameModule;
+    }
+})();
+
+    </script>
+    <script>
+// bot.js — Bot AI for American Mahjong
+// Works in both browser and Node.js
+
+(function () {
+    const T = (typeof module !== 'undefined' && module.exports) ? require('./tiles') : window.Tiles;
+    const H = (typeof module !== 'undefined' && module.exports) ? require('./hands') : window.Hands;
+    const G = (typeof module !== 'undefined' && module.exports) ? require('./game') : window.Game;
+
+    /**
+     * Initialize bot strategy: pick top target hands.
+     */
+    function initBot(game, playerIndex) {
+        const player = game.players[playerIndex];
+        const allTiles = G.getAllTiles(player);
+        player.targetHands = H.evaluateHand(allTiles).slice(0, 5);
+    }
+
+    /**
+     * Build a danger map: how "dangerous" each tile key is to discard.
+     * Higher score = more likely to feed an opponent.
+     */
+    function buildDangerMap(game, playerIndex) {
+        const danger = {};
+
+        // Scan opponents' exposed groups — tiles they're actively collecting
+        for (let i = 0; i < game.players.length; i++) {
+            if (i === playerIndex) continue;
+            const opp = game.players[i];
+            for (const grp of opp.exposed) {
+                for (const t of grp.tiles) {
+                    if (t.type === 'joker') continue;
+                    const k = T.tileKey(t);
+                    // The tile key they've exposed is dangerous — they want more
+                    danger[k] = (danger[k] || 0) + 2;
+                }
+            }
+        }
+
+        // Tiles that have been discarded are safer — some copies are dead
+        const discardFreq = {};
+        for (const t of game.discardPool) {
+            const k = T.tileKey(t);
+            discardFreq[k] = (discardFreq[k] || 0) + 1;
+        }
+        for (const k of Object.keys(discardFreq)) {
+            // Each discarded copy makes it a bit safer
+            danger[k] = (danger[k] || 0) - discardFreq[k] * 0.5;
+        }
+
+        return danger;
+    }
+
+    /**
+     * Try to exchange natural tiles for jokers in any exposed group.
+     * Returns the number of exchanges made.
+     */
+    function tryJokerExchanges(game, playerIndex) {
+        let exchanges = 0;
+        let changed = true;
+
+        while (changed) {
+            changed = false;
+            const player = game.players[playerIndex];
+
+            for (let pi = 0; pi < game.players.length; pi++) {
+                const target = game.players[pi];
+                for (let gi = 0; gi < target.exposed.length; gi++) {
+                    const grp = target.exposed[gi];
+                    if (!grp.tiles.some(t => t.type === 'joker')) continue;
+
+                    // Find a matching natural tile in hand
+                    for (let hi = 0; hi < player.hand.length; hi++) {
+                        const tile = player.hand[hi];
+                        if (tile.type === 'joker') continue;
+                        if (G.canExchangeJoker(game, playerIndex, tile, pi, gi)) {
+                            G.executeJokerExchange(game, playerIndex, tile, pi, gi);
+                            exchanges++;
+                            changed = true;
+                            break; // hand indices shifted, restart inner loop
+                        }
+                    }
+                    if (changed) break; // restart group loop too
+                }
+                if (changed) break; // restart player loop
+            }
+        }
+
+        return exchanges;
+    }
+
+    /**
+     * Pick the best tile to discard.
+     * Strategy: remove the tile that contributes least to the closest target hand,
+     * with a penalty for tiles that are dangerous to discard (defensive play).
+     */
+    function pickDiscard(game, playerIndex) {
+        if (game.phase === G.PHASE.GAME_OVER) return -1;
+        const player = game.players[playerIndex];
+        const hand = player.hand;
+        if (hand.length === 0) return -1;
+
+        // Build inventory of all tiles (hand + exposed) once
+        const allTiles = G.getAllTiles(player);
+
+        // Refresh targets using full evaluation
+        const targets = H.evaluateHand(allTiles);
+        player.targetHands = targets.slice(0, 5);
+
+        // Build danger map for defensive play
+        const danger = buildDangerMap(game, playerIndex);
+
+        // Only re-evaluate unique tile keys (not all tiles individually)
+        const seen = new Map();
+        for (let i = 0; i < hand.length; i++) {
+            const tile = hand[i];
+            if (tile.type === 'joker') continue;
+            const key = T.tileKey(tile);
+            if (!seen.has(key)) seen.set(key, i);
+        }
+
+        let bestIdx = -1;
+        let bestScore = -Infinity;
+
+        // Build inventory once for differential evaluation
+        const inv = {};
+        let jokers = 0;
+        for (const t of allTiles) {
+            if (t.type === 'joker') { jokers++; continue; }
+            const k = T.tileKey(t);
+            inv[k] = (inv[k] || 0) + 1;
+        }
+
+        const hands = H.compileHands();
+
+        for (const [key, i] of seen) {
+            // Adjust inventory: remove this tile
+            inv[key] = (inv[key] || 1) - 1;
+
+            // Fast inline evaluation: find best distance across compiled hands
+            let bestDist = 99;
+            for (const h of hands) {
+                // Save inv state for this hand's distance computation
+                const invKeys = Object.keys(inv);
+                const saved = new Array(invKeys.length);
+                for (let si = 0; si < invKeys.length; si++) saved[si] = inv[invKeys[si]];
+
+                const dist = computeDistFast(h, inv, jokers, bestDist);
+
+                // Restore
+                for (let si = 0; si < invKeys.length; si++) inv[invKeys[si]] = saved[si];
+
+                if (dist < bestDist) bestDist = dist;
+            }
+
+            // Restore inventory
+            inv[key] = (inv[key] || 0) + 1;
+
+            // Base score: negative distance (lower distance = better to keep = worse to discard)
+            let score = -bestDist;
+
+            // Defensive penalty: dangerous tiles get a penalty making us less likely to discard them
+            const dangerScore = danger[key] || 0;
+            if (dangerScore > 0) {
+                score -= dangerScore * 0.3;
+            }
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestIdx = i;
+            }
+        }
+
+        // Fallback: discard first non-joker
+        if (bestIdx < 0) {
+            for (let i = 0; i < hand.length; i++) {
+                if (hand[i].type !== 'joker') { bestIdx = i; break; }
+            }
+        }
+        // Edge case: all jokers — shouldn't happen but be safe
+        if (bestIdx < 0 && hand.length > 0) bestIdx = 0;
+        return bestIdx;
+    }
+
+    /**
+     * Inline distance computation for bot — avoids rebuilding tile arrays.
+     */
+    function computeDistFast(hand, inv, jokers, bestSoFar) {
+        const { suitMin, suitMax } = hand;
+        const perms = getSuitPermsLocal(suitMin, suitMax);
+
+        const invKeys = Object.keys(inv);
+        const saved = new Array(invKeys.length);
+        let best = bestSoFar;
+
+        for (const p of perms) {
+            for (let i = 0; i < invKeys.length; i++) saved[i] = inv[invKeys[i]];
+            const d = distWithSuitsLocal(hand.groups, inv, jokers, p, best);
+            if (d < best) best = d;
+            for (let i = 0; i < invKeys.length; i++) inv[invKeys[i]] = saved[i];
+        }
+        return best;
+    }
+
+    const _suitPermCacheBot = {};
+    function getSuitPermsLocal(minSuits, maxSuits) {
+        const ck = `${minSuits},${maxSuits}`;
+        if (_suitPermCacheBot[ck]) return _suitPermCacheBot[ck];
+        const suits = ['crak', 'bam', 'dot'];
+        const results = [];
+        for (const a of suits) for (const b of suits) for (const c of suits) {
+            const used = new Set([a, b, c]);
+            if (used.size >= minSuits && used.size <= maxSuits) results.push([a, b, c]);
+        }
+        const seen = new Set();
+        const filtered = results.filter(p => { const k = p.join(','); if (seen.has(k)) return false; seen.add(k); return true; });
+        _suitPermCacheBot[ck] = filtered;
+        return filtered;
+    }
+
+    function distWithSuitsLocal(groups, inv, jokers, suitPerm, bestSoFar) {
+        let jokersLeft = jokers, needed = 0, suitVarIdx = 0;
+        for (const g of groups) {
+            const ch = g.ch;
+            let keys;
+            const canJoker = g.count >= 3;
+            if (ch === 'F') keys = ['flower-Plum','flower-Orchid','flower-Chrysanthemum','flower-Bamboo','season-Spring','season-Summer','season-Autumn','season-Winter'];
+            else if (ch === 'D') keys = ['dragon-Red','dragon-Green','dragon-White'];
+            else if (ch === 'N') keys = ['wind-N'];
+            else if (ch === 'E') keys = ['wind-E'];
+            else if (ch === 'W') keys = ['wind-W'];
+            else if (ch === 'S') keys = ['wind-S'];
+            else if (ch === '0') keys = ['dragon-White'];
+            else if (ch >= '1' && ch <= '9') {
+                const val = g.value || parseInt(ch);
+                keys = [`${suitPerm[suitVarIdx++ % 3]}-${val}`];
+            } else continue;
+            let have = 0;
+            for (const k of keys) { const use = Math.min(inv[k] || 0, g.count - have); have += use; inv[k] = (inv[k] || 0) - use; }
+            const deficit = g.count - have;
+            if (deficit > 0) {
+                if (canJoker) { const jUse = Math.min(deficit, jokersLeft); jokersLeft -= jUse; needed += deficit - jUse; }
+                else needed += deficit;
+            }
+            if (needed >= bestSoFar) return needed;
+        }
+        return needed;
+    }
+
+    /**
+     * Decide whether to claim a discard.
+     * Returns null (pass) or { type, tiles, count } claim object.
+     */
+    function decideClaim(game, playerIndex) {
+        if (game.phase === G.PHASE.GAME_OVER || !game.lastDiscard) return null;
+        const player = game.players[playerIndex];
+
+        // Check for Mahjong first
+        if (G.canCallMahjong(game, playerIndex)) {
+            return { type: 'mahjong', playerIndex, tiles: [], count: 14 };
+        }
+
+        // For concealed-only target hands, don't claim exposures
+        // Reuse cached targets from pickDiscard/initBot when available
+        const targets = player.targetHands && player.targetHands.length > 0
+            ? player.targetHands.slice(0, 3)
+            : H.evaluateHand(G.getAllTiles(player)).slice(0, 3);
+        const bestTarget = targets[0];
+        if (bestTarget && bestTarget.concealed && bestTarget.distance <= 4) {
+            return null; // pursuing concealed hand, don't expose
+        }
+
+        // Check exposure options
+        const options = G.getClaimOptions(game, playerIndex);
+        if (options.length === 0) return null;
+
+        // Compute evalBefore once (not per-option)
+        const distBefore = bestTarget ? bestTarget.distance : 99;
+
+        // Pick the largest valid group that helps our hand
+        const sortedOptions = options.slice().sort((a, b) => b.count - a.count);
+        for (const opt of sortedOptions) {
+            // Simulate claiming
+            const testHand = player.hand.slice();
+            for (const et of opt.tiles) {
+                const idx = testHand.findIndex(t => t.id === et.id);
+                if (idx >= 0) testHand.splice(idx, 1);
+            }
+            const testAll = testHand.concat([game.lastDiscard], opt.tiles);
+            for (const grp of player.exposed) {
+                for (const t of grp.tiles) testAll.push(t);
+            }
+
+            const evalAfter = H.evaluateHand(testAll);
+            const distAfter = evalAfter.length > 0 ? evalAfter[0].distance : 99;
+
+            // Claim if it improves or maintains distance, and we're close enough
+            if (distAfter <= distBefore && distBefore <= 6) {
+                return { ...opt, playerIndex };
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Run a full bot turn: joker exchanges → draw → (check mahjong) → discard.
+     */
+    function botTurn(game, playerIndex) {
+        // Try joker exchanges before discarding
+        tryJokerExchanges(game, playerIndex);
+
+        // Check self mahjong first
+        const mj = G.checkSelfMahjong(game);
+        if (mj) {
+            G.executeMahjong(game, playerIndex);
+            return 'mahjong';
+        }
+
+        const discardIdx = pickDiscard(game, playerIndex);
+        if (discardIdx >= 0) {
+            G.discardTile(game, discardIdx);
+            return 'discard';
+        }
+        return 'stuck';
+    }
+
+    // -----------------------------------------------------------------------
+    // Export
+    // -----------------------------------------------------------------------
+    const BotModule = { initBot, pickDiscard, decideClaim, botTurn, tryJokerExchanges, buildDangerMap };
+
+    if (typeof module !== 'undefined' && module.exports) {
+        module.exports = BotModule;
+    } else {
+        window.Bot = BotModule;
+    }
+})();
+
+    </script>
+    <script>
+// hints.js — Hint engine for American Mahjong
+// Works in both browser and Node.js
+
+(function () {
+    const T = (typeof module !== 'undefined' && module.exports) ? require('./tiles') : window.Tiles;
+    const H = (typeof module !== 'undefined' && module.exports) ? require('./hands') : window.Hands;
+    const G = (typeof module !== 'undefined' && module.exports) ? require('./game') : window.Game;
+
+    /**
+     * Get the best discard suggestion for the human player.
+     * Returns { tileIndex, reason, targetHand, distance, keepIndices, neededTiles }
+     */
+    function getBestDiscard(game, playerIndex) {
+        const player = game.players[playerIndex];
+        const hand = player.hand;
+        if (hand.length === 0) return null;
+
+        // Evaluate baseline (full hand including exposed)
+        const allTiles = [...hand];
+        for (const grp of player.exposed) allTiles.push(...grp.tiles);
+        const baseEval = H.evaluateHand(allTiles);
+
+        let bestIdx = -1;
+        let bestDist = 99;
+        let bestTarget = null;
+        let results = []; // track all candidates
+
+        for (let i = 0; i < hand.length; i++) {
+            if (hand[i].type === 'joker') continue;
+
+            const remaining = [...hand.slice(0, i), ...hand.slice(i + 1)];
+            const testAll = [...remaining];
+            for (const grp of player.exposed) testAll.push(...grp.tiles);
+
+            const eval_ = H.evaluateHand(testAll);
+            if (eval_.length > 0) {
+                const dist = eval_[0].distance;
+                results.push({ idx: i, dist, target: eval_[0] });
+                if (dist < bestDist) {
+                    bestDist = dist;
+                }
+            }
+        }
+
+        // Among tiles tied for best distance, use multi-factor scoring
+        const tied = results.filter(r => r.dist === bestDist);
+        if (tied.length > 0) {
+            // Count how many times each tile key appears in hand
+            const freq = {};
+            for (const t of hand) {
+                const k = T.tileKey(t);
+                freq[k] = (freq[k] || 0) + 1;
+            }
+
+            // Evaluate top N target hands to compute contribution score
+            const topTargets = baseEval.slice(0, 5);
+
+            // For each tied candidate, score how un-useful it is (higher = better to discard)
+            for (const cand of tied) {
+                const tile = hand[cand.idx];
+                const tileKey = T.tileKey(tile);
+
+                // Factor 1: frequency (singletons preferred to discard)
+                cand.freq = freq[tileKey] || 0;
+
+                // Factor 2: how many top hands does this tile NOT contribute to?
+                // A tile in 0 of 5 top hands is very safe to discard
+                let contributionCount = 0;
+                for (const target of topTargets) {
+                    const keep = computeKeepIndices(hand, player.exposed, target, -1);
+                    if (keep.includes(cand.idx)) contributionCount++;
+                }
+                cand.nonContribution = topTargets.length - contributionCount;
+            }
+
+            // Sort: highest nonContribution first, then lowest frequency, then random
+            tied.sort((a, b) => {
+                // Prefer tiles that contribute to fewer top hands
+                if (a.nonContribution !== b.nonContribution) return b.nonContribution - a.nonContribution;
+                // Then prefer singletons
+                if (a.freq !== b.freq) return a.freq - b.freq;
+                // Random tiebreak to avoid always picking leftmost
+                return Math.random() - 0.5;
+            });
+            bestIdx = tied[0].idx;
+            bestTarget = tied[0].target;
+        }
+
+        if (bestIdx < 0) {
+            for (let i = 0; i < hand.length; i++) {
+                if (hand[i].type !== 'joker') { bestIdx = i; break; }
+            }
+        }
+
+        // ── Compute real keepIndices ──
+        // Match tiles in-hand against the target hand's pattern groups
+        const keepIndices = computeKeepIndices(hand, player.exposed, bestTarget, bestIdx);
+
+        // ── Compute neededTiles ──
+        // Figure out what specific tiles the player still needs
+        const neededTiles = bestTarget ? computeNeededTiles(hand, player.exposed, bestTarget) : [];
+
+        return {
+            tileIndex: bestIdx,
+            tile: hand[bestIdx],
+            reason: bestTarget
+                ? `Discard ${T.tileStr(hand[bestIdx])} to stay closest to "${bestTarget.display}" (${bestTarget.cat}, ${bestTarget.distance} tiles away)`
+                : 'No strong target — discard least useful tile.',
+            targetHand: bestTarget,
+            distance: bestDist,
+            keepIndices,
+            neededTiles
+        };
+    }
+
+    /**
+     * Compute which tiles in the player's hand contribute to the target hand.
+     * Returns an array of hand indices that are "useful".
+     */
+    function computeKeepIndices(hand, exposed, target, discardIdx) {
+        if (!target) {
+            // No target — keep everything except the discard
+            const indices = [];
+            for (let i = 0; i < hand.length; i++) {
+                if (i !== discardIdx) indices.push(i);
+            }
+            return indices;
+        }
+
+        // Get the compiled hands and find the matching one
+        const compiled = H.compileHands();
+        const matchingHand = compiled.find(h =>
+            h.cat === target.cat && h.display === target.display
+        );
+        if (!matchingHand) {
+            const indices = [];
+            for (let i = 0; i < hand.length; i++) {
+                if (i !== discardIdx) indices.push(i);
+            }
+            return indices;
+        }
+
+        // Build inventory of tiles (hand only, minus the discard)
+        const handTiles = hand.filter((_, i) => i !== discardIdx);
+        const handKeys = handTiles.map(t => t.type === 'joker' ? 'joker' : T.tileKey(t));
+
+        // Build exposed tile keys
+        const exposedKeys = [];
+        for (const grp of exposed) {
+            for (const t of grp.tiles) {
+                exposedKeys.push(t.type === 'joker' ? 'joker' : T.tileKey(t));
+            }
+        }
+
+        // We need to try suit permutations to find the best assignment
+        const groups = matchingHand.groups;
+        const { suitMin, suitMax } = matchingHand;
+
+        let bestKeep = null;
+        let bestKeepCount = -1;
+
+        const perms = (suitMin === 0 && suitMax === 0)
+            ? [['crak', 'bam', 'dot']]
+            : getSuitPermsForKeep(suitMin, suitMax);
+
+        for (const perm of perms) {
+            const result = matchKeepTiles(groups, handKeys, exposedKeys, perm, hand, discardIdx);
+            if (result && result.length > bestKeepCount) {
+                bestKeep = result;
+                bestKeepCount = result.length;
+            }
+        }
+
+        return bestKeep || [];
+    }
+
+    function getSuitPermsForKeep(minSuits, maxSuits) {
+        const suits = ['crak', 'bam', 'dot'];
+        const results = [];
+        const seen = new Set();
+        for (const a of suits) {
+            for (const b of suits) {
+                for (const c of suits) {
+                    const used = new Set([a, b, c]);
+                    if (used.size >= minSuits && used.size <= maxSuits) {
+                        const k = [a, b, c].join(',');
+                        if (!seen.has(k)) { seen.add(k); results.push([a, b, c]); }
+                    }
+                }
+            }
+        }
+        return results;
+    }
+
+    /**
+     * For a given suit permutation, figure out which hand indices contribute.
+     */
+    function matchKeepTiles(groups, handKeys, exposedKeys, suitPerm, hand, discardIdx) {
+        const usedHandIdx = new Set();
+        const availableHand = handKeys.map((k, i) => ({ key: k, origIdx: i }));
+        // Map origIdx back to real hand index (skipping discardIdx)
+        const realIdx = [];
+        let j = 0;
+        for (let i = 0; i < hand.length; i++) {
+            if (i === discardIdx) continue;
+            realIdx.push(i);
+            j++;
+        }
+
+        const availableExposed = [...exposedKeys];
+        let suitVarIdx = 0;
+
+        for (const g of groups) {
+            const ch = g.ch;
+            let targetKeys = [];
+
+            if (ch === 'F') {
+                targetKeys = ['flower-Plum', 'flower-Orchid', 'flower-Chrysanthemum', 'flower-Bamboo',
+                    'season-Spring', 'season-Summer', 'season-Autumn', 'season-Winter'];
+            } else if (ch === 'D') {
+                targetKeys = ['dragon-Red', 'dragon-Green', 'dragon-White'];
+            } else if (ch === 'N') { targetKeys = ['wind-N']; }
+            else if (ch === 'E') { targetKeys = ['wind-E']; }
+            else if (ch === 'W') { targetKeys = ['wind-W']; }
+            else if (ch === 'S') { targetKeys = ['wind-S']; }
+            else if (ch === '0') { targetKeys = ['dragon-White']; }
+            else if (ch >= '1' && ch <= '9') {
+                const val = g.value || parseInt(ch);
+                const suit = suitPerm[suitVarIdx % 3];
+                suitVarIdx++;
+                targetKeys = [`${suit}-${val}`];
+            } else continue;
+
+            // Try to fill from exposed first, then hand
+            let remaining = g.count;
+
+            // Count exposed matches
+            for (let ei = 0; ei < availableExposed.length && remaining > 0; ei++) {
+                if (targetKeys.includes(availableExposed[ei])) {
+                    remaining--;
+                    availableExposed[ei] = '__used__';
+                }
+            }
+
+            // Fill from hand
+            for (let hi = 0; hi < availableHand.length && remaining > 0; hi++) {
+                if (availableHand[hi].key === '__used__') continue;
+                if (targetKeys.includes(availableHand[hi].key)) {
+                    usedHandIdx.add(realIdx[hi]);
+                    availableHand[hi].key = '__used__';
+                    remaining--;
+                }
+            }
+
+            // Jokers can fill remaining (from hand)
+            const canJoker = g.count >= 3;
+            if (canJoker && remaining > 0) {
+                for (let hi = 0; hi < availableHand.length && remaining > 0; hi++) {
+                    if (availableHand[hi].key === 'joker') {
+                        usedHandIdx.add(realIdx[hi]);
+                        availableHand[hi].key = '__used__';
+                        remaining--;
+                    }
+                }
+            }
+        }
+
+        return Array.from(usedHandIdx);
+    }
+
+    /**
+     * Compute which specific tiles the player still needs for the target hand.
+     * Returns [{ key, name, count }]
+     */
+    function computeNeededTiles(hand, exposed, target) {
+        const compiled = H.compileHands();
+        const matchingHand = compiled.find(h =>
+            h.cat === target.cat && h.display === target.display
+        );
+        if (!matchingHand) return [];
+
+        // Build full tile inventory
+        const inv = {};
+        let jokers = 0;
+        const allTiles = [...hand];
+        for (const grp of exposed) allTiles.push(...grp.tiles);
+        for (const t of allTiles) {
+            if (t.type === 'joker') { jokers++; continue; }
+            const k = T.tileKey(t);
+            inv[k] = (inv[k] || 0) + 1;
+        }
+
+        const groups = matchingHand.groups;
+        const { suitMin, suitMax } = matchingHand;
+
+        const perms = (suitMin === 0 && suitMax === 0)
+            ? [['crak', 'bam', 'dot']]
+            : getSuitPermsForKeep(suitMin, suitMax);
+
+        let bestNeeded = null;
+        let bestNeededCount = Infinity;
+
+        for (const perm of perms) {
+            const needed = computeNeededForPerm(groups, inv, jokers, perm);
+            const total = needed.reduce((s, n) => s + n.count, 0);
+            if (total < bestNeededCount) {
+                bestNeededCount = total;
+                bestNeeded = needed;
+            }
+        }
+
+        return bestNeeded || [];
+    }
+
+    function computeNeededForPerm(groups, inv, jokers, suitPerm) {
+        const invCopy = { ...inv };
+        let jokersLeft = jokers;
+        let suitVarIdx = 0;
+        const needed = [];
+
+        for (const g of groups) {
+            const ch = g.ch;
+            let keys = [];
+            let displayName = '';
+
+            if (ch === 'F') {
+                keys = ['flower-Plum', 'flower-Orchid', 'flower-Chrysanthemum', 'flower-Bamboo',
+                    'season-Spring', 'season-Summer', 'season-Autumn', 'season-Winter'];
+                displayName = 'Flower/Season';
+            } else if (ch === 'D') {
+                keys = ['dragon-Red', 'dragon-Green', 'dragon-White'];
+                displayName = 'Dragon';
+            } else if (ch === 'N') { keys = ['wind-N']; displayName = 'North'; }
+            else if (ch === 'E') { keys = ['wind-E']; displayName = 'East'; }
+            else if (ch === 'W') { keys = ['wind-W']; displayName = 'West'; }
+            else if (ch === 'S') { keys = ['wind-S']; displayName = 'South'; }
+            else if (ch === '0') { keys = ['dragon-White']; displayName = 'Soap (0)'; }
+            else if (ch >= '1' && ch <= '9') {
+                const val = g.value || parseInt(ch);
+                const suit = suitPerm[suitVarIdx % 3];
+                suitVarIdx++;
+                keys = [`${suit}-${val}`];
+                const suitName = suit.charAt(0).toUpperCase() + suit.slice(1);
+                displayName = `${suitName} ${val}`;
+            } else continue;
+
+            const canJoker = g.count >= 3;
+            let have = 0;
+            for (const k of keys) {
+                const use = Math.min(invCopy[k] || 0, g.count - have);
+                have += use;
+                invCopy[k] = (invCopy[k] || 0) - use;
+            }
+            let deficit = g.count - have;
+            if (deficit > 0 && canJoker) {
+                const jUse = Math.min(deficit, jokersLeft);
+                jokersLeft -= jUse;
+                deficit -= jUse;
+            }
+            if (deficit > 0) {
+                needed.push({ key: keys[0], name: displayName, count: deficit });
+            }
+        }
+
+        return needed;
+    }
+
+    /**
+     * Get claim advice: should the player claim the current discard?
+     * Now includes before/after distance comparison.
+     */
+    function getClaimAdvice(game, playerIndex) {
+        const player = game.players[playerIndex];
+        const allTiles = G.getAllTiles(player);
+        const options = G.getClaimOptions(game, playerIndex);
+
+        if (G.canCallMahjong(game, playerIndex)) {
+            return { shouldClaim: true, type: 'mahjong', reason: '🎉 You can declare MAHJONG!' };
+        }
+
+        if (options.length === 0) return { shouldClaim: false, reason: 'No valid claim available.' };
+
+        // Check if claiming improves position
+        const evalBefore = H.evaluateHand(allTiles);
+        const distBefore = evalBefore.length > 0 ? evalBefore[0].distance : 99;
+        const targetBefore = evalBefore[0];
+
+        // If pursuing concealed hand, warn
+        if (targetBefore && targetBefore.concealed) {
+            return {
+                shouldClaim: false,
+                reason: `You're closest to a CONCEALED hand (${targetBefore.display}). Claiming would prevent completing it.`
+            };
+        }
+
+        // Simulate each claim option and find the best one
+        const sortedOptions = options.slice().sort((a, b) => b.count - a.count);
+        let bestOption = null;
+        let bestDistAfter = 99;
+
+        for (const opt of sortedOptions) {
+            // Simulate claiming: remove exposed tiles from hand, add discard + exposed as a group
+            const testHand = player.hand.slice();
+            for (const et of opt.tiles) {
+                const idx = testHand.findIndex(t => t.id === et.id);
+                if (idx >= 0) testHand.splice(idx, 1);
+            }
+            const testAll = testHand.concat([game.lastDiscard], opt.tiles);
+            for (const grp of player.exposed) {
+                for (const t of grp.tiles) testAll.push(t);
+            }
+
+            const evalAfter = H.evaluateHand(testAll);
+            const distAfter = evalAfter.length > 0 ? evalAfter[0].distance : 99;
+
+            if (distAfter < bestDistAfter) {
+                bestDistAfter = distAfter;
+                bestOption = opt;
+            }
+        }
+
+        if (!bestOption) {
+            return { shouldClaim: false, reason: 'No claim improves your position.' };
+        }
+
+        const improved = bestDistAfter < distBefore;
+        const same = bestDistAfter === distBefore;
+
+        if (improved) {
+            return {
+                shouldClaim: true,
+                type: bestOption.type,
+                tiles: bestOption.tiles,
+                reason: `Claim for ${bestOption.type}! Reduces distance from ${distBefore} → ${bestDistAfter} toward ${targetBefore ? targetBefore.display : 'a hand'}.`
+            };
+        } else if (same) {
+            return {
+                shouldClaim: false,
+                type: bestOption.type,
+                reason: `Claiming for ${bestOption.type} won't improve distance (stays at ${distBefore}). Consider passing.`
+            };
+        } else {
+            return {
+                shouldClaim: false,
+                reason: `Claiming would hurt — distance goes from ${distBefore} → ${bestDistAfter}. Pass.`
+            };
+        }
+    }
+
+    /**
+     * Get a full hint summary for the player.
+     */
+    function getHintSummary(game, playerIndex) {
+        const player = game.players[playerIndex];
+        const allTiles = G.getAllTiles(player);
+        const targets = H.evaluateHand(allTiles).slice(0, 5);
+
+        return {
+            closestHands: targets.map(t => ({
+                name: `${t.cat}: ${t.display}`,
+                distance: t.distance,
+                value: t.value,
+                concealed: t.concealed
+            })),
+            discard: game.phase === G.PHASE.TURN_DISCARD ? getBestDiscard(game, playerIndex) : null,
+            claim: game.phase === G.PHASE.CLAIM_WINDOW ? getClaimAdvice(game, playerIndex) : null
+        };
+    }
+
+    // -----------------------------------------------------------------------
+    // Export
+    // -----------------------------------------------------------------------
+    const HintsModule = { getBestDiscard, getClaimAdvice, getHintSummary };
+
+    if (typeof module !== 'undefined' && module.exports) {
+        module.exports = HintsModule;
+    } else {
+        window.Hints = HintsModule;
+    }
+})();
+
+    </script>
+    <script>
+// ui.js — DOM rendering, event handlers, game orchestration
+// Browser-only — references window.Tiles, window.Hands, etc.
+
+(function () {
+    const T = window.Tiles;
+    const H = window.Hands;
+    const G = window.Game;
+    const B = window.Bot;
+    const Hn = window.Hints;
+
+    let game = null;
+    let hintsOn = false;
+    let autoPlayOn = false;
+    let selectedTileIdx = -1;
+    let _botRunning = false; // guard against overlapping bot timeouts
+    let _cachedHint = null;  // reused within a single renderAll cycle
+    const BOT_DELAY = 600;
+
+    // -----------------------------------------------------------------------
+    // INIT
+    // -----------------------------------------------------------------------
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('btn-new-game').addEventListener('click', startGame);
+        document.getElementById('btn-hint').addEventListener('click', toggleHints);
+        document.getElementById('btn-autoplay').addEventListener('click', toggleAutoPlay);
+        document.getElementById('btn-scorecard').addEventListener('click', showScorecard);
+        document.getElementById('scorecard-close').addEventListener('click', hideScorecard);
+        document.getElementById('gameover-new').addEventListener('click', startGame);
+
+        // Claim buttons
+        document.getElementById('btn-claim-pung').addEventListener('click', () => humanClaim('pung'));
+        document.getElementById('btn-claim-kong').addEventListener('click', () => humanClaim('kong'));
+        document.getElementById('btn-claim-quint').addEventListener('click', () => humanClaim('quint'));
+        document.getElementById('btn-claim-mahjong').addEventListener('click', () => humanClaim('mahjong'));
+        document.getElementById('btn-pass').addEventListener('click', humanPass);
+
+        // Close modals on backdrop click
+        document.getElementById('scorecard-modal').addEventListener('click', e => {
+            if (e.target === e.currentTarget) hideScorecard();
+        });
+        document.getElementById('gameover-modal').addEventListener('click', e => {
+            if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden');
+        });
+
+        startGame();
+    });
+
+    // -----------------------------------------------------------------------
+    // GAME LIFECYCLE
+    // -----------------------------------------------------------------------
+    function startGame() {
+        document.getElementById('gameover-modal').classList.add('hidden');
+        document.getElementById('claim-controls').classList.add('hidden');
+        document.getElementById('game-log-entries').innerHTML = '';
+        selectedTileIdx = -1;
+        _botRunning = false;
+        // If auto-play was on, keep it on for the new game
+
+        game = G.createGame({
+            numPlayers: 4,
+            humanIndex: 0,
+            names: ['You (East)', 'South', 'West', 'North']
+        });
+
+        game.callbacks.onPhaseChange = onPhaseChange;
+        game.callbacks.onLog = msg => {
+            console.log('[MJ]', msg);
+            appendLogEntry(msg);
+        };
+
+        G.dealTiles(game);
+
+        // Init bots
+        for (let i = 1; i < 4; i++) B.initBot(game, i);
+
+        renderAll();
+    }
+
+    function appendLogEntry(msg) {
+        const el = document.createElement('div');
+        el.className = 'log-entry';
+        const lower = msg.toLowerCase();
+        if (lower.includes('mahjong')) el.classList.add('log-mahjong');
+        else if (lower.includes('draw')) el.classList.add('log-draw');
+        else if (lower.includes('discard')) el.classList.add('log-discard');
+        else if (lower.includes('claim') || lower.includes('pung') || lower.includes('kong') || lower.includes('quint')) el.classList.add('log-claim');
+        el.textContent = msg;
+        const container = document.getElementById('game-log-entries');
+        container.appendChild(el);
+        // Auto-scroll to bottom (newest at top via column-reverse)
+        const log = document.getElementById('game-log');
+        log.scrollTop = 0;
+    }
+
+    function onPhaseChange() {
+        renderAll();
+
+        if (!game || game.phase === G.PHASE.GAME_OVER) {
+            _botRunning = false;
+            if (game) showGameOver();
+            return;
+        }
+
+        const cp = game.currentPlayer;
+        const isHuman = game.players[cp].isHuman;
+        const treatAsBot = !isHuman || autoPlayOn;
+
+        if (game.phase === G.PHASE.TURN_DRAW && treatAsBot) {
+            scheduleBotAction(() => botDraw(cp));
+        }
+
+        if (game.phase === G.PHASE.TURN_DISCARD && treatAsBot) {
+            scheduleBotAction(() => botDiscard(cp));
+        }
+
+        if (game.phase === G.PHASE.CLAIM_WINDOW) {
+            handleClaimWindow();
+        }
+    }
+
+    // Serialize bot actions to avoid race conditions
+    function scheduleBotAction(fn) {
+        if (_botRunning) return;
+        _botRunning = true;
+        setTimeout(() => {
+            _botRunning = false;
+            if (game && game.phase !== G.PHASE.GAME_OVER) fn();
+        }, BOT_DELAY);
+    }
+
+    // -----------------------------------------------------------------------
+    // BOT ACTIONS
+    // -----------------------------------------------------------------------
+    function botDraw(cp) {
+        if (!game || game.phase !== G.PHASE.TURN_DRAW || game.currentPlayer !== cp) return;
+        // Init bot for human player on first auto-play draw
+        if (autoPlayOn && game.players[cp].isHuman && !game.players[cp].targetHands) {
+            B.initBot(game, cp);
+        }
+        const tile = G.drawTile(game);
+        if (!tile) return;
+
+        // Check self mahjong
+        const mj = G.checkSelfMahjong(game);
+        if (mj) {
+            G.executeMahjong(game, cp);
+            return;
+        }
+        // Phase changes to TURN_DISCARD, onPhaseChange will handle
+    }
+
+    function botDiscard(cp) {
+        if (!game || game.phase !== G.PHASE.TURN_DISCARD || game.currentPlayer !== cp) return;
+        const idx = B.pickDiscard(game, cp);
+        if (idx >= 0) {
+            G.discardTile(game, idx);
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // CLAIM WINDOW
+    // -----------------------------------------------------------------------
+    function handleClaimWindow() {
+        if (!game || !game.lastDiscard) {
+            G.passClaim(game);
+            return;
+        }
+
+        // Collect bot claims (include human as bot during auto-play)
+        const botClaims = [];
+        const startIdx = autoPlayOn ? 0 : 1;
+        for (let i = startIdx; i < 4; i++) {
+            if (i === game.lastDiscardFrom) continue;
+            const claim = B.decideClaim(game, i);
+            if (claim) botClaims.push(claim);
+        }
+
+        if (autoPlayOn) {
+            // In auto-play, resolve all claims automatically
+            resolveBotClaims(botClaims);
+            return;
+        }
+
+        // Check if human can claim
+        const humanOptions = G.getClaimOptions(game, 0);
+        const canMJ = G.canCallMahjong(game, 0);
+
+        if (humanOptions.length === 0 && !canMJ) {
+            // Human can't claim — resolve bot claims or pass
+            resolveBotClaims(botClaims);
+            return;
+        }
+
+        // Show claim controls for human
+        showClaimControls(humanOptions, canMJ);
+
+        // Store bot claims for later resolution
+        game._pendingBotClaims = botClaims;
+    }
+
+    function showClaimControls(options, canMJ) {
+        const controls = document.getElementById('claim-controls');
+        controls.classList.remove('hidden');
+
+        const hasPung = options.some(o => o.type === 'pung');
+        const hasKong = options.some(o => o.type === 'kong');
+        const hasQuint = options.some(o => o.type === 'quint');
+
+        document.getElementById('btn-claim-pung').classList.toggle('hidden', !hasPung);
+        document.getElementById('btn-claim-kong').classList.toggle('hidden', !hasKong);
+        document.getElementById('btn-claim-quint').classList.toggle('hidden', !hasQuint);
+        document.getElementById('btn-claim-mahjong').classList.toggle('hidden', !canMJ);
+    }
+
+    function humanClaim(type) {
+        document.getElementById('claim-controls').classList.add('hidden');
+        if (!game || game.phase !== G.PHASE.CLAIM_WINDOW) return;
+
+        if (type === 'mahjong') {
+            G.executeMahjong(game, 0);
+            return;
+        }
+
+        const options = G.getClaimOptions(game, 0);
+        const opt = options.find(o => o.type === type);
+        if (!opt) return;
+
+        // Human claim + any bot claims — resolve priority
+        const allClaims = [{ ...opt, playerIndex: 0 }, ...(game._pendingBotClaims || [])];
+        const winner = G.resolveClaims(game, allClaims);
+
+        if (winner && winner.playerIndex === 0) {
+            G.executeClaim(game, 0, opt.type, opt.tiles);
+        } else if (winner) {
+            // Bot claim takes priority
+            if (winner.type === 'mahjong') {
+                G.executeMahjong(game, winner.playerIndex);
+            } else {
+                G.executeClaim(game, winner.playerIndex, winner.type, winner.tiles);
+            }
+        }
+    }
+
+    function humanPass() {
+        document.getElementById('claim-controls').classList.add('hidden');
+        if (!game) return;
+        if (game.phase !== G.PHASE.CLAIM_WINDOW) return;
+        resolveBotClaims(game._pendingBotClaims || []);
+    }
+
+    function resolveBotClaims(botClaims) {
+        if (botClaims.length > 0) {
+            const winner = G.resolveClaims(game, botClaims);
+            if (winner) {
+                if (winner.type === 'mahjong') {
+                    scheduleBotAction(() => G.executeMahjong(game, winner.playerIndex));
+                } else {
+                    scheduleBotAction(() => {
+                        G.executeClaim(game, winner.playerIndex, winner.type, winner.tiles);
+                    });
+                }
+                return;
+            }
+        }
+        G.passClaim(game);
+
+        // Next player draws
+        // NOTE: passClaim triggers onPhaseChange which already schedules the
+        // next action when autoPlayOn is true. Only manually handle draws here
+        // when auto-play is OFF to avoid race conditions with _botRunning.
+        if (autoPlayOn) return;
+        if (!game || game.phase === G.PHASE.GAME_OVER) return;
+        const cp = game.currentPlayer;
+        if (!game.players[cp].isHuman && game.phase === G.PHASE.TURN_DRAW) {
+            scheduleBotAction(() => botDraw(cp));
+        } else if (game.players[cp].isHuman && game.phase === G.PHASE.TURN_DRAW) {
+            G.drawTile(game);
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // HUMAN ACTIONS
+    // -----------------------------------------------------------------------
+    function humanClickTile(idx) {
+        if (!game || game.phase !== G.PHASE.TURN_DISCARD || game.currentPlayer !== 0) return;
+        const player = game.players[0];
+        if (idx < 0 || idx >= player.hand.length) return;
+
+        if (selectedTileIdx === idx) {
+            // Double click = discard
+            if (player.hand[idx].type === 'joker') return; // can't discard joker
+            selectedTileIdx = -1;
+            G.discardTile(game, idx);
+        } else {
+            selectedTileIdx = idx;
+            renderAll();
+        }
+    }
+
+    function humanExchangeJoker(targetPlayer, groupIndex) {
+        if (!game || game.phase !== G.PHASE.TURN_DISCARD || game.currentPlayer !== 0) return;
+        if (selectedTileIdx < 0) return;
+        const player = game.players[0];
+        const tile = player.hand[selectedTileIdx];
+        if (!tile) return;
+        if (!G.canExchangeJoker(game, 0, tile, targetPlayer, groupIndex)) return;
+        G.executeJokerExchange(game, 0, tile, targetPlayer, groupIndex);
+        selectedTileIdx = -1;
+        renderAll();
+    }
+
+    // -----------------------------------------------------------------------
+    // RENDERING
+    // -----------------------------------------------------------------------
+    function renderAll() {
+        if (!game) return;
+        _cachedHint = null; // invalidate per render
+        // Clear stale selection when it's not the human's turn to discard
+        if (game.phase !== G.PHASE.TURN_DISCARD || game.currentPlayer !== 0) {
+            selectedTileIdx = -1;
+        }
+
+        // Update header
+        document.getElementById('wall-count').textContent = `Wall: ${game.wall.length}`;
+        const cp = game.players[game.currentPlayer];
+        document.getElementById('turn-indicator').textContent = `${cp.name}'s Turn`;
+
+        // Render each player
+        for (let i = 0; i < 4; i++) {
+            renderPlayer(i);
+        }
+
+        // Render discard pool
+        renderDiscardPool();
+
+        // Active player highlight
+        const areas = document.querySelectorAll('.player-area');
+        for (let i = 0; i < areas.length; i++) {
+            areas[i].classList.toggle('active-player', i === game.currentPlayer);
+        }
+
+        // Hints
+        if (hintsOn) {
+            renderHints();
+        }
+    }
+
+    function renderPlayer(idx) {
+        const player = game.players[idx];
+        const section = document.getElementById(`player-${idx}`);
+        if (!section) return;
+        const handEl = section.querySelector('.player-hand');
+        const exposedEl = section.querySelector('.player-exposed');
+        const countEl = section.querySelector('.tile-count');
+
+        countEl.textContent = `(${player.hand.length} tiles)`;
+
+        // Hand
+        handEl.innerHTML = '';
+        const isHuman = player.isHuman;
+        const showFaceUp = isHuman || autoPlayOn;
+
+        // Get hint suggestion (only compute once per render for human)
+        let hintIdx = -1;
+        let keepSet = null;
+        if (hintsOn && isHuman && game.phase === G.PHASE.TURN_DISCARD && game.currentPlayer === 0) {
+            if (!_cachedHint) _cachedHint = Hn.getHintSummary(game, 0);
+            const hint = _cachedHint ? _cachedHint.discard : null;
+            if (hint) {
+                hintIdx = hint.tileIndex;
+                if (hint.keepIndices && hint.keepIndices.length > 0) {
+                    keepSet = new Set(hint.keepIndices);
+                }
+            }
+        }
+
+        for (let i = 0; i < player.hand.length; i++) {
+            const tile = player.hand[i];
+            const el = createTileElement(tile, showFaceUp);
+
+            if (isHuman) {
+                if (i === selectedTileIdx) el.classList.add('selected');
+                if (i === hintIdx) {
+                    el.classList.add('hint-glow');
+                    const badge = document.createElement('span');
+                    badge.className = 'hint-badge';
+                    badge.textContent = '▼ DISCARD';
+                    el.appendChild(badge);
+                }
+                // Dim tiles that don't contribute to the target hand
+                if (keepSet && !keepSet.has(i) && i !== hintIdx) {
+                    el.classList.add('tile-dim');
+                }
+                el.addEventListener('click', () => humanClickTile(i));
+            }
+
+            handEl.appendChild(el);
+        }
+
+        // Exposed groups
+        exposedEl.innerHTML = '';
+        for (let gi = 0; gi < player.exposed.length; gi++) {
+            const grp = player.exposed[gi];
+            const grpEl = document.createElement('div');
+            grpEl.className = 'exposed-group';
+            for (const tile of grp.tiles) {
+                const tileEl = createTileElement(tile, true);
+                // Joker exchange: make jokers in exposed groups clickable
+                if (tile.type === 'joker' && selectedTileIdx >= 0
+                    && game.phase === G.PHASE.TURN_DISCARD && game.currentPlayer === 0) {
+                    const selected = game.players[0].hand[selectedTileIdx];
+                    if (selected && G.canExchangeJoker(game, 0, selected, idx, gi)) {
+                        tileEl.classList.add('joker-exchangeable');
+                        tileEl.addEventListener('click', () => humanExchangeJoker(idx, gi));
+                    }
+                }
+                grpEl.appendChild(tileEl);
+            }
+            exposedEl.appendChild(grpEl);
+        }
+    }
+
+    function createTileElement(tile, faceUp) {
+        const el = document.createElement('div');
+
+        if (!faceUp) {
+            el.className = 'tile tile-back';
+            return el;
+        }
+
+        let suitClass = '';
+        if (tile.type === 'suited') suitClass = `tile-${tile.suit}`;
+        else if (tile.type === 'dragon') suitClass = `tile-dragon-${tile.value}`;
+        else if (tile.type === 'wind') suitClass = 'tile-wind';
+        else if (tile.type === 'joker') suitClass = 'tile-joker';
+        else if (tile.type === 'flower') suitClass = 'tile-flower';
+        else if (tile.type === 'season') suitClass = 'tile-season';
+
+        el.className = `tile tile-face ${suitClass}`;
+        el.innerHTML = `<span class="tile-emoji">${tile.emoji || ''}</span><span class="tile-label">${tile.label || ''}</span>`;
+        el.title = `${tile.emoji || ''} ${tile.label || ''}`;
+        return el;
+    }
+
+    function renderDiscardPool() {
+        const pool = document.getElementById('discard-pool');
+        pool.innerHTML = '';
+        for (const tile of game.discardPool) {
+            pool.appendChild(createTileElement(tile, true));
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // HINTS
+    // -----------------------------------------------------------------------
+    function toggleHints() {
+        hintsOn = !hintsOn;
+        document.getElementById('btn-hint').classList.toggle('active', hintsOn);
+        document.getElementById('hint-panel').classList.toggle('hidden', !hintsOn);
+        renderAll();
+    }
+
+    function toggleAutoPlay() {
+        autoPlayOn = !autoPlayOn;
+        document.getElementById('btn-autoplay').classList.toggle('active', autoPlayOn);
+        document.getElementById('btn-autoplay').innerHTML = autoPlayOn ? '⏸ Auto Play' : '▶ Auto Play';
+
+        if (autoPlayOn && game && game.phase !== G.PHASE.GAME_OVER) {
+            // Init bot AI for human player
+            B.initBot(game, 0);
+
+            // Hide claim controls if showing
+            document.getElementById('claim-controls').classList.add('hidden');
+
+            // Kick off the auto-play loop from current state
+            renderAll();
+            autoPlayKick();
+        } else {
+            renderAll();
+        }
+    }
+
+    // Resume auto-play from current game state
+    function autoPlayKick() {
+        if (!autoPlayOn || !game || game.phase === G.PHASE.GAME_OVER) return;
+        const cp = game.currentPlayer;
+
+        if (game.phase === G.PHASE.TURN_DRAW && game.players[cp].isHuman) {
+            scheduleBotAction(() => botDraw(cp));
+        } else if (game.phase === G.PHASE.TURN_DISCARD && game.players[cp].isHuman) {
+            scheduleBotAction(() => botDiscard(cp));
+        } else if (game.phase === G.PHASE.CLAIM_WINDOW) {
+            scheduleBotAction(() => handleClaimWindow());
+        }
+    }
+
+    function renderHints() {
+        const panel = document.getElementById('hint-panel');
+        panel.classList.remove('hidden');
+        const content = document.getElementById('hint-content');
+
+        if (!_cachedHint) _cachedHint = Hn.getHintSummary(game, 0);
+        const summary = _cachedHint;
+        if (!summary) { content.innerHTML = '<em>No hint data available.</em>'; return; }
+
+        let html = '';
+
+        // Closest hands
+        if (summary.closestHands && summary.closestHands.length > 0) {
+            html += `<div style="margin-bottom:6px"><strong>Top ${summary.closestHands.length} Closest Hands:</strong></div>`;
+            for (let i = 0; i < summary.closestHands.length; i++) {
+                const h = summary.closestHands[i];
+                const typeTag = h.concealed ? '<span style="color:var(--pink)">[C]</span>' : '<span style="color:var(--accent)">[X]</span>';
+                const rank = `<span style="color:var(--text-muted);font-size:0.85em">${i + 1}.</span>`;
+                html += `<div style="margin-bottom:2px">${rank} <span class="hint-hand">${h.name}</span> — ${h.distance} away — ${h.value}pts ${typeTag}</div>`;
+            }
+        }
+
+        // Discard advice
+        if (summary.discard) {
+            html += `<div style="margin-top:8px"><span class="hint-action">▶ ${summary.discard.reason}</span></div>`;
+
+            // Show needed tiles
+            if (summary.discard.neededTiles && summary.discard.neededTiles.length > 0) {
+                const needed = summary.discard.neededTiles
+                    .map(n => `<span class="hint-needed">${n.name}${n.count > 1 ? ' ×' + n.count : ''}</span>`)
+                    .join(', ');
+                html += `<div style="margin-top:6px"><strong>You need:</strong> ${needed}</div>`;
+            }
+        }
+
+        // Claim advice
+        if (summary.claim) {
+            html += `<div style="margin-top:4px"><span class="hint-action">▶ ${summary.claim.reason}</span></div>`;
+        }
+
+        content.innerHTML = html || '<em>Waiting for your turn…</em>';
+    }
+
+    // -----------------------------------------------------------------------
+    // SCORECARD
+    // -----------------------------------------------------------------------
+    function showScorecard() {
+        const modal = document.getElementById('scorecard-modal');
+        const body = document.getElementById('scorecard-body');
+
+        const card = H.getScorecard();
+        let html = '';
+        let currentCat = '';
+
+        for (const h of card) {
+            if (h.category !== currentCat) {
+                if (currentCat) html += '</div>'; // close previous cat
+                currentCat = h.category;
+                html += `<div class="scorecard-cat"><h4>${currentCat}</h4>`;
+            }
+            const typeClass = h.concealed ? 'sc-c' : 'sc-x';
+            const typeLabel = h.concealed ? 'C' : 'X';
+            html += `<div class="scorecard-hand">
+                <span class="sc-pattern">${h.pattern}${h.alt ? ' / ' + h.alt : ''}</span>
+                <span class="sc-value ${typeClass}">${h.value}pts ${typeLabel}</span>
+            </div>`;
+        }
+        if (currentCat) html += '</div>';
+
+        body.innerHTML = html;
+        modal.classList.remove('hidden');
+    }
+
+    function hideScorecard() {
+        document.getElementById('scorecard-modal').classList.add('hidden');
+    }
+
+    // -----------------------------------------------------------------------
+    // GAME OVER
+    // -----------------------------------------------------------------------
+    function showGameOver() {
+        const modal = document.getElementById('gameover-modal');
+
+        if (game.winner !== null && game.winner !== undefined) {
+            const w = game.players[game.winner];
+            const isHuman = w.isHuman;
+            document.getElementById('gameover-title').textContent = isHuman ? '🎉 You Win!' : '😔 ' + w.name + ' Wins';
+            document.getElementById('gameover-details').textContent = game.winningHand
+                ? `${game.winningHand.cat} — ${game.winningHand.value} points`
+                : 'Mahjong!';
+            document.getElementById('gameover-hand').textContent = game.winningHand
+                ? game.winningHand.display
+                : '';
+        } else {
+            document.getElementById('gameover-title').textContent = '🤝 Wall Game';
+            document.getElementById('gameover-details').textContent = 'The wall is empty — no winner this round.';
+            document.getElementById('gameover-hand').textContent = '';
+        }
+
+        modal.classList.remove('hidden');
+    }
+})();
+
+    </script>
+</body>
+</html>
