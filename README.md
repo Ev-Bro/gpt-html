@@ -31,4 +31,6 @@
 [Swatch](https://ev-bro.github.io/gpt-html/swatch.html)
 
 ## Mahjong 
+
+[American Mahjong Game](https://ev-bro.github.io/gpt-html/american_mahjong.html)
 [2025 Card](https://ev-bro.github.io/gpt-html/mahjong_card.html)
