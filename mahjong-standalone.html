@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="description" content="American Mahjong hand helper — select your tiles and find the closest NMJL 2025 scorecard matches instantly.">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Mahjong Hand Helper — NMJL 2025</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ── Dark Theme ── */
+:root {
+  --bg-primary: #0f172a;
+  --bg-card: #1e293b;
+  --bg-section-header: #1a2332;
+  --border: #334155;
+  --border-light: #1e293b;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-slate: #94a3b8;
+  --accent: #38bdf8;
+  --success: #22c55e;
+  --danger: #ef4444;
+  --concealed-blue: #60a5fa;
+  --tile-green: #4ade80;
+  --tile-red: #f87171;
+  --tile-black: #e2e8f0;
+  --wind-color: #a78bfa;
+  --dragon-color: #c084fc;
+  --flower-color: #fbbf24;
+  --joker-color: #38bdf8;
+  --tile-bg: linear-gradient(145deg, #1e293b, #283548);
+  --tile-shadow: 0 2px 8px rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.3);
+  --tile-active-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  --card-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --glow-green: 0 0 20px rgba(34,197,94,0.3);
+  --glow-accent: 0 0 15px rgba(56,189,248,0.2);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100dvh;
+  overflow-x: hidden;
+  line-height: 1.5;
+  background-image: radial-gradient(ellipse at 50% 0%, rgba(56,189,248,0.08) 0%, transparent 60%);
+}
+.app { max-width: 1400px; margin: 0 auto; padding: 16px 16px 180px; }
+.main-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+.col-tiles { min-width: 0; }
+.col-results { min-width: 0; position: sticky; top: 16px; max-height: calc(100dvh - 180px); overflow-y: auto; padding-right: 4px; }
+.col-results::-webkit-scrollbar { width: 4px; }
+.col-results::-webkit-scrollbar-track { background: transparent; }
+.col-results::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+.col-results-header { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--bg-card); border-radius: var(--radius-md); border: 1px solid var(--border); }
+@media (max-width: 900px) {
+  .main-layout { grid-template-columns: 1fr; }
+  .col-results { position: static; max-height: none; overflow-y: visible; }
+}
+.header { text-align: center; padding: 24px 0 20px; }
+.header h1 {
+  font-size: 1.7rem; font-weight: 800; color: var(--accent);
+  letter-spacing: -0.02em; font-style: italic;
+  text-shadow: 0 0 30px rgba(56,189,248,0.3);
+}
+.header p {
+  font-size: 0.72rem; color: var(--text-muted); margin-top: 6px;
+  text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;
+}
+.picker-section {
+  background: var(--bg-card); border-radius: var(--radius-lg);
+  box-shadow: var(--card-shadow); border: 1px solid var(--border);
+  margin-bottom: 12px; overflow: hidden;
+}
+.section-label {
+  display: block; font-size: 0.7rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-muted); padding: 8px 14px;
+  background: var(--bg-section-header); border-bottom: 1px solid var(--border);
+}
+.section-label.crak { color: var(--tile-red); }
+.section-label.bam { color: var(--tile-green); }
+.section-label.dot { color: var(--tile-black); }
+.section-label.wind { color: var(--wind-color); }
+.section-label.dragon { color: var(--dragon-color); }
+.section-label.flower, .section-label.season { color: var(--flower-color); }
+.section-label.joker { color: var(--joker-color); }
+.tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(54px, 1fr)); gap: 6px; padding: 10px; }
+.tile-grid.flowers-grid { grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); }
+.tile-btn {
+  position: relative; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  background: var(--tile-bg); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 6px 2px; min-height: 58px;
+  cursor: pointer; box-shadow: var(--tile-shadow);
+  transition: transform var(--transition), box-shadow var(--transition), opacity var(--transition), border-color var(--transition);
+  -webkit-user-select: none; user-select: none; touch-action: manipulation;
+}
+.tile-btn:hover { border-color: var(--accent); box-shadow: var(--glow-accent), var(--tile-shadow); }
+.tile-btn:active { transform: scale(0.93) translateY(1px); box-shadow: var(--tile-active-shadow); background: #283548; }
+.tile-btn.disabled { opacity: 0.25; pointer-events: none; }
+.tile-btn .tile-emoji { font-size: 1.5rem; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3)); }
+.tile-btn .tile-label { font-size: 0.6rem; font-weight: 700; color: var(--text-muted); margin-top: 2px; letter-spacing: 0.04em; }
+.tile-btn .tile-count-badge {
+  position: absolute; top: -5px; right: -5px;
+  background: var(--accent); color: #0f172a;
+  font-size: 0.6rem; font-weight: 800; width: 18px; height: 18px;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 8px rgba(56,189,248,0.5); opacity: 0; transform: scale(0);
+  transition: all var(--transition);
+}
+.tile-btn .tile-count-badge.visible { opacity: 1; transform: scale(1); }
+.tile-btn[data-suit="crak"] { border-bottom: 2px solid var(--tile-red); }
+.tile-btn[data-suit="bam"] { border-bottom: 2px solid var(--tile-green); }
+.tile-btn[data-suit="dot"] { border-bottom: 2px solid var(--tile-black); }
+.tile-btn[data-suit="wind"] { border-bottom: 2px solid var(--wind-color); }
+.tile-btn[data-suit="dragon"] { border-bottom: 2px solid var(--dragon-color); }
+.tile-btn[data-suit="flower"], .tile-btn[data-suit="season"] { border-bottom: 2px solid var(--flower-color); }
+.tile-btn[data-suit="joker"] { border-bottom: 2px solid var(--joker-color); }
+.hand-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: rgba(15,23,42,0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid var(--border); padding: 8px 12px;
+  padding-bottom: max(8px, env(safe-area-inset-bottom)); z-index: 100;
+}
+.hand-bar-inner { max-width: 1400px; margin: 0 auto; }
+.hand-bar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.hand-count { font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); }
+.hand-count .count-num { color: var(--accent); font-size: 1rem; font-weight: 800; }
+.hand-count.complete .count-num { color: var(--success); text-shadow: 0 0 10px rgba(34,197,94,0.5); }
+.btn-clear {
+  background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3);
+  padding: 4px 14px; border-radius: 20px; font-size: 0.6rem; font-weight: 700;
+  cursor: pointer; text-transform: uppercase; letter-spacing: 0.05em;
+  transition: all var(--transition);
+}
+.btn-clear:hover { background: rgba(239,68,68,0.25); }
+.btn-clear:active { background: rgba(239,68,68,0.35); transform: scale(0.95); }
+.hand-tiles { display: flex; gap: 4px; flex-wrap: wrap; min-height: 48px; align-items: center; justify-content: center; }
+.hand-tile {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: var(--tile-bg); border: 1px solid var(--border); border-radius: 6px;
+  padding: 4px 4px 2px; min-width: 36px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3); cursor: pointer;
+  transition: transform var(--transition), opacity var(--transition);
+  animation: tilePopIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.hand-tile:active { transform: scale(0.85); opacity: 0.7; }
+.hand-tile .tile-emoji { font-size: 1.2rem; line-height: 1; }
+.hand-tile .tile-label { font-size: 0.5rem; font-weight: 700; color: var(--text-muted); }
+.hand-empty-text { color: var(--text-muted); font-size: 0.8rem; font-style: italic; text-align: center; padding: 8px; }
+@keyframes tilePopIn {
+  0% { transform: scale(0) rotate(-10deg); opacity: 0; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+.results-header {
+  font-size: 0.7rem; font-weight: 700; color: var(--text-muted);
+  margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.1em;
+  display: flex; align-items: center; gap: 8px;
+}
+.results-header .sparkle { font-size: 1rem; }
+.result-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding: 14px 12px; margin-bottom: 8px;
+  box-shadow: var(--card-shadow); transition: all var(--transition);
+  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.result-card:nth-child(n) { animation-delay: calc(var(--i, 0) * 50ms); }
+.result-card.mahjong {
+  border-color: var(--success); background: rgba(34,197,94,0.08);
+  box-shadow: 0 0 0 1px var(--success), var(--glow-green);
+}
+.result-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.result-category { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 2px; }
+.result-pattern { font-size: 0.95rem; font-weight: 800; color: var(--text-primary); font-family: 'Courier New', Courier, monospace; letter-spacing: 0.02em; }
+.result-meta { display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+.badge { font-size: 0.6rem; font-weight: 700; padding: 3px 10px; border-radius: 20px; display: inline-flex; align-items: center; gap: 3px; text-transform: uppercase; letter-spacing: 0.04em; }
+.badge-distance { color: white; }
+.badge-distance.dist-0 { background: var(--success); box-shadow: 0 0 10px rgba(34,197,94,0.4); }
+.badge-distance.dist-low { background: #16a34a; }
+.badge-distance.dist-mid { background: #ca8a04; }
+.badge-distance.dist-high { background: var(--danger); }
+.badge-value { background: rgba(148,163,184,0.1); color: var(--text-secondary); border: 1px solid var(--border); }
+.badge-concealed { background: rgba(96,165,250,0.1); color: var(--concealed-blue); border: 1px solid rgba(96,165,250,0.3); font-family: serif; font-style: italic; font-weight: 800; }
+.mahjong-banner {
+  text-align: center; padding: 20px; margin-bottom: 16px;
+  background: rgba(34,197,94,0.1); border: 2px solid var(--success);
+  border-radius: var(--radius-lg); animation: celebrate 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: var(--glow-green);
+}
+.mahjong-banner h2 { font-size: 1.8rem; font-weight: 800; color: var(--success); font-style: italic; text-shadow: 0 0 20px rgba(34,197,94,0.4); }
+.mahjong-banner p { color: var(--text-slate); font-size: 0.85rem; margin-top: 4px; }
+@keyframes celebrate { 0% { transform: scale(0.5); opacity: 0; } 60% { transform: scale(1.05); } 100% { transform: scale(1); opacity: 1; } }
+.waiting-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
+.waiting-state .icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.5; }
+.waiting-state p { font-size: 0.85rem; color: var(--text-slate); }
+.waiting-state strong { color: var(--text-primary); }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 380px) {
+  .tile-grid { grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 4px; }
+  .tile-btn { min-height: 50px; padding: 4px 1px; }
+  .tile-btn .tile-emoji { font-size: 1.3rem; }
+  .hand-tile { min-width: 32px; padding: 3px 3px 1px; }
+  .hand-tile .tile-emoji { font-size: 1rem; }
+}
+@media (min-width: 480px) {
+  .tile-grid { grid-template-columns: repeat(9, 1fr); gap: 8px; }
+  .tile-btn { min-height: 62px; }
+  .tile-btn .tile-emoji { font-size: 1.7rem; }
+}
+@media (min-width: 901px) {
+  .tile-grid { grid-template-columns: repeat(9, 1fr); gap: 6px; }
+  .tile-btn { min-height: 56px; }
+  .tile-btn .tile-emoji { font-size: 1.4rem; }
+}
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+#confetti-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; }
+</style>
+</head>
+<body>
+  <div class="app" id="app">
+    <header class="header">
+      <h1>🀄 Mahjong Hand Helper</h1>
+      <p>NMJL 2025 Scorecard • Tap tiles to build your hand</p>
+    </header>
+    <div class="main-layout">
+      <div class="col-tiles">
+        <div id="tile-picker"></div>
+      </div>
+      <div class="col-results">
+        <div class="col-results-header">🔍 Suggestions</div>
+        <div id="results-container">
+          <div class="waiting-state">
+            <div class="icon">🀄</div>
+            <p>Select <strong>14 tiles</strong> to see your closest hand matches</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hand-bar" id="hand-bar">
+    <div class="hand-bar-inner">
+      <div class="hand-bar-header">
+        <span class="hand-count" id="hand-count"><span class="count-num">0</span> / 14 tiles</span>
+        <button class="btn-clear" id="btn-clear" style="display:none">✕ Clear</button>
+      </div>
+      <div class="hand-tiles" id="hand-tiles">
+        <span class="hand-empty-text">Tap tiles above to add them to your hand</span>
+      </div>
+    </div>
+  </div>
+  <canvas id="confetti-canvas"></canvas>
+
+<script>
+// =====================================================================
+// tiles.js — Tile types, indexing, and utilities
+// =====================================================================
+const SUITS = ['crak', 'bam', 'dot'];
+const ALL_TILES = [
+  ...SUITS.flatMap(suit => Array.from({ length: 9 }, (_, i) => `${suit}${i + 1}`)),
+  'north', 'east', 'south', 'west',
+  'red', 'green', 'white',
+  'flower0', 'flower1', 'flower2', 'flower3',
+  'season0', 'season1', 'season2', 'season3',
+  'joker',
+];
+const TILE_INDEX_COUNT = 43;
+const ALL_TILES_INDEX = {};
+ALL_TILES.forEach((id, idx) => { ALL_TILES_INDEX[id] = idx; });
+
+function maxCopies(tileId) {
+  if (tileId === 'joker') return 8;
+  if (tileId.startsWith('flower') || tileId.startsWith('season')) return 1;
+  return 4;
+}
+function tileIndex(tileId) {
+  const idx = ALL_TILES.indexOf(tileId);
+  if (idx === -1) throw new Error(`Unknown tile: ${tileId}`);
+  return idx;
+}
+const TILE_DISPLAY = {
+  crak1:{emoji:'🀇',label:'1',suit:'crak'},crak2:{emoji:'🀈',label:'2',suit:'crak'},crak3:{emoji:'🀉',label:'3',suit:'crak'},
+  crak4:{emoji:'🀊',label:'4',suit:'crak'},crak5:{emoji:'🀋',label:'5',suit:'crak'},crak6:{emoji:'🀌',label:'6',suit:'crak'},
+  crak7:{emoji:'🀍',label:'7',suit:'crak'},crak8:{emoji:'🀎',label:'8',suit:'crak'},crak9:{emoji:'🀏',label:'9',suit:'crak'},
+  bam1:{emoji:'🀐',label:'1',suit:'bam'},bam2:{emoji:'🀑',label:'2',suit:'bam'},bam3:{emoji:'🀒',label:'3',suit:'bam'},
+  bam4:{emoji:'🀓',label:'4',suit:'bam'},bam5:{emoji:'🀔',label:'5',suit:'bam'},bam6:{emoji:'🀕',label:'6',suit:'bam'},
+  bam7:{emoji:'🀖',label:'7',suit:'bam'},bam8:{emoji:'🀗',label:'8',suit:'bam'},bam9:{emoji:'🀘',label:'9',suit:'bam'},
+  dot1:{emoji:'🀙',label:'1',suit:'dot'},dot2:{emoji:'🀚',label:'2',suit:'dot'},dot3:{emoji:'🀛',label:'3',suit:'dot'},
+  dot4:{emoji:'🀜',label:'4',suit:'dot'},dot5:{emoji:'🀝',label:'5',suit:'dot'},dot6:{emoji:'🀞',label:'6',suit:'dot'},
+  dot7:{emoji:'🀟',label:'7',suit:'dot'},dot8:{emoji:'🀠',label:'8',suit:'dot'},dot9:{emoji:'🀡',label:'9',suit:'dot'},
+  north:{emoji:'🀃',label:'N',suit:'wind'},east:{emoji:'🀀',label:'E',suit:'wind'},
+  south:{emoji:'🀁',label:'S',suit:'wind'},west:{emoji:'🀂',label:'W',suit:'wind'},
+  red:{emoji:'🀄',label:'R',suit:'dragon'},green:{emoji:'🀅',label:'G',suit:'dragon'},white:{emoji:'🀆',label:'Wh',suit:'dragon'},
+  flower0:{emoji:'🌸',label:'F1',suit:'flower'},flower1:{emoji:'🌺',label:'F2',suit:'flower'},
+  flower2:{emoji:'🌻',label:'F3',suit:'flower'},flower3:{emoji:'🌼',label:'F4',suit:'flower'},
+  season0:{emoji:'🌞',label:'S1',suit:'season'},season1:{emoji:'🍂',label:'S2',suit:'season'},
+  season2:{emoji:'❄️',label:'S3',suit:'season'},season3:{emoji:'🌿',label:'S4',suit:'season'},
+  joker:{emoji:'🃏',label:'J',suit:'joker'},
+};
+const TILE_CATEGORIES = [
+  { name: 'Crak', tiles: Array.from({ length: 9 }, (_, i) => `crak${i + 1}`) },
+  { name: 'Bam', tiles: Array.from({ length: 9 }, (_, i) => `bam${i + 1}`) },
+  { name: 'Dot', tiles: Array.from({ length: 9 }, (_, i) => `dot${i + 1}`) },
+  { name: 'Winds', tiles: ['north', 'east', 'south', 'west'] },
+  { name: 'Dragons', tiles: ['red', 'green', 'white'] },
+  { name: 'Flowers', tiles: ['flower0', 'flower1', 'flower2', 'flower3'] },
+  { name: 'Seasons', tiles: ['season0', 'season1', 'season2', 'season3'] },
+  { name: 'Joker', tiles: ['joker'] },
+];
+
+// =====================================================================
+// hands.js — NMJL 2025 hand patterns & matching engine
+// =====================================================================
+const NUM_MODES = { FIXED:'fixed',LIKE:'like',CONSEC2:'consec2',CONSEC3:'consec3',CONSEC4:'consec4',CONSEC5:'consec5',CONSEC5A:'consec5a' };
+const GROUP_KIND = { LIKE:'like', MIXED:'mixed' };
+
+const RAW_HANDS = [
+  {cat:'2025 VALUES',pat:'FFFF 2025 222 222',sr:[3,3],val:25,concealed:false,num:NUM_MODES.FIXED,alt:null},
+  {cat:'2025 VALUES',pat:'222 0000 222 5555',sr:[2,2],val:25,concealed:false,num:NUM_MODES.FIXED,alt:null},
+  {cat:'2025 VALUES',pat:'2025 222 555 DDDD',sr:[3,3],val:30,concealed:false,num:NUM_MODES.FIXED,alt:null},
+  {cat:'2025 VALUES',pat:'FF 222 000 222 555',sr:[3,3],val:30,concealed:true,num:NUM_MODES.FIXED,alt:null},
+  {cat:'2468',pat:'222 4444 666 8888',sr:[1,2],val:25,concealed:false,num:NUM_MODES.FIXED,alt:null},
+  {cat:'2468',pat:'FF 2222 4444 6666',sr:[3,3],val:25,concealed:false,num:NUM_MODES.FIXED,alt:null},
+  {cat:'2468',pat:'22 444 66 888 DDDD',sr:[1,1],val:25,concealed:false,num:NUM_MODES.FIXED,alt:null},
+  {cat:'2468',pat:'FFFF 2468 222 222',sr:[3,3],val:25,concealed:false,num:NUM_MODES.FIXED,alt:null},
+  {cat:'2468',pat:'FF 22 44 666 8888',sr:[1,1],val:25,concealed:false,num:NUM_MODES.FIXED,alt:null},
+  {cat:'2468',pat:'222 4444 666 88 88',sr:[3,3],val:25,concealed:false,num:NUM_MODES.FIXED,alt:null},
+  {cat:'2468',pat:'FF 2222 DDDD 2222',sr:[2,3],val:25,concealed:false,num:NUM_MODES.FIXED,alt:null},
+  {cat:'2468',pat:'22 44 66 88 222 222',sr:[3,3],val:30,concealed:true,num:NUM_MODES.FIXED,alt:null},
+  {cat:'ANY LIKE NUMBERS',pat:'FF 1111 D 1111 D 11',sr:[3,3],val:25,concealed:false,num:NUM_MODES.LIKE,alt:null},
+  {cat:'ANY LIKE NUMBERS',pat:'FFFF 11 111 111 11',sr:[3,3],val:30,concealed:false,num:NUM_MODES.LIKE,alt:null},
+  {cat:'ANY LIKE NUMBERS',pat:'FF 111 111 111 DDD',sr:[3,3],val:30,concealed:true,num:NUM_MODES.LIKE,alt:null},
+  {cat:'QUINTS',pat:'FF 111 2222 33333',sr:[3,3],val:40,concealed:false,num:NUM_MODES.CONSEC3,alt:null},
+  {cat:'QUINTS',pat:'11111 NNNN 22222',sr:[1,1],val:45,concealed:false,num:NUM_MODES.CONSEC2,alt:null},
+  {cat:'QUINTS',pat:'FF 11111 11 11111',sr:[3,3],val:45,concealed:false,num:NUM_MODES.LIKE,alt:null},
+  {cat:'CONSEC RUN',pat:'11 222 3333 444 55',sr:[1,1],val:25,concealed:false,num:NUM_MODES.CONSEC5A,alt:null},
+  {cat:'CONSEC RUN',pat:'55 666 7777 888 99',sr:[1,1],val:25,concealed:false,num:NUM_MODES.FIXED,alt:null},
+  {cat:'CONSEC RUN',pat:'111 2222 333 4444',sr:[1,2],val:25,concealed:false,num:NUM_MODES.CONSEC4,alt:null},
+  {cat:'CONSEC RUN',pat:'FFFF 1111 22 3333',sr:[1,3],val:25,concealed:false,num:NUM_MODES.CONSEC3,alt:null},
+  {cat:'CONSEC RUN',pat:'FFF 123 4444 5555',sr:[3,3],val:25,concealed:false,num:NUM_MODES.CONSEC5,alt:null},
+  {cat:'CONSEC RUN',pat:'FF 11 222 3333 DDD',sr:[1,1],val:25,concealed:false,num:NUM_MODES.CONSEC3,alt:null},
+  {cat:'CONSEC RUN',pat:'111 222 3333 DD DD',sr:[3,3],val:25,concealed:false,num:NUM_MODES.CONSEC3,alt:null},
+  {cat:'CONSEC RUN',pat:'FF 1 22 333 1 22 333',sr:[2,2],val:30,concealed:true,num:NUM_MODES.CONSEC3,alt:null},
+  {cat:'13579',pat:'11 333 5555 777 99',sr:[1,3],val:25,concealed:false,num:NUM_MODES.FIXED,alt:null},
+  {cat:'13579',pat:'111 3333 333 5555',sr:[2,2],val:25,concealed:false,num:NUM_MODES.FIXED,alt:'555 7777 777 9999'},
+  {cat:'13579',pat:'1111 333 5555 DDD',sr:[1,1],val:25,concealed:false,num:NUM_MODES.FIXED,alt:'5555 777 9999 DDD'},
+  {cat:'13579',pat:'FFFF 1111 9999 10',sr:[2,2],val:25,concealed:false,num:NUM_MODES.FIXED,alt:null},
+  {cat:'13579',pat:'FFF 135 7777 9999',sr:[1,3],val:25,concealed:false,num:NUM_MODES.FIXED,alt:null},
+  {cat:'13579',pat:'111 333 5555 DD DD',sr:[3,3],val:25,concealed:false,num:NUM_MODES.FIXED,alt:'555 777 9999 DD DD'},
+  {cat:'13579',pat:'11 333 NEWS 333 55',sr:[2,2],val:30,concealed:false,num:NUM_MODES.FIXED,alt:'55 777 NEWS 777 99'},
+  {cat:'13579',pat:'1111 33 55 77 9999',sr:[2,2],val:30,concealed:false,num:NUM_MODES.FIXED,alt:null},
+  {cat:'13579',pat:'FF 11 33 111 333 55',sr:[3,3],val:30,concealed:true,num:NUM_MODES.FIXED,alt:'FF 55 77 555 777 99'},
+  {cat:'WINDS-DRAGONS',pat:'NNNN EEE WWW SSSS',sr:[0,0],val:25,concealed:false,num:NUM_MODES.FIXED,alt:'NNN EEEE WWWW SSS'},
+  {cat:'WINDS-DRAGONS',pat:'FF 123 DD DDD DDDD',sr:[1,1],val:25,concealed:false,num:NUM_MODES.CONSEC3,alt:null},
+  {cat:'WINDS-DRAGONS',pat:'FFF NN EE WWW SSSS',sr:[0,0],val:25,concealed:false,num:NUM_MODES.FIXED,alt:null},
+  {cat:'WINDS-DRAGONS',pat:'FFFF DDD NEWS DDD',sr:[0,0],val:25,concealed:false,num:NUM_MODES.FIXED,alt:null},
+  {cat:'WINDS-DRAGONS',pat:'NNNN 1 11 111 SSSS',sr:[3,3],val:25,concealed:false,num:NUM_MODES.LIKE,alt:null},
+  {cat:'WINDS-DRAGONS',pat:'EEEE 2 22 222 WWWW',sr:[3,3],val:25,concealed:false,num:NUM_MODES.LIKE,alt:null},
+  {cat:'WINDS-DRAGONS',pat:'NN EEE WWW SS 2025',sr:[1,1],val:30,concealed:false,num:NUM_MODES.FIXED,alt:'NNN EE WW SSS 2025'},
+  {cat:'WINDS-DRAGONS',pat:'NN EE WWW SSS DDDD',sr:[0,0],val:30,concealed:true,num:NUM_MODES.FIXED,alt:null},
+  {cat:'369',pat:'333 6666 666 9999',sr:[2,3],val:25,concealed:false,num:NUM_MODES.FIXED,alt:null},
+  {cat:'369',pat:'FF 3333 6666 9999',sr:[1,3],val:25,concealed:false,num:NUM_MODES.FIXED,alt:null},
+  {cat:'369',pat:'3333 DDD 3333 DDD',sr:[2,2],val:25,concealed:false,num:NUM_MODES.FIXED,alt:null},
+  {cat:'369',pat:'FFF 3333 369 9999',sr:[2,2],val:25,concealed:false,num:NUM_MODES.FIXED,alt:null},
+  {cat:'369',pat:'33 66 99 3333 3333',sr:[3,3],val:25,concealed:false,num:NUM_MODES.FIXED,alt:null},
+  {cat:'369',pat:'FF 333 D 666 D 999 D',sr:[3,3],val:30,concealed:true,num:NUM_MODES.FIXED,alt:null},
+  {cat:'SINGLES & PAIRS',pat:'NN EW SS 11 22 33 44',sr:[1,1],val:50,concealed:true,num:NUM_MODES.CONSEC4,alt:null},
+  {cat:'SINGLES & PAIRS',pat:'FF 2468 DD 2468 DD',sr:[2,2],val:50,concealed:true,num:NUM_MODES.FIXED,alt:null},
+  {cat:'SINGLES & PAIRS',pat:'336699 336699 33',sr:[3,3],val:50,concealed:true,num:NUM_MODES.FIXED,alt:null},
+  {cat:'SINGLES & PAIRS',pat:'FF 11 22 11 22 11 22',sr:[3,3],val:50,concealed:true,num:NUM_MODES.CONSEC2,alt:null},
+  {cat:'SINGLES & PAIRS',pat:'11 33 55 77 99 11 11',sr:[3,3],val:50,concealed:true,num:NUM_MODES.FIXED,alt:null},
+  {cat:'SINGLES & PAIRS',pat:'FF 2025 2025 2025',sr:[3,3],val:75,concealed:true,num:NUM_MODES.FIXED,alt:null},
+];
+
+function parseGroups(pat) {
+  const clean = pat.replace(/[+=]/g, '');
+  const tokens = clean.split(/\s+/);
+  const groups = [];
+  for (const tok of tokens) {
+    const chars = [...tok];
+    const tokenHasMixed = chars.some(c => c !== chars[0]);
+    let i = 0;
+    while (i < chars.length) {
+      const ch = chars[i]; let count = 0;
+      while (i < chars.length && chars[i] === ch) { count++; i++; }
+      const value = (ch >= '0' && ch <= '9') ? parseInt(ch) : null;
+      const kind = tokenHasMixed ? GROUP_KIND.MIXED : GROUP_KIND.LIKE;
+      groups.push({ ch, count, value, kind });
+    }
+  }
+  return groups;
+}
+function getSuitPerms(minSuits, maxSuits) {
+  const results = []; const seen = new Set();
+  for (const a of SUITS) for (const b of SUITS) for (const c of SUITS) {
+    const distinct = new Set([a, b, c]).size;
+    if (distinct >= minSuits && distinct <= maxSuits) {
+      const key = `${a},${b},${c}`;
+      if (!seen.has(key)) { seen.add(key); results.push([a, b, c]); }
+    }
+  }
+  return results;
+}
+function getOffsets(groups, numMode) {
+  if (numMode === NUM_MODES.FIXED) return [0];
+  const digits = groups.filter(g => g.ch >= '1' && g.ch <= '9').map(g => parseInt(g.ch));
+  if (digits.length === 0) return [0];
+  const minD = Math.min(...digits), maxD = Math.max(...digits);
+  if (numMode === NUM_MODES.LIKE) return Array.from({ length: 9 }, (_, i) => (i + 1) - minD);
+  const offsets = [];
+  for (let o = 1 - minD; o <= 9 - maxD; o++) offsets.push(o);
+  return offsets.length > 0 ? offsets : [0];
+}
+function applyOffset(groups, offset) {
+  return groups.map(g => {
+    if (g.ch >= '1' && g.ch <= '9') {
+      const nv = parseInt(g.ch) + offset;
+      if (nv < 1 || nv > 9) return null;
+      return { ...g, ch: String(nv), value: nv };
+    }
+    return { ...g };
+  });
+}
+function compileGroup(g, suitSlotCounter) {
+  const canJoker = g.count >= 3 && g.kind === GROUP_KIND.LIKE;
+  switch (g.ch) {
+    case 'F': return { indices: Array.from({length:8},(_,i)=>34+i), count:g.count, canJoker, suitSlot:null, digitValue:0 };
+    case 'D': return { indices:[31,32,33], count:g.count, canJoker, suitSlot:null, digitValue:0 };
+    case 'N': return { indices:[27], count:g.count, canJoker, suitSlot:null, digitValue:0 };
+    case 'E': return { indices:[28], count:g.count, canJoker, suitSlot:null, digitValue:0 };
+    case 'S': return { indices:[29], count:g.count, canJoker, suitSlot:null, digitValue:0 };
+    case 'W': return { indices:[30], count:g.count, canJoker, suitSlot:null, digitValue:0 };
+    case '0': return { indices:[33], count:g.count, canJoker, suitSlot:null, digitValue:0 };
+    default:
+      if (g.ch >= '1' && g.ch <= '9') {
+        const val = g.value || parseInt(g.ch);
+        const slot = suitSlotCounter.value; suitSlotCounter.value++;
+        return { indices:[], count:g.count, canJoker, suitSlot:slot%3, digitValue:val };
+      }
+      return { indices:[], count:g.count, canJoker, suitSlot:null, digitValue:0 };
+  }
+}
+function resolveSuitedIndex(digitValue, suit) {
+  const off = suit === 'crak' ? 0 : suit === 'bam' ? 9 : 18;
+  return off + (digitValue - 1);
+}
+function buildColorGroups(pat, groups) {
+  const clean = pat.replace(/[+=]/g, '');
+  const tokens = clean.split(/\s+/);
+  const colorGroups = []; let groupIdx = 0;
+  for (const tok of tokens) {
+    const chars = [...tok]; let i = 0;
+    while (i < chars.length) {
+      const ch = chars[i]; const start = i;
+      while (i < chars.length && chars[i] === ch) i++;
+      if (groupIdx < groups.length) {
+        colorGroups.push({ text: chars.slice(start, i).join(''), suitSlot: groups[groupIdx].suitSlot, ch });
+        groupIdx++;
+      }
+    }
+  }
+  return colorGroups;
+}
+function compileHands() {
+  const compiled = [];
+  for (const h of RAW_HANDS) {
+    const patterns = h.alt ? [h.pat, h.alt] : [h.pat];
+    for (const pat of patterns) {
+      const parsed = parseGroups(pat);
+      const offsets = getOffsets(parsed, h.num);
+      for (const off of offsets) {
+        const mapped = applyOffset(parsed, off);
+        if (mapped.some(g => g === null)) continue;
+        const total = mapped.reduce((sum, g) => sum + g.count, 0);
+        if (total !== 14) continue;
+        const ssc = { value: 0 };
+        const groups = mapped.map(g => compileGroup(g, ssc));
+        const numSuited = groups.filter(g => g.suitSlot !== null).length;
+        const suitPerms = numSuited > 0 ? getSuitPerms(h.sr[0], h.sr[1]) : [['crak','crak','crak']];
+        const colorGroups = buildColorGroups(pat, groups);
+        compiled.push({ cat:h.cat, display:pat, value:h.val, concealed:h.concealed, groups, suitPerms, numSuitedGroups:numSuited, colorGroups });
+      }
+    }
+  }
+  return compiled;
+}
+function distWithSuits(groups, inv, jokers, suitPerm, bestSoFar) {
+  let jokersLeft = jokers, needed = 0;
+  for (const g of groups) {
+    let have = 0;
+    if (g.suitSlot !== null) {
+      const idx = resolveSuitedIndex(g.digitValue, suitPerm[g.suitSlot]);
+      const uc = Math.min(inv[idx], g.count); have = uc; inv[idx] -= uc;
+    } else {
+      for (const idx of g.indices) {
+        const uc = Math.min(inv[idx], g.count - have); have += uc; inv[idx] -= uc;
+        if (have >= g.count) break;
+      }
+    }
+    const deficit = g.count - have;
+    if (deficit > 0) {
+      if (g.canJoker) { const ju = Math.min(deficit, jokersLeft); jokersLeft -= ju; needed += deficit - ju; }
+      else needed += deficit;
+    }
+    if (needed >= bestSoFar) return needed;
+  }
+  return needed;
+}
+function computeDistanceFast(hand, inv, jokers) {
+  let best = 99;
+  for (const perm of hand.suitPerms) {
+    const ic = new Uint8Array(inv);
+    const d = distWithSuits(hand.groups, ic, jokers, perm, best);
+    if (d < best) { best = d; if (best === 0) return 0; }
+  }
+  return best;
+}
+function evaluateHand(tileIds, compiledHands) {
+  const inv = new Uint8Array(TILE_INDEX_COUNT); let jokers = 0;
+  for (const id of tileIds) {
+    if (id === 'joker') jokers++;
+    else { const idx = ALL_TILES_INDEX[id]; if (idx !== undefined) inv[idx]++; }
+  }
+  const results = [];
+  for (const h of compiledHands) {
+    const dist = computeDistanceFast(h, inv, jokers);
+    results.push({ cat:h.cat, display:h.display, value:h.value, concealed:h.concealed, distance:dist, colorGroups:h.colorGroups });
+  }
+  results.sort((a, b) => a.distance - b.distance);
+  const seen = new Set(), deduped = [];
+  for (const r of results) { const key = `${r.cat}|${r.display}`; if (!seen.has(key)) { seen.add(key); deduped.push(r); } }
+  return deduped.slice(0, 15);
+}
+
+// =====================================================================
+// app.js — UI Controller
+// =====================================================================
+const state = { hand: [], tileCounts: {}, compiledHands: null };
+const pickerEl = document.getElementById('tile-picker');
+const handTilesEl = document.getElementById('hand-tiles');
+const handCountEl = document.getElementById('hand-count');
+const btnClear = document.getElementById('btn-clear');
+const resultsEl = document.getElementById('results-container');
+const confettiCanvas = document.getElementById('confetti-canvas');
+
+function init() {
+  state.compiledHands = compileHands();
+  console.log(`Compiled ${state.compiledHands.length} hand variations`);
+  renderTilePicker();
+  btnClear.addEventListener('click', clearHand);
+}
+function renderTilePicker() {
+  pickerEl.innerHTML = '';
+  for (const category of TILE_CATEGORIES) {
+    const section = document.createElement('div'); section.className = 'picker-section';
+    const suitClass = getSuitClass(category.name);
+    section.innerHTML = `<div class="section-label ${suitClass}">${category.name}</div>`;
+    const isFlowerLike = ['Flowers','Seasons'].includes(category.name);
+    const grid = document.createElement('div');
+    grid.className = `tile-grid${isFlowerLike ? ' flowers-grid' : ''}`;
+    for (const tileId of category.tiles) {
+      const display = TILE_DISPLAY[tileId];
+      const btn = document.createElement('button');
+      btn.className = 'tile-btn'; btn.id = `picker-${tileId}`;
+      btn.setAttribute('data-tile', tileId); btn.setAttribute('data-suit', display.suit);
+      btn.innerHTML = `<span class="tile-emoji">${display.emoji}</span><span class="tile-label">${display.label}</span><span class="tile-count-badge" id="badge-${tileId}">0</span>`;
+      btn.addEventListener('click', () => addTile(tileId));
+      grid.appendChild(btn);
+    }
+    section.appendChild(grid); pickerEl.appendChild(section);
+  }
+}
+function getSuitClass(name) {
+  return {Crak:'crak',Bam:'bam',Dot:'dot',Winds:'wind',Dragons:'dragon',Flowers:'flower',Seasons:'season',Joker:'joker'}[name]||'';
+}
+function addTile(tileId) {
+  if (state.hand.length >= 14) return;
+  const cc = state.tileCounts[tileId] || 0;
+  if (cc >= maxCopies(tileId)) return;
+  state.hand.push(tileId); state.tileCounts[tileId] = cc + 1; updateUI();
+}
+function removeTile(index) {
+  const tileId = state.hand[index];
+  state.hand.splice(index, 1);
+  state.tileCounts[tileId] = (state.tileCounts[tileId] || 1) - 1;
+  if (state.tileCounts[tileId] <= 0) delete state.tileCounts[tileId];
+  updateUI();
+}
+function clearHand() { state.hand = []; state.tileCounts = {}; updateUI(); }
+function updateUI() { updateHandBar(); updatePickerBadges(); updateResults(); }
+function updateHandBar() {
+  const count = state.hand.length;
+  const cEl = handCountEl.querySelector('.count-num'); cEl.textContent = count;
+  handCountEl.className = `hand-count${count === 14 ? ' complete' : ''}`;
+  btnClear.style.display = count > 0 ? '' : 'none';
+  if (count === 0) { handTilesEl.innerHTML = '<span class="hand-empty-text">Tap tiles above to add them to your hand</span>'; return; }
+  handTilesEl.innerHTML = '';
+  state.hand.forEach((tileId, idx) => {
+    const display = TILE_DISPLAY[tileId];
+    const el = document.createElement('div'); el.className = 'hand-tile';
+    el.innerHTML = `<span class="tile-emoji">${display.emoji}</span><span class="tile-label">${display.label}</span>`;
+    el.addEventListener('click', () => removeTile(idx)); handTilesEl.appendChild(el);
+  });
+}
+function updatePickerBadges() {
+  for (const category of TILE_CATEGORIES) for (const tileId of category.tiles) {
+    const count = state.tileCounts[tileId] || 0;
+    const badge = document.getElementById(`badge-${tileId}`);
+    const btn = document.getElementById(`picker-${tileId}`);
+    if (badge) { badge.textContent = count; badge.className = `tile-count-badge${count > 0 ? ' visible' : ''}`; }
+    if (btn) { btn.className = `tile-btn${(count >= maxCopies(tileId) || state.hand.length >= 14) ? ' disabled' : ''}`; }
+  }
+}
+let previousMahjong = false;
+function updateResults() {
+  if (state.hand.length < 14) {
+    const rem = 14 - state.hand.length;
+    resultsEl.innerHTML = state.hand.length === 0
+      ? `<div class="waiting-state"><div class="icon">🀄</div><p>Select <strong>14 tiles</strong> to see your closest hand matches</p></div>`
+      : `<div class="waiting-state"><div class="icon">✋</div><p><strong>${rem}</strong> more tile${rem > 1 ? 's' : ''} needed</p></div>`;
+    previousMahjong = false; return;
+  }
+  const results = evaluateHand(state.hand, state.compiledHands);
+  const hasMahjong = results.length > 0 && results[0].distance === 0;
+  let html = '';
+  if (hasMahjong && !previousMahjong) {
+    html += `<div class="mahjong-banner"><h2>🎊 MAHJONG! 🎊</h2><p>Your hand matches a winning pattern!</p></div>`;
+    launchConfetti();
+  }
+  previousMahjong = hasMahjong;
+  html += `<div class="results-header"><span class="sparkle">✨</span> Top Hand Matches</div>`;
+  results.forEach((r, i) => {
+    const distClass = r.distance === 0 ? 'dist-0' : r.distance <= 3 ? 'dist-low' : r.distance <= 6 ? 'dist-mid' : 'dist-high';
+    const isMahjong = r.distance === 0;
+    const distLabel = isMahjong ? '✓ MATCH' : `${r.distance} away`;
+    html += `<div class="result-card${isMahjong?' mahjong':''}" style="--i:${i}"><div class="result-top"><div><div class="result-category">${r.cat}</div><div class="result-pattern">${formatPattern(r)}</div></div></div><div class="result-meta"><span class="badge badge-distance ${distClass}">${distLabel}</span><span class="badge badge-value">${r.value} pts</span>${r.concealed?'<span class="badge badge-concealed">🔒 Concealed</span>':''}</div></div>`;
+  });
+  resultsEl.innerHTML = html;
+}
+function formatPattern(result) {
+  const SUIT_COLORS = ['#e2e8f0', '#4ade80', '#f87171'];
+  if (!result.colorGroups || result.colorGroups.length === 0) return result.display;
+  let html = '';
+  for (let i = 0; i < result.colorGroups.length; i++) {
+    const g = result.colorGroups[i];
+    const color = g.suitSlot !== null ? SUIT_COLORS[g.suitSlot % 3] : '#e2e8f0';
+    if (i > 0) html += ' ';
+    html += `<span style="color:${color}">${g.text}</span>`;
+  }
+  return html;
+}
+function launchConfetti() {
+  const canvas = confettiCanvas, ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  const particles = [];
+  const colors = ['#4ade80','#f87171','#38bdf8','#fbbf24','#c084fc','#fb923c'];
+  const emojis = ['🀄','🀅','🀆','🎊','✨','🏆'];
+  for (let i = 0; i < 80; i++) particles.push({
+    x:Math.random()*canvas.width, y:-20-Math.random()*200,
+    vx:(Math.random()-0.5)*6, vy:Math.random()*4+2,
+    size:Math.random()*8+4, color:colors[Math.floor(Math.random()*colors.length)],
+    rotation:Math.random()*360, rotSpeed:(Math.random()-0.5)*10,
+    type:Math.random()>0.7?'emoji':'rect', emoji:emojis[Math.floor(Math.random()*emojis.length)], opacity:1
+  });
+  let frame = 0;
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height); let alive = false;
+    for (const p of particles) {
+      p.x += p.vx; p.vy += 0.1; p.y += p.vy; p.rotation += p.rotSpeed;
+      if (frame > 60) p.opacity -= 0.015;
+      if (p.opacity <= 0 || p.y > canvas.height + 50) continue;
+      alive = true; ctx.save(); ctx.globalAlpha = Math.max(0, p.opacity);
+      ctx.translate(p.x, p.y); ctx.rotate(p.rotation * Math.PI / 180);
+      if (p.type === 'emoji') { ctx.font = `${p.size*2}px serif`; ctx.fillText(p.emoji, 0, 0); }
+      else { ctx.fillStyle = p.color; ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size*0.6); }
+      ctx.restore();
+    }
+    frame++;
+    if (alive && frame < 200) requestAnimationFrame(animate);
+    else ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+  requestAnimationFrame(animate);
+}
+init();
+</script>
+</body>
+</html>
