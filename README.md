@@ -32,5 +32,7 @@
 
 ## Mahjong 
 
-[American Mahjong Game](https://ev-bro.github.io/gpt-html/american_mahjong.html)
-[2025 Card](https://ev-bro.github.io/gpt-html/mahjong_card.html)
+[American Mahjong Game](https://ev-bro.github.io/gpt-html/american_mahjong.html)  
+[2025 Card](https://ev-bro.github.io/gpt-html/mahjong_card.html)  
+[Mahjong Helper](https://ev-bro.github.io/gpt-html/mahjong-standalone.html)  
+
